@@ -1,0 +1,11 @@
+TEAM_ID=
+
+PRODUCT_NAME=asktransport-cmp
+PRODUCT_BUNDLE_IDENTIFIER=org.noztek.esktransport.asktransport-cmp$(TEAM_ID)
+
+CURRENT_PROJECT_VERSION=1
+MARKETING_VERSION=1.0
+
+PUSHER_APP_KEY=4a45ef7adcd24550125c
+PUSHER_APP_CLUSTER=ap1
+PUSHER_AUTH_ENDPOINT=https:/$()/eskt.dnocturnals.tech/broadcasting/auth

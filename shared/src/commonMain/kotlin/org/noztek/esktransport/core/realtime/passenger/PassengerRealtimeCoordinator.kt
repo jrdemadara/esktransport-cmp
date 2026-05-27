@@ -1,0 +1,10 @@
+package org.noztek.esktransport.core.realtime.passenger
+
+import kotlinx.coroutines.flow.SharedFlow
+import org.noztek.esktransport.core.realtime.model.PassengerDriverAssignedEvent
+
+interface PassengerRealtimeCoordinator {
+    fun subscribePassengerDriverAssigned()
+    fun unsubscribePassengerDriverAssigned()
+    fun passengerDriverAssigned(): SharedFlow<PassengerDriverAssignedEvent>
+}

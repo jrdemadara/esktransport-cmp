@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CADisableMinimumFrameDurationOnPhone</key>
+	<true/>
+	<key>MBXAccessToken</key>
+	<string>pk.eyJ1Ijoiam9obm55cm9nZXJzIiwiYSI6ImNtYW5jNGRlcjBzZjEyaXM0bXRuaXE3eDIifQ.9Sl7B33OcqBAHXUiXGAveA</string>
+	<key>PusherAppCluster</key>
+	<string>$(PUSHER_APP_CLUSTER)</string>
+	<key>PusherAppKey</key>
+	<string>$(PUSHER_APP_KEY)</string>
+	<key>PusherAuthEndpoint</key>
+	<string>$(PUSHER_AUTH_ENDPOINT)</string>
+</dict>
+</plist>
