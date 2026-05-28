@@ -36,7 +36,7 @@ import org.noztek.esktransport.feature.passenger.trip_tracking.presentation.Trip
 val passengerModule = module {
     single<LocationRepository> { LocationRepositoryImpl(currentLocationProvider = get()) }
     single<PlaceSearchRepository> { PlaceSearchRepositoryImpl() }
-    single<ReverseGeocodeRepository> { ReverseGeocodeRepositoryImpl() }
+    single<ReverseGeocodeRepository> { ReverseGeocodeRepositoryImpl(client = get(), mapboxConfig = get()) }
     single { GetCurrentLocationUseCase(locationRepository = get()) }
     single { SearchPlacesUseCase(placeSearchRepository = get()) }
     single { ResolveTapLabelUseCase(reverseGeocodeRepository = get()) }

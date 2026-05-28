@@ -9,15 +9,20 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import com.mapbox.common.MapboxOptions
+import com.mapbox.android.gestures.MoveGestureDetector
 import com.mapbox.geojson.Point
+import com.mapbox.maps.extension.compose.MapEffect
 import com.mapbox.maps.extension.compose.MapboxMap
 import com.mapbox.maps.extension.compose.animation.viewport.rememberMapViewportState
 import com.mapbox.maps.extension.compose.annotation.generated.CircleAnnotation
 import com.mapbox.maps.extension.compose.annotation.generated.PolylineAnnotation
 import com.mapbox.maps.extension.compose.style.MapStyle
+import com.mapbox.maps.plugin.gestures.OnMoveListener
+import com.mapbox.maps.plugin.gestures.gestures
 
 @Composable
 actual fun PlatformMapView(
@@ -27,6 +32,8 @@ actual fun PlatformMapView(
     cameraDefaults: MapCameraDefaults,
     markers: List<MapMarker>,
     routeLines: List<MapRouteLine>,
+    onCameraMoving: ((MapPoint) -> Unit)?,
+    onCameraIdle: ((MapPoint) -> Unit)?,
 ) {
     if (!config.hasAccessToken) {
         MissingMapToken(modifier = modifier)
@@ -55,12 +62,36 @@ actual fun PlatformMapView(
         }
     }
     val adaptiveStyle = if (isSystemInDarkTheme()) MapboxStyle.DARK else MapboxStyle.LIGHT
+    val currentOnCameraMoving = rememberUpdatedState(onCameraMoving)
+    val currentOnCameraIdle = rememberUpdatedState(onCameraIdle)
 
     MapboxMap(
         modifier = modifier,
         mapViewportState = viewportState,
         style = { MapStyle(style = adaptiveStyle.uri) },
     ) {
+        MapEffect(Unit) { mapView ->
+            val moveListener = object : OnMoveListener {
+                override fun onMoveBegin(detector: MoveGestureDetector) {
+                    val center = mapView.mapboxMap.cameraState.center
+                    currentOnCameraMoving.value?.invoke(MapPoint(center.latitude(), center.longitude()))
+                }
+
+                override fun onMove(detector: MoveGestureDetector): Boolean = false
+
+                override fun onMoveEnd(detector: MoveGestureDetector) {
+                    val center = mapView.mapboxMap.cameraState.center
+                    currentOnCameraIdle.value?.invoke(MapPoint(center.latitude(), center.longitude()))
+                }
+            }
+            mapView.gestures.addOnMoveListener(moveListener)
+            try {
+                kotlinx.coroutines.awaitCancellation()
+            } finally {
+                mapView.gestures.removeOnMoveListener(moveListener)
+            }
+        }
+
         routeLines.forEach { routeLine ->
             val points = remember(routeLine.points) {
                 routeLine.points.map(MapPoint::toPoint)

@@ -180,7 +180,11 @@ private fun LocationTextBlock(
             Text(label, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelLarge)
             Text(
                 value,
-                color = if (value == "My Current Location") MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                color = if (value == "My Current Location" || value == "Where to?") {
+                    MaterialTheme.colorScheme.primary
+                } else {
+                    MaterialTheme.colorScheme.onSurface
+                },
                 style = MaterialTheme.typography.titleLarge.copy(fontSize = 18.sp),
                 fontWeight = FontWeight.Medium,
                 modifier = Modifier.clickable(onClick = onClick),

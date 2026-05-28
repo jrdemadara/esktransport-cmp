@@ -21,10 +21,12 @@ actual fun PlatformMapView(
     cameraDefaults: MapCameraDefaults,
     markers: List<MapMarker>,
     routeLines: List<MapRouteLine>,
+    onCameraMoving: ((MapPoint) -> Unit)?,
+    onCameraIdle: ((MapPoint) -> Unit)?,
 ) {
     if (config.hasAccessToken) {
         val adaptiveStyle = if (isSystemInDarkTheme()) MapboxStyle.DARK else MapboxStyle.LIGHT
-        val request = remember(config, adaptiveStyle, cameraCenter, cameraDefaults) {
+        val request = remember(config, adaptiveStyle, cameraCenter, cameraDefaults, onCameraMoving, onCameraIdle) {
             IosMapboxViewRequest(
                 accessToken = config.accessToken,
                 styleUri = adaptiveStyle.uri,
@@ -33,6 +35,8 @@ actual fun PlatformMapView(
                 zoom = cameraDefaults.zoom,
                 pitch = cameraDefaults.pitch,
                 bearing = cameraDefaults.bearing,
+                onCameraMoving = onCameraMoving,
+                onCameraIdle = onCameraIdle,
             )
         }
 

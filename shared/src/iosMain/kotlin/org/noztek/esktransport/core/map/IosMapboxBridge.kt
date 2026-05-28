@@ -10,6 +10,8 @@ class IosMapboxViewRequest(
     val zoom: Double,
     val pitch: Double,
     val bearing: Double,
+    val onCameraMoving: ((MapPoint) -> Unit)?,
+    val onCameraIdle: ((MapPoint) -> Unit)?,
 )
 
 interface IosMapboxViewFactory {

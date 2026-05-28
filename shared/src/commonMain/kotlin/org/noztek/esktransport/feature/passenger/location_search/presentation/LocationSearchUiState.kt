@@ -9,4 +9,5 @@ data class LocationSearchUiState(
     val tappedLocationLabel: String? = null,
     val currentLocationPoint: GeoPoint? = null,
     val selectedPoint: GeoPoint? = null,
+    val isMapMoving: Boolean = false,
 )
