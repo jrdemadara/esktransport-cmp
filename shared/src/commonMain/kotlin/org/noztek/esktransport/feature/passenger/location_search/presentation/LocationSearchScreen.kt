@@ -73,16 +73,18 @@ fun LocationSearchScreen(
                 placeholder = { Text("Search location") },
                 singleLine = true,
             )
-            LazyColumn(modifier = Modifier.fillMaxWidth().height(120.dp)) {
-                items(state.suggestions) { suggestion ->
-                    Text(
-                        text = suggestion.label,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { viewModel.onSuggestionSelected(suggestion) }
-                            .padding(vertical = 10.dp),
-                        style = MaterialTheme.typography.bodyLarge,
-                    )
+            if (state.suggestions.isNotEmpty()) {
+                LazyColumn(modifier = Modifier.fillMaxWidth().height(120.dp)) {
+                    items(state.suggestions) { suggestion ->
+                        Text(
+                            text = suggestion.label,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { viewModel.onSuggestionSelected(suggestion) }
+                                .padding(vertical = 10.dp),
+                            style = MaterialTheme.typography.bodyLarge,
+                        )
+                    }
                 }
             }
         }

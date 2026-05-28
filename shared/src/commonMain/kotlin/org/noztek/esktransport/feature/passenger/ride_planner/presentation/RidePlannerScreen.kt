@@ -35,8 +35,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.composables.icons.lucide.Locate
 import com.composables.icons.lucide.LocateFixed
 import com.composables.icons.lucide.Lucide
+import com.composables.icons.lucide.Map
 import com.composables.icons.lucide.MapPin
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -141,6 +143,7 @@ private fun PickupDestinationPanel(
                     value = pickupLocation.ifBlank { "My Current Location" },
                     onClick = if (pickupLocation.isBlank()) onUseCurrentLocationClick else onPickupClick,
                     actionIcon = pickupLocation.isBlank(),
+                    onActionIconClick = onPickupClick,
                 )
                 Spacer(modifier = Modifier.height(28.dp))
                 LocationTextBlock(
@@ -148,6 +151,7 @@ private fun PickupDestinationPanel(
                     value = destinationLocation.ifBlank { "Where to?" },
                     onClick = onDestinationClick,
                     actionIcon = false,
+                    onActionIconClick = onDestinationClick,
                 )
             }
         }
@@ -164,21 +168,34 @@ private fun LocationIcon() {
 }
 
 @Composable
-private fun LocationTextBlock(label: String, value: String, onClick: () -> Unit, actionIcon: Boolean) {
+private fun LocationTextBlock(
+    label: String,
+    value: String,
+    onClick: () -> Unit,
+    actionIcon: Boolean,
+    onActionIconClick: () -> Unit,
+) {
     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
         Column(modifier = Modifier.weight(1f)) {
             Text(label, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelLarge)
             Text(
                 value,
                 color = if (value == "My Current Location") MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
-                style = MaterialTheme.typography.titleLarge.copy(fontSize = 20.sp),
+                style = MaterialTheme.typography.titleLarge.copy(fontSize = 18.sp),
                 fontWeight = FontWeight.Medium,
                 modifier = Modifier.clickable(onClick = onClick),
             )
         }
         if (actionIcon) {
             Spacer(modifier = Modifier.width(8.dp))
-            Icon(Lucide.LocateFixed, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(22.dp))
+            Icon(
+                Lucide.Map,
+                contentDescription = "Search pickup location",
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier
+                    .size(22.dp)
+                    .clickable(onClick = onActionIconClick),
+            )
         }
     }
 }

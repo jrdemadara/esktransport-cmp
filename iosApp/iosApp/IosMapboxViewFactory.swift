@@ -17,6 +17,10 @@ final class IosMapboxViewFactory: NSObject, Shared.IosMapboxViewFactory {
     func updateMapView(view: UIView, request: IosMapboxViewRequest) {
         guard let mapView = view as? MapView else { return }
         MapboxOptions.accessToken = request.accessToken
+        let styleURI = StyleURI(rawValue: request.styleUri) ?? .standard
+        if mapView.mapboxMap.styleURI != styleURI {
+            mapView.mapboxMap.loadStyle(styleURI)
+        }
         applyCamera(to: mapView, request: request)
     }
 

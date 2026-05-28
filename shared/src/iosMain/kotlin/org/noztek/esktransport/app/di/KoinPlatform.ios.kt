@@ -1,6 +1,8 @@
 package org.noztek.esktransport.app.di
 
 import org.koin.dsl.module
+import org.noztek.esktransport.core.location.CurrentLocationProvider
+import org.noztek.esktransport.core.location.IosCurrentLocationProvider
 import org.noztek.esktransport.core.map.MapboxConfig
 import org.noztek.esktransport.core.network.NetworkConfig
 import org.noztek.esktransport.core.realtime.RealtimeConfig
@@ -44,6 +46,7 @@ actual fun initKoinPlatform(context: PlatformKoinContext) {
                 single { createPlatformSettings(context) }
                 single { context.realtimeConfig }
                 single { context.mapboxConfig }
+                single<CurrentLocationProvider> { IosCurrentLocationProvider() }
             }
         )
     )

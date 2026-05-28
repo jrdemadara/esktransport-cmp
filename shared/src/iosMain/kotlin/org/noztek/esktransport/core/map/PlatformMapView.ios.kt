@@ -1,6 +1,7 @@
 package org.noztek.esktransport.core.map
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
@@ -22,10 +23,11 @@ actual fun PlatformMapView(
     routeLines: List<MapRouteLine>,
 ) {
     if (config.hasAccessToken) {
-        val request = remember(config, cameraCenter, cameraDefaults) {
+        val adaptiveStyle = if (isSystemInDarkTheme()) MapboxStyle.DARK else MapboxStyle.LIGHT
+        val request = remember(config, adaptiveStyle, cameraCenter, cameraDefaults) {
             IosMapboxViewRequest(
                 accessToken = config.accessToken,
-                styleUri = config.defaultStyle.uri,
+                styleUri = adaptiveStyle.uri,
                 latitude = cameraCenter.latitude,
                 longitude = cameraCenter.longitude,
                 zoom = cameraDefaults.zoom,

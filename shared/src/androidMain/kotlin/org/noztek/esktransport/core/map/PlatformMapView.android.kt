@@ -1,6 +1,7 @@
 package org.noztek.esktransport.core.map
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
@@ -53,11 +54,12 @@ actual fun PlatformMapView(
             bearing(cameraDefaults.bearing)
         }
     }
+    val adaptiveStyle = if (isSystemInDarkTheme()) MapboxStyle.DARK else MapboxStyle.LIGHT
 
     MapboxMap(
         modifier = modifier,
         mapViewportState = viewportState,
-        style = { MapStyle(style = config.defaultStyle.uri) },
+        style = { MapStyle(style = adaptiveStyle.uri) },
     ) {
         routeLines.forEach { routeLine ->
             val points = remember(routeLine.points) {

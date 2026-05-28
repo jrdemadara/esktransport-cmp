@@ -34,7 +34,7 @@ import org.noztek.esktransport.feature.passenger.trip_tracking.domain.usecase.Tr
 import org.noztek.esktransport.feature.passenger.trip_tracking.presentation.TripTrackingViewModel
 
 val passengerModule = module {
-    single<LocationRepository> { LocationRepositoryImpl() }
+    single<LocationRepository> { LocationRepositoryImpl(currentLocationProvider = get()) }
     single<PlaceSearchRepository> { PlaceSearchRepositoryImpl() }
     single<ReverseGeocodeRepository> { ReverseGeocodeRepositoryImpl() }
     single { GetCurrentLocationUseCase(locationRepository = get()) }
@@ -50,7 +50,7 @@ val passengerModule = module {
     }
 
     single<RidePlannerRepository> { RidePlannerRepositoryImpl(api = get(), mapboxDirectionsClient = get()) }
-    single<CurrentLocationRepository> { CurrentLocationRepositoryImpl() }
+    single<CurrentLocationRepository> { CurrentLocationRepositoryImpl(currentLocationProvider = get()) }
     single { RidePlannerApi(client = get(), baseUrl = get(named(API_BASE_URL_QUALIFIER))) }
     single { GetNearbyDriversUseCase(repository = get()) }
     single { GetRouteUseCase(repository = get()) }
