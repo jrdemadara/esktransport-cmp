@@ -10,6 +10,10 @@ class IosMapboxViewRequest(
     val zoom: Double,
     val pitch: Double,
     val bearing: Double,
+    val routePoints: List<MapPoint>,
+    val antPathEnabled: Boolean,
+    val antPathColorHex: String,
+    val antPathWidth: Double,
     val onCameraMoving: ((MapPoint) -> Unit)?,
     val onCameraIdle: ((MapPoint) -> Unit)?,
 )

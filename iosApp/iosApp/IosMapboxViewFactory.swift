@@ -8,6 +8,8 @@ final class IosMapboxViewFactory: NSObject, Shared.IosMapboxViewFactory {
         let mapView: MapView
         var panObserver: PanObserver?
         var lastCameraCenter: CLLocationCoordinate2D?
+        var antTimer: Timer?
+        var styleLoadedCancelable: Cancelable?
 
         init(mapView: MapView) {
             self.mapView = mapView
@@ -58,13 +60,17 @@ final class IosMapboxViewFactory: NSObject, Shared.IosMapboxViewFactory {
 
         let styleURI = StyleURI(rawValue: request.styleUri) ?? .standard
         let options = MapInitOptions(styleURI: styleURI)
-        let mapView = MapView(frame: .zero, mapInitOptions: options)
+        let mapView = MapView(frame: UIScreen.main.bounds, mapInitOptions: options)
         let container = MapContainerView(mapView: mapView)
         container.panObserver = PanObserver(mapView: mapView)
         if let observer = container.panObserver {
             observer.onCameraMoving = request.onCameraMoving
             observer.onCameraIdle = request.onCameraIdle
             mapView.gestures.panGestureRecognizer.addTarget(observer, action: #selector(PanObserver.handlePan(_:)))
+        }
+        container.styleLoadedCancelable = mapView.mapboxMap.onStyleLoaded.observeNext { [weak self, weak mapView, weak container] _ in
+            guard let self, let mapView, let container else { return }
+            self.applyAntPath(to: mapView, container: container, request: request)
         }
         applyCamera(to: mapView, request: request, lastCenter: nil)
         container.lastCameraCenter = CLLocationCoordinate2D(latitude: request.latitude, longitude: request.longitude)
@@ -82,7 +88,76 @@ final class IosMapboxViewFactory: NSObject, Shared.IosMapboxViewFactory {
         container.panObserver?.onCameraMoving = request.onCameraMoving
         container.panObserver?.onCameraIdle = request.onCameraIdle
         applyCamera(to: mapView, request: request, lastCenter: container.lastCameraCenter)
+        applyAntPath(to: mapView, container: container, request: request)
         container.lastCameraCenter = CLLocationCoordinate2D(latitude: request.latitude, longitude: request.longitude)
+    }
+
+    private func applyAntPath(to mapView: MapView, container: MapContainerView, request: IosMapboxViewRequest) {
+        container.antTimer?.invalidate()
+        container.antTimer = nil
+        guard request.antPathEnabled, request.routePoints.count >= 2 else { return }
+
+        let sourceId = "ios-ant-source"
+        let bgLayerId = "ios-ant-bg"
+        let dashLayerId = "ios-ant-dash"
+        let coordinates = request.routePoints.map { CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude) }
+        let line = LineString(coordinates)
+        let feature = Feature(geometry: .lineString(line))
+        let fc = FeatureCollection(features: [feature])
+
+        if mapView.mapboxMap.sourceExists(withId: sourceId) {
+            mapView.mapboxMap.updateGeoJSONSource(withId: sourceId, geoJSON: .featureCollection(fc))
+        } else {
+            var source = GeoJSONSource(id: sourceId)
+            source.data = .featureCollection(fc)
+            try? mapView.mapboxMap.addSource(source)
+        }
+
+        if mapView.mapboxMap.layerExists(withId: bgLayerId) {
+            try? mapView.mapboxMap.removeLayer(withId: bgLayerId)
+        }
+        if mapView.mapboxMap.layerExists(withId: dashLayerId) {
+            try? mapView.mapboxMap.removeLayer(withId: dashLayerId)
+        }
+
+        if !mapView.mapboxMap.layerExists(withId: bgLayerId) {
+            var bg = LineLayer(id: bgLayerId, source: sourceId)
+            bg.lineColor = .constant(StyleColor(UIColor(hex: request.antPathColorHex) ?? .yellow))
+            bg.lineWidth = .constant(request.antPathWidth)
+            bg.lineOpacity = .constant(0.0)
+            bg.lineCap = .constant(.butt)
+            bg.lineJoin = .constant(.bevel)
+            try? mapView.mapboxMap.addLayer(bg)
+        }
+        if !mapView.mapboxMap.layerExists(withId: dashLayerId) {
+            var dash = LineLayer(id: dashLayerId, source: sourceId)
+            dash.lineColor = .constant(StyleColor(UIColor(hex: request.antPathColorHex) ?? .yellow))
+            dash.lineWidth = .constant(request.antPathWidth)
+            dash.lineDasharray = .constant([0.0, 4.0, 3.0])
+            dash.lineCap = .constant(.butt)
+            dash.lineJoin = .constant(.bevel)
+            try? mapView.mapboxMap.addLayer(dash)
+        }
+
+        let sequence: [[Double]] = [
+            [0.0, 4.0, 3.0], [0.5, 4.0, 2.5], [1.0, 4.0, 2.0], [1.5, 4.0, 1.5],
+            [2.0, 4.0, 1.0], [2.5, 4.0, 0.5], [3.0, 4.0, 0.0], [0.0, 0.5, 3.0, 3.5],
+            [0.0, 1.0, 3.0, 3.0], [0.0, 1.5, 3.0, 2.5], [0.0, 2.0, 3.0, 2.0], [0.0, 2.5, 3.0, 1.5],
+            [0.0, 3.0, 3.0, 1.0], [0.0, 3.5, 3.0, 0.5]
+        ]
+        var step = 0
+        container.antTimer = Timer.scheduledTimer(withTimeInterval: 0.05, repeats: true) { [weak mapView] _ in
+            guard let mapView else { return }
+            let dashValues = sequence[step]
+            do {
+                try mapView.mapboxMap.updateLayer(withId: dashLayerId, type: LineLayer.self) { layer in
+                    layer.lineDasharray = .constant(dashValues)
+                }
+            } catch {
+                // ignore transient style/layer update errors during lifecycle changes
+            }
+            step = (step + 1) % sequence.count
+        }
     }
 
     private func applyCamera(
@@ -108,5 +183,17 @@ final class IosMapboxViewFactory: NSObject, Shared.IosMapboxViewFactory {
                 pitch: request.pitch
             )
         )
+    }
+}
+
+private extension UIColor {
+    convenience init?(hex: String) {
+        var cleaned = hex.trimmingCharacters(in: .whitespacesAndNewlines)
+        if cleaned.hasPrefix("#") { cleaned.removeFirst() }
+        guard cleaned.count == 6, let value = Int(cleaned, radix: 16) else { return nil }
+        let r = CGFloat((value >> 16) & 0xFF) / 255.0
+        let g = CGFloat((value >> 8) & 0xFF) / 255.0
+        let b = CGFloat(value & 0xFF) / 255.0
+        self.init(red: r, green: g, blue: b, alpha: 1.0)
     }
 }

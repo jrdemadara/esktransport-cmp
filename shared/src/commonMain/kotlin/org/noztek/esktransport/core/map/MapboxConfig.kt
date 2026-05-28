@@ -46,4 +46,5 @@ data class MapRouteLine(
     val points: List<MapPoint>,
     val color: Color = Color(0xFF2563EB),
     val width: Double = 5.0,
+    val animatedAntPath: Boolean = false,
 )

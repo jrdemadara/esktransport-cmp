@@ -19,8 +19,11 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SheetValue
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberBottomSheetScaffoldState
+import androidx.compose.material3.rememberStandardBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -38,12 +41,7 @@ import com.composables.icons.lucide.MapPin
 import com.composables.icons.lucide.Users
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
-import org.noztek.esktransport.core.map.MapCameraDefaults
-import org.noztek.esktransport.core.map.MapMarker
-import org.noztek.esktransport.core.map.MapPoint
-import org.noztek.esktransport.core.map.MapRouteLine
 import org.noztek.esktransport.core.map.MapboxConfig
-import org.noztek.esktransport.core.map.PlatformMapView
 import org.noztek.esktransport.feature.passenger.booking_review.domain.model.BookingReviewInput
 import kotlin.math.atan2
 import kotlin.math.cos
@@ -64,7 +62,7 @@ fun BookingReviewScreen(
     val stateInput = uiState.input ?: input
     val pickupPoint = stateInput.pickupPoint
     val destinationPoint = stateInput.destinationPoint
-    val routePoints = stateInput.routePoints.map { MapPoint(it.latitude, it.longitude) }
+    val routePoints = stateInput.routePoints
     val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(viewModel) {
@@ -98,9 +96,17 @@ fun BookingReviewScreen(
         3 -> "VAN"
         else -> "MOTORCYCLE"
     }
+    val scaffoldState = rememberBottomSheetScaffoldState(
+        bottomSheetState = rememberStandardBottomSheetState(
+            initialValue = SheetValue.Expanded,
+            skipHiddenState = true,
+        ),
+    )
 
     BottomSheetScaffold(
-        sheetPeekHeight = if (uiState.isSearchingForRider) 220.dp else 320.dp,
+        scaffoldState = scaffoldState,
+        containerColor = Color.Transparent,
+        sheetContainerColor = MaterialTheme.colorScheme.surface,
         sheetContent = {
             if (uiState.isSearchingForRider) {
                 SearchingSheet()
@@ -123,38 +129,12 @@ fun BookingReviewScreen(
                 .padding(contentPadding)
                 .padding(innerPadding),
         ) {
-            PlatformMapView(
+            BookingReviewMap(
                 modifier = Modifier.fillMaxSize(),
-                config = mapboxConfig,
-                cameraCenter = MapPoint(pickupPoint.latitude, pickupPoint.longitude),
-                cameraDefaults = MapCameraDefaults(
-                    zoom = maxZoomForDistanceKm(
-                        haversineKm(
-                            pickupPoint.latitude,
-                            pickupPoint.longitude,
-                            destinationPoint.latitude,
-                            destinationPoint.longitude,
-                        ),
-                    ),
-                    pitch = 30.0,
-                ),
-                markers = listOf(
-                    MapMarker("pickup", MapPoint(pickupPoint.latitude, pickupPoint.longitude), Color(0xFF2563EB), 8.0),
-                    MapMarker("destination", MapPoint(destinationPoint.latitude, destinationPoint.longitude), Color(0xFFEF4444), 8.0),
-                ),
-                routeLines = listOf(
-                    MapRouteLine(
-                        id = "pickup-destination",
-                        points = routePoints.ifEmpty {
-                            listOf(
-                                MapPoint(pickupPoint.latitude, pickupPoint.longitude),
-                                MapPoint(destinationPoint.latitude, destinationPoint.longitude),
-                            )
-                        },
-                        color = Color(0xFF2563EB),
-                        width = 5.0,
-                    ),
-                ),
+                mapboxConfig = mapboxConfig,
+                pickupPoint = pickupPoint,
+                destinationPoint = destinationPoint,
+                routePoints = routePoints,
             )
         }
     }
@@ -175,7 +155,7 @@ private fun SearchingSheet() {
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         CircularProgressIndicator()
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(8.dp))
     }
 }
 
@@ -192,10 +172,10 @@ private fun ReviewSheet(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Text("Review Booking", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+        Text("Review Booking", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Medium)
         TripPointRow("Pickup", pickupLocation, MaterialTheme.colorScheme.primary)
         TripPointRow("Destination", destinationLocation, Color(0xFFEF4444))
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
@@ -217,10 +197,11 @@ private fun ReviewSheet(
                 }
             }
         }
+        Spacer(modifier = Modifier.height(12.dp))
         Button(onClick = onConfirm, modifier = Modifier.fillMaxWidth(), enabled = !isCreatingBooking) {
             Text(if (isCreatingBooking) "Confirming..." else "Confirm Booking")
         }
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(12.dp))
     }
 }
 
