@@ -101,27 +101,16 @@ fun RootNavHost(
                 navController.navigate("${AuthRoute.REGISTER}/driver")
             },
         )
-        authNavGraph(navController = navController) {
-            navController.navigateRoot(authenticatedRoute)
+        authNavGraph(navController = navController) { route ->
+            navController.navigateRoot(route)
         }
         passengerNavGraph(navController)
         driverNavGraph(navController)
-        composable(RootRoute.PASSENGER) {
+        composable(DevRoute.MAP_PREVIEW) {
             MapPreviewScreen(
                 onBackClick = { navController.popBackStack() },
             )
         }
-    }
-}
-
-private fun SessionUser.authenticatedRootRoute(): String {
-    val normalizedRoles = roles.map { it.trim().lowercase() }.toSet()
-    val normalizedRole = primaryRole?.trim()?.lowercase()
-    return when {
-        normalizedRole == "driver" || normalizedRoles.contains("driver") -> RootRoute.DRIVER
-        normalizedRole == "passenger" || normalizedRole == "customer" ||
-            normalizedRoles.contains("passenger") || normalizedRoles.contains("customer") -> RootRoute.PASSENGER
-        else -> RootRoute.AUTH
     }
 }
 

@@ -38,6 +38,7 @@ kotlin {
     sourceSets {
         androidMain.dependencies {
             implementation(libs.compose.uiToolingPreview)
+            implementation(libs.androidx.activity.compose)
             implementation(libs.compose.ui.text.google.fonts)
             implementation(libs.koin.android)
             implementation(libs.ktor.client.okhttp)

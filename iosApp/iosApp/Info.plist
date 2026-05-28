@@ -6,6 +6,8 @@
 	<true/>
 	<key>MBXAccessToken</key>
 	<string>pk.eyJ1Ijoiam9obm55cm9nZXJzIiwiYSI6ImNtYW5jNGRlcjBzZjEyaXM0bXRuaXE3eDIifQ.9Sl7B33OcqBAHXUiXGAveA</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Esk Transport uses your location to show your position on the map and set pickup points.</string>
 	<key>PusherAppCluster</key>
 	<string>$(PUSHER_APP_CLUSTER)</string>
 	<key>PusherAppKey</key>

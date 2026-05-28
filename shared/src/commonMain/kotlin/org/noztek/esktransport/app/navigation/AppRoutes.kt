@@ -30,3 +30,14 @@ object DriverRoute {
 object DevRoute {
     const val MAP_PREVIEW = "dev/map_preview"
 }
+
+fun org.noztek.esktransport.core.session.domain.SessionUser.authenticatedRootRoute(): String {
+    val normalizedRoles = roles.map { it.trim().lowercase() }.toSet()
+    val normalizedRole = primaryRole?.trim()?.lowercase()
+    return when {
+        normalizedRole == "driver" || normalizedRoles.contains("driver") -> RootRoute.DRIVER
+        normalizedRole == "passenger" || normalizedRole == "customer" ||
+            normalizedRoles.contains("passenger") || normalizedRoles.contains("customer") -> RootRoute.PASSENGER
+        else -> RootRoute.AUTH
+    }
+}

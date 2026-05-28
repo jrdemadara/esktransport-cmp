@@ -1,6 +1,9 @@
 package org.noztek.esktransport.app.navigation
 
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.navigation.NavGraphBuilder
@@ -8,6 +11,8 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.composable
 import androidx.navigation.navigation
 import org.koin.compose.koinInject
+import org.noztek.esktransport.core.session.domain.SessionUser
+import org.noztek.esktransport.core.session.domain.usecase.ObserveCurrentSessionUseCase
 import org.noztek.esktransport.feature.common.forgot_password.presentation.ForgotPasswordScreen
 import org.noztek.esktransport.feature.common.login.presentation.LoginScreen
 import org.noztek.esktransport.feature.common.otp.data.local.OtpStateStore
@@ -25,13 +30,33 @@ private object AuthNavState {
 
 fun NavGraphBuilder.authNavGraph(
     navController: NavHostController,
-    onAuthenticated: () -> Unit,
+    onAuthenticated: (String) -> Unit,
 ) {
     navigation(startDestination = AuthRoute.LOGIN, route = RootRoute.AUTH) {
         composable(AuthRoute.LOGIN) {
             val otpPendingStore: OtpStateStore = koinInject()
+            val observeCurrentSessionUseCase: ObserveCurrentSessionUseCase = koinInject()
             val pendingPhone by otpPendingStore.pendingPhone.collectAsState(initial = null)
             val pendingPurpose by otpPendingStore.pendingPurpose.collectAsState(initial = null)
+            val session by observeCurrentSessionUseCase().collectAsState(
+                initial = SessionUser(
+                    userId = null,
+                    name = null,
+                    phone = null,
+                    roles = emptySet(),
+                    primaryRole = null,
+                ),
+            )
+            var waitingForSessionRoute by remember { mutableStateOf(false) }
+
+            LaunchedEffect(waitingForSessionRoute, session) {
+                if (!waitingForSessionRoute) return@LaunchedEffect
+                val route = session.authenticatedRootRoute()
+                if (session.userId != null && route != RootRoute.AUTH) {
+                    waitingForSessionRoute = false
+                    onAuthenticated(route)
+                }
+            }
 
             LaunchedEffect(pendingPhone, pendingPurpose) {
                 val phone = pendingPhone ?: return@LaunchedEffect
@@ -48,7 +73,7 @@ fun NavGraphBuilder.authNavGraph(
                     AuthNavState.registerRole = "passenger"
                     navController.navigate(AuthRoute.REGISTER)
                 },
-                onLoginSuccess = { success -> if (success) onAuthenticated() },
+                onLoginSuccess = { success -> if (success) waitingForSessionRoute = true },
                 onForgotPassword = { navController.navigate(AuthRoute.FORGOT_PASSWORD) },
             )
         }
