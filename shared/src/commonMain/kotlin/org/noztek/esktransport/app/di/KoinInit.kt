@@ -5,6 +5,7 @@ import org.koin.core.context.startKoin
 import org.koin.core.module.Module
 import org.noztek.esktransport.app.di.modules.coreModule
 import org.noztek.esktransport.app.di.modules.driverHomeModule
+import org.noztek.esktransport.app.di.modules.driverTripNavigationModule
 import org.noztek.esktransport.app.di.modules.forgotPasswordModule
 import org.noztek.esktransport.app.di.modules.loginModule
 import org.noztek.esktransport.app.di.modules.networkModule
@@ -28,6 +29,7 @@ private val appModules = listOf(
     resetPasswordModule,
     logoutModule,
     driverHomeModule,
+    driverTripNavigationModule,
     passengerModule,
 )
 

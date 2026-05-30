@@ -31,18 +31,41 @@ class BookingReviewViewModel(
 
     private val _uiEvents = MutableSharedFlow<BookingReviewUiEvent>(extraBufferCapacity = 1)
     val uiEvents: SharedFlow<BookingReviewUiEvent> = _uiEvents.asSharedFlow()
+    private var pendingBookingPublicId: String? = null
 
-    fun startRealtime(){
+    fun startRealtime() {
         viewModelScope.launch {
             realtimeCoordinator.subscribePassengerDriverAssigned()
-            realtimeCoordinator.passengerDriverAssigned().collect { event ->
-                if (event.bookingPublicId == currentDriverAssigned?.bookingPublicId) {
+            launch {
+                realtimeCoordinator.passengerDriverAssigned().collect { event ->
+                    if (event.bookingPublicId == pendingBookingPublicId) {
+                        _uiEvents.tryEmit(BookingReviewUiEvent.ShowSnackbar("Driver assigned. Waiting for acceptance..."))
+                    }
+                }
+            }
+            launch {
+                realtimeCoordinator.passengerBookingAccepted().collect { event ->
+                    println("BookingReviewVM got booking.accepted event bookingId=${event.bookingPublicId}, pending=$pendingBookingPublicId, searching=${_uiState.value.isSearchingForRider}")
+                    val pendingId = pendingBookingPublicId
+                    val shouldNavigate =
+                        (pendingId != null && event.bookingPublicId == pendingId) ||
+                            (pendingId == null && _uiState.value.isSearchingForRider)
+                    if (shouldNavigate) {
+                        pendingBookingPublicId = null
+                        println("BookingReviewVM emitting NavigateToTripTracking bookingId=${event.bookingPublicId}")
+                        _uiEvents.tryEmit(BookingReviewUiEvent.NavigateToTripTracking(event.bookingPublicId))
+                    }
+                }
+            }
+            if (currentDriverAssigned != null) {
+                if (currentDriverAssigned.bookingPublicId == pendingBookingPublicId) {
                     _uiState.value = _uiState.value.copy(isSearchingForRider = false)
                 }
             }
         }
     }
-    fun stopRealtime(){
+
+    fun stopRealtime() {
         realtimeCoordinator.unsubscribePassengerDriverAssigned()
     }
     fun setInput(input: BookingReviewInput) {
@@ -75,7 +98,8 @@ class BookingReviewViewModel(
             result.onSuccess { booking ->
                 println("Booking created: booking_public_id=${booking.publicId}")
                 _uiEvents.tryEmit(BookingReviewUiEvent.ShowSnackbar("Booking created successfully."))
-                _uiEvents.tryEmit(BookingReviewUiEvent.NavigateToTripTracking(booking.publicId))
+                pendingBookingPublicId = booking.publicId
+                println("BookingReviewVM pending booking set to ${booking.publicId}")
                 _uiState.value = _uiState.value.copy(isSearchingForRider = true)
             }.onFailure { error ->
                 _uiEvents.tryEmit(BookingReviewUiEvent.ShowSnackbar("Booking failed: ${error.message}"))

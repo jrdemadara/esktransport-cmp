@@ -34,19 +34,19 @@ import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.composables.icons.lucide.BookOpen
-import com.composables.icons.lucide.Building2
-import com.composables.icons.lucide.CalendarDays
-import com.composables.icons.lucide.Car
-import com.composables.icons.lucide.Clock
-import com.composables.icons.lucide.GraduationCap
-import com.composables.icons.lucide.Landmark
-import com.composables.icons.lucide.Lucide
-import com.composables.icons.lucide.MapPin
-import com.composables.icons.lucide.Plane
-import com.composables.icons.lucide.Search
-import com.composables.icons.lucide.Store
-import com.composables.icons.lucide.Zap
+import com.composables.icons.heroicons.outline.BookOpen
+import com.composables.icons.heroicons.outline.BuildingStorefront
+import com.composables.icons.heroicons.outline.CalendarDays
+import com.composables.icons.heroicons.outline.Truck
+import com.composables.icons.heroicons.outline.Clock
+import com.composables.icons.heroicons.outline.AcademicCap
+import com.composables.icons.heroicons.outline.BuildingLibrary
+import com.composables.icons.heroicons.Heroicons
+import com.composables.icons.heroicons.outline.MapPin
+import com.composables.icons.heroicons.outline.PaperAirplane
+import com.composables.icons.heroicons.outline.MagnifyingGlass
+import com.composables.icons.heroicons.outline.BuildingStorefront
+import com.composables.icons.heroicons.outline.Bolt
 
 @Composable
 fun PassengerHomeScreen(
@@ -64,9 +64,9 @@ fun PassengerHomeScreen(
         PlaceSuggestionsRow()
         Spacer(modifier = Modifier.height(14.dp))
 
-        AddressCard(title = "Command Center", subtitle = "Kenram, Isulan", icon = Lucide.Clock)
+        AddressCard(title = "Command Center", subtitle = "Kenram, Isulan", icon = Heroicons.Outline.Clock)
         Spacer(modifier = Modifier.height(8.dp))
-        AddressCard(title = "Home", subtitle = "Mabini Street, Poblacion, Tacurong City", icon = Lucide.MapPin)
+        AddressCard(title = "Home", subtitle = "Mabini Street, Poblacion, Tacurong City", icon = Heroicons.Outline.MapPin)
         Spacer(modifier = Modifier.height(8.dp))
 
         Row(
@@ -125,7 +125,7 @@ private fun SearchRow(onWhereToClick: () -> Unit) {
             modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Icon(Lucide.Search, contentDescription = null)
+            Icon(Heroicons.Outline.MagnifyingGlass, contentDescription = null)
             Spacer(modifier = Modifier.width(10.dp))
             Text("Where to?", style = MaterialTheme.typography.headlineSmall, modifier = Modifier.weight(1f))
             Box(modifier = Modifier.height(26.dp).width(1.dp).background(MaterialTheme.colorScheme.outlineVariant))
@@ -136,7 +136,7 @@ private fun SearchRow(onWhereToClick: () -> Unit) {
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
-                    Icon(Lucide.CalendarDays, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Icon(Heroicons.Outline.CalendarDays, contentDescription = null, modifier = Modifier.size(18.dp))
                     Text("Later", style = MaterialTheme.typography.titleMedium)
                 }
             }
@@ -193,17 +193,17 @@ private data class SuggestionItem(val label: String, val icon: androidx.compose.
 private data class PlaceSuggestion(val name: String, val icon: androidx.compose.ui.graphics.vector.ImageVector)
 
 private val suggestions = listOf(
-    SuggestionItem("Moto", Lucide.Zap),
-    SuggestionItem("Trike", Lucide.MapPin),
-    SuggestionItem("Car", Lucide.Car),
-    SuggestionItem("Rentals", Lucide.Clock),
+    SuggestionItem("Moto", Heroicons.Outline.Bolt),
+    SuggestionItem("Trike", Heroicons.Outline.MapPin),
+    SuggestionItem("Car", Heroicons.Outline.Truck),
+    SuggestionItem("Rentals", Heroicons.Outline.Clock),
 )
 
 private val placeSuggestions = listOf(
-    PlaceSuggestion("SM Mall", Lucide.Store),
-    PlaceSuggestion("State University", Lucide.GraduationCap),
-    PlaceSuggestion("St. Louis", Lucide.Landmark),
-    PlaceSuggestion("Public Market", Lucide.Building2),
-    PlaceSuggestion("Airport", Lucide.Plane),
-    PlaceSuggestion("Church", Lucide.BookOpen),
+    PlaceSuggestion("SM Mall", Heroicons.Outline.BuildingStorefront),
+    PlaceSuggestion("State University", Heroicons.Outline.AcademicCap),
+    PlaceSuggestion("St. Louis", Heroicons.Outline.BuildingLibrary),
+    PlaceSuggestion("Public Market", Heroicons.Outline.BuildingStorefront),
+    PlaceSuggestion("Airport", Heroicons.Outline.PaperAirplane),
+    PlaceSuggestion("Church", Heroicons.Outline.BookOpen),
 )

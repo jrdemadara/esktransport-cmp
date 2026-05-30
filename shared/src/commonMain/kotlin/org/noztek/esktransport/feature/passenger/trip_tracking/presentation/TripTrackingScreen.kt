@@ -34,10 +34,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.composables.icons.lucide.Lucide
-import com.composables.icons.lucide.MapPin
-import com.composables.icons.lucide.Phone
-import com.composables.icons.lucide.User
+import com.composables.icons.heroicons.Heroicons
+import com.composables.icons.heroicons.outline.MapPin
+import com.composables.icons.heroicons.outline.Phone
+import com.composables.icons.heroicons.outline.User
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 import org.noztek.esktransport.core.map.MapCameraDefaults
@@ -146,7 +146,7 @@ private fun TripTrackingSheet(
                 modifier = Modifier.size(50.dp).background(MaterialTheme.colorScheme.primaryContainer, CircleShape),
                 contentAlignment = Alignment.Center,
             ) {
-                Icon(Lucide.User, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimaryContainer)
+                Icon(Heroicons.Outline.User, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimaryContainer)
             }
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
@@ -157,7 +157,7 @@ private fun TripTrackingSheet(
                 onClick = {},
                 modifier = Modifier.clip(CircleShape).background(MaterialTheme.colorScheme.secondaryContainer),
             ) {
-                Icon(Lucide.Phone, contentDescription = "Call", tint = MaterialTheme.colorScheme.onSecondaryContainer)
+                Icon(Heroicons.Outline.Phone, contentDescription = "Call", tint = MaterialTheme.colorScheme.onSecondaryContainer)
             }
         }
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
@@ -177,7 +177,7 @@ private fun TripTrackingSheet(
 @Composable
 private fun TripPointRow(label: String, value: String, iconColor: Color) {
     Row(verticalAlignment = Alignment.Top) {
-        Icon(Lucide.MapPin, contentDescription = null, modifier = Modifier.size(20.dp), tint = iconColor)
+        Icon(Heroicons.Outline.MapPin, contentDescription = null, modifier = Modifier.size(20.dp), tint = iconColor)
         Spacer(modifier = Modifier.width(12.dp))
         Column {
             Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)

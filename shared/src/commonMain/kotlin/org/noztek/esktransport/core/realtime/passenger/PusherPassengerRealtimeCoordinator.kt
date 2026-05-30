@@ -16,6 +16,7 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import org.noztek.esktransport.core.realtime.RealtimeChannelNamer
 import org.noztek.esktransport.core.realtime.RealtimeClient
+import org.noztek.esktransport.core.realtime.model.PassengerBookingAcceptedEvent
 import org.noztek.esktransport.core.realtime.model.PassengerDriverAssignedEvent
 import org.noztek.esktransport.core.session.SessionManager
 
@@ -28,6 +29,7 @@ class PusherPassengerRealtimeCoordinator(
 ) : PassengerRealtimeCoordinator {
     private val scope = CoroutineScope(SupervisorJob() + ioDispatcher)
     private val driverAssigned = MutableSharedFlow<PassengerDriverAssignedEvent>(extraBufferCapacity = 32)
+    private val bookingAccepted = MutableSharedFlow<PassengerBookingAcceptedEvent>(extraBufferCapacity = 32)
     private var driverAssignedChannel: String? = null
 
     override fun subscribePassengerDriverAssigned() {
@@ -44,6 +46,10 @@ class PusherPassengerRealtimeCoordinator(
             realtimeClient.subscribePrivateChannel(channel, "booking.driver_assigned") { _, payload ->
                 parseDriverAssigned(payload)?.let { driverAssigned.tryEmit(it) }
             }
+            realtimeClient.subscribePrivateChannel(channel, "booking.accepted") { _, payload ->
+                println("Passenger realtime raw booking.accepted payload: $payload")
+                parseBookingAccepted(payload)?.let { bookingAccepted.tryEmit(it) }
+            }
             driverAssignedChannel = channel
         }
     }
@@ -54,6 +60,7 @@ class PusherPassengerRealtimeCoordinator(
     }
 
     override fun passengerDriverAssigned() = driverAssigned.asSharedFlow()
+    override fun passengerBookingAccepted() = bookingAccepted.asSharedFlow()
 
     private fun parseDriverAssigned(payload: String): PassengerDriverAssignedEvent? {
         return runCatching {
@@ -71,6 +78,18 @@ class PusherPassengerRealtimeCoordinator(
                 passengerCapacity = root.int("passenger_capacity"),
                 finalFare = root.double("final_fare"),
             )
+        }.getOrNull()
+    }
+
+    private fun parseBookingAccepted(payload: String): PassengerBookingAcceptedEvent? {
+        return runCatching {
+            val parsed = json.parseToJsonElement(payload).jsonObject
+            val root = parsed.unwrapRealtimeData(json)
+            val bookingPublicId = root.string("booking_public_id") ?: return null
+            println("Passenger realtime parsed booking.accepted booking_public_id=$bookingPublicId")
+            PassengerBookingAcceptedEvent(bookingPublicId = bookingPublicId)
+        }.onFailure {
+            println("Passenger realtime failed parsing booking.accepted: ${it.message}")
         }.getOrNull()
     }
 }

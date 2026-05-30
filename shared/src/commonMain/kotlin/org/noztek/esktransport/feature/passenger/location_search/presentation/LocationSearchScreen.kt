@@ -37,8 +37,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import asktransport_cmp.shared.generated.resources.Res
 import asktransport_cmp.shared.generated.resources.map_pin_black
-import com.composables.icons.lucide.Lucide
-import com.composables.icons.lucide.Search
+import com.composables.icons.heroicons.Heroicons
+import com.composables.icons.heroicons.outline.MagnifyingGlass
 import org.jetbrains.compose.resources.painterResource
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
@@ -97,7 +97,7 @@ fun LocationSearchScreen(
                 value = state.query,
                 onValueChange = viewModel::onQueryChanged,
                 modifier = Modifier.fillMaxWidth(),
-                leadingIcon = { Icon(Lucide.Search, contentDescription = null) },
+                leadingIcon = { Icon(Heroicons.Outline.MagnifyingGlass, contentDescription = null) },
                 placeholder = { Text("Search location") },
                 singleLine = true,
             )

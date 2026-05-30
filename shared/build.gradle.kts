@@ -66,6 +66,9 @@ kotlin {
             implementation(libs.kotlinx.serialization.json)
             implementation(libs.mp.settings)
             implementation(libs.compose.icons.lucide)
+            implementation(libs.compose.icons.heroicons)
+            implementation(libs.compose.icons.heroicons.outline)
+            implementation(libs.compose.icons.heroicons.solid)
         }
         iosMain.dependencies {
             implementation(libs.ktor.client.darwin)

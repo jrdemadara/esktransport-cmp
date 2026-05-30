@@ -74,19 +74,19 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
-import com.composables.icons.lucide.ChartBar
-import com.composables.icons.lucide.ChevronRight
-import com.composables.icons.lucide.Circle
-import com.composables.icons.lucide.Flag
-import com.composables.icons.lucide.List
-import com.composables.icons.lucide.Lucide
-import com.composables.icons.lucide.MapPin
-import com.composables.icons.lucide.Menu
-import com.composables.icons.lucide.Search
-import com.composables.icons.lucide.ShieldCheck
-import com.composables.icons.lucide.SlidersHorizontal
-import com.composables.icons.lucide.Star
-import com.composables.icons.lucide.User
+import com.composables.icons.heroicons.solid.ChartBar
+import com.composables.icons.heroicons.outline.ChevronRight
+import com.composables.icons.heroicons.solid.UserCircle
+import com.composables.icons.heroicons.solid.Flag
+import com.composables.icons.heroicons.outline.QueueList
+import com.composables.icons.heroicons.Heroicons
+import com.composables.icons.heroicons.outline.MapPin
+import com.composables.icons.heroicons.outline.Bars3
+import com.composables.icons.heroicons.outline.MagnifyingGlass
+import com.composables.icons.heroicons.outline.ShieldCheck
+import com.composables.icons.heroicons.outline.AdjustmentsHorizontal
+import com.composables.icons.heroicons.solid.Star
+import com.composables.icons.heroicons.outline.User
 import org.noztek.esktransport.core.audio.SoundEffect
 import org.noztek.esktransport.core.audio.SoundEffectPlayer
 import org.noztek.esktransport.core.map.MapCameraDefaults
@@ -104,6 +104,7 @@ fun DriverHomeScreen(
     mapboxConfig: MapboxConfig = koinInject(),
     cameraDefaults: MapCameraDefaults = koinInject(),
     soundEffectPlayer: SoundEffectPlayer = koinInject(),
+    onNavigateToTrip: (bookingPublicId: String) -> Unit = {},
 ) {
     val homeState by viewModel.uiState.collectAsState()
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
@@ -120,7 +121,7 @@ fun DriverHomeScreen(
         viewModel.uiEvents.collect { event ->
             when (event) {
                 is DriverHomeUiEvent.ShowSnackbar -> snackbarHostState.showSnackbar(event.message)
-                is DriverHomeUiEvent.NavigateToTrip -> Unit
+                is DriverHomeUiEvent.NavigateToTrip -> onNavigateToTrip(event.bookingPublicId)
             }
         }
     }
@@ -252,7 +253,7 @@ private fun DriverHomeToolbar(
         ) {
             IconButton(onClick = onMenuClick) {
                 Icon(
-                    imageVector = Lucide.Menu,
+                    imageVector = Heroicons.Outline.Bars3,
                     contentDescription = "Menu",
                 )
             }
@@ -273,7 +274,7 @@ private fun DriverHomeToolbar(
             }
             IconButton(onClick = {}) {
                 Icon(
-                    imageVector = Lucide.Search,
+                    imageVector = Heroicons.Outline.MagnifyingGlass,
                     contentDescription = "Search",
                 )
             }
@@ -294,19 +295,19 @@ private fun DriverFloatingActions(
     ) {
         CircleIconButton(onClick = onMockOfferClick) {
             Icon(
-                imageVector = Lucide.Flag,
+                imageVector = Heroicons.Solid.Flag,
                 contentDescription = "Incoming request",
             )
         }
         CircleIconButton(onClick = {}) {
             Icon(
-                imageVector = Lucide.ChartBar,
+                imageVector = Heroicons.Solid.ChartBar,
                 contentDescription = "Stats",
             )
         }
         CircleIconButton(onClick = onSafetyClick) {
             Icon(
-                imageVector = Lucide.ShieldCheck,
+                imageVector = Heroicons.Outline.ShieldCheck,
                 contentDescription = "Safety",
                 tint = MaterialTheme.colorScheme.primary,
             )
@@ -401,7 +402,7 @@ private fun DriverAvailabilitySheet(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Icon(
-                    imageVector = Lucide.SlidersHorizontal,
+                    imageVector = Heroicons.Outline.AdjustmentsHorizontal,
                     contentDescription = "Filter",
                 )
                 Text(
@@ -410,7 +411,7 @@ private fun DriverAvailabilitySheet(
                     fontWeight = FontWeight.Normal,
                 )
                 Icon(
-                    imageVector = Lucide.List,
+                    imageVector = Heroicons.Outline.QueueList,
                     contentDescription = "List",
                 )
             }
@@ -518,7 +519,7 @@ private fun DriverIncomingOfferOverlay(
                     ) {
                         Box(contentAlignment = Alignment.Center) {
                             Icon(
-                                imageVector = Lucide.User,
+                                imageVector = Heroicons.Outline.User,
                                 contentDescription = "Passenger",
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
@@ -531,7 +532,7 @@ private fun DriverIncomingOfferOverlay(
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Icon(
-                                imageVector = Lucide.Star,
+                                imageVector = Heroicons.Solid.Star,
                                 contentDescription = null,
                                 modifier = Modifier.size(14.dp),
                                 tint = Color(0xFFF59E0B),
@@ -588,7 +589,7 @@ private fun RouteSummary(offer: DriverHomeBookingOfferUiModel) {
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Icon(
-                imageVector = Lucide.Circle,
+                imageVector = Heroicons.Solid.UserCircle,
                 contentDescription = null,
                 modifier = Modifier.size(18.dp),
                 tint = Color(0xFFF59E0B),
@@ -600,7 +601,7 @@ private fun RouteSummary(offer: DriverHomeBookingOfferUiModel) {
                     .background(Color(0xFFD7D7D7)),
             )
             Icon(
-                imageVector = Lucide.MapPin,
+                imageVector = Heroicons.Outline.MapPin,
                 contentDescription = null,
                 modifier = Modifier.size(20.dp),
                 tint = MaterialTheme.colorScheme.primary,
@@ -633,7 +634,7 @@ private fun DriverDrawerContent(modifier: Modifier = Modifier) {
                 Surface(modifier = Modifier.size(58.dp), shape = CircleShape, color = MaterialTheme.colorScheme.surfaceVariant) {
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
-                            imageVector = Lucide.User,
+                            imageVector = Heroicons.Outline.User,
                             contentDescription = "Driver",
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -646,7 +647,7 @@ private fun DriverDrawerContent(modifier: Modifier = Modifier) {
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Icon(
-                            imageVector = Lucide.Star,
+                            imageVector = Heroicons.Solid.Star,
                             contentDescription = null,
                             modifier = Modifier.size(14.dp),
                             tint = Color(0xFFF59E0B),
@@ -724,7 +725,7 @@ private fun SafetyToolkitItem(
         Surface(modifier = Modifier.size(34.dp), shape = CircleShape, color = accent.copy(alpha = 0.12f)) {
             Box(contentAlignment = Alignment.Center) {
                 Icon(
-                    imageVector = Lucide.ShieldCheck,
+                    imageVector = Heroicons.Outline.ShieldCheck,
                     contentDescription = null,
                     modifier = Modifier.size(18.dp),
                     tint = accent,
@@ -747,7 +748,7 @@ private fun SafetyToolkitItem(
             }
         } else {
             Icon(
-                imageVector = Lucide.ChevronRight,
+                imageVector = Heroicons.Outline.ChevronRight,
                 contentDescription = null,
             )
         }

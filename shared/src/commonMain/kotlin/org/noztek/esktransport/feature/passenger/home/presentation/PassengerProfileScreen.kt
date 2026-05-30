@@ -29,11 +29,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.composables.icons.lucide.LogOut
-import com.composables.icons.lucide.Lucide
-import com.composables.icons.lucide.Phone
-import com.composables.icons.lucide.ShieldCheck
-import com.composables.icons.lucide.User
+import com.composables.icons.heroicons.outline.ArrowLeftOnRectangle
+import com.composables.icons.heroicons.Heroicons
+import com.composables.icons.heroicons.outline.Phone
+import com.composables.icons.heroicons.outline.ShieldCheck
+import com.composables.icons.heroicons.outline.User
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 import org.noztek.esktransport.core.session.SessionManager
@@ -69,17 +69,17 @@ fun PassengerProfileScreen(
     ) {
         Surface(modifier = Modifier.size(100.dp), shape = CircleShape, color = MaterialTheme.colorScheme.primaryContainer) {
             Box(contentAlignment = Alignment.Center) {
-                Icon(Lucide.User, contentDescription = null, modifier = Modifier.size(48.dp), tint = MaterialTheme.colorScheme.onPrimaryContainer)
+                Icon(Heroicons.Outline.User, contentDescription = null, modifier = Modifier.size(48.dp), tint = MaterialTheme.colorScheme.onPrimaryContainer)
             }
         }
         Text(name.orEmpty().ifBlank { "Passenger" }, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
         Text(role.orEmpty().ifBlank { "Passenger" }, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         HorizontalDivider()
-        ProfileRow(icon = Lucide.Phone, label = "Phone", value = phone.orEmpty().ifBlank { "Not set" })
-        ProfileRow(icon = Lucide.ShieldCheck, label = "Account", value = "Verified")
+        ProfileRow(icon = Heroicons.Outline.Phone, label = "Phone", value = phone.orEmpty().ifBlank { "Not set" })
+        ProfileRow(icon = Heroicons.Outline.ShieldCheck, label = "Account", value = "Verified")
         Spacer(Modifier.height(12.dp))
         Button(onClick = viewModel::logout, enabled = !state.isLoading, modifier = Modifier.fillMaxWidth()) {
-            if (state.isLoading) CircularProgressIndicator(modifier = Modifier.size(18.dp)) else Icon(Lucide.LogOut, contentDescription = null)
+            if (state.isLoading) CircularProgressIndicator(modifier = Modifier.size(18.dp)) else Icon(Heroicons.Outline.ArrowLeftOnRectangle, contentDescription = null)
             Text("Logout", modifier = Modifier.padding(start = 8.dp))
         }
     }

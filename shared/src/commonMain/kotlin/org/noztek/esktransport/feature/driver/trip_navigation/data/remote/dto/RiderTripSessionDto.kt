@@ -1,0 +1,27 @@
+package org.noztek.esktransport.feature.rider.trip_navigation.data.remote.dto
+
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+
+@Serializable
+data class RiderTripSessionResponseDto(
+    val data: RiderTripSessionDataDto,
+)
+
+@Serializable
+data class RiderTripSessionDataDto(
+    @SerialName("booking_public_id")
+    val bookingPublicId: String,
+    val status: String,
+    @SerialName("passenger_name")
+    val passengerName: String,
+    val pickup: RiderTripLocationDto,
+    val destination: RiderTripLocationDto,
+)
+
+@Serializable
+data class RiderTripLocationDto(
+    val label: String? = null,
+    val lat: Double? = null,
+    val lng: Double? = null,
+)

@@ -35,10 +35,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.composables.icons.lucide.Lucide
-import com.composables.icons.lucide.Map
-import com.composables.icons.lucide.MapPin
-import com.composables.icons.lucide.Users
+import com.composables.icons.heroicons.Heroicons
+import com.composables.icons.heroicons.outline.Map
+import com.composables.icons.heroicons.outline.MapPin
+import com.composables.icons.heroicons.outline.Users
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 import org.noztek.esktransport.core.map.MapboxConfig
@@ -186,12 +186,12 @@ private fun ReviewSheet(
             }
             Column(horizontalAlignment = Alignment.End) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Lucide.Users, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Icon(Heroicons.Outline.Users, contentDescription = null, modifier = Modifier.size(16.dp))
                     Spacer(Modifier.width(4.dp))
                     Text("$seatCount seats")
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Lucide.Map, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Icon(Heroicons.Outline.Map, contentDescription = null, modifier = Modifier.size(16.dp))
                     Spacer(Modifier.width(4.dp))
                     Text(distanceLabel)
                 }
@@ -208,7 +208,7 @@ private fun ReviewSheet(
 @Composable
 private fun TripPointRow(label: String, value: String, iconColor: Color) {
     Row(verticalAlignment = Alignment.Top) {
-        Icon(Lucide.MapPin, contentDescription = null, modifier = Modifier.size(20.dp), tint = iconColor)
+        Icon(Heroicons.Outline.MapPin, contentDescription = null, modifier = Modifier.size(20.dp), tint = iconColor)
         Spacer(modifier = Modifier.width(12.dp))
         Column {
             Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)

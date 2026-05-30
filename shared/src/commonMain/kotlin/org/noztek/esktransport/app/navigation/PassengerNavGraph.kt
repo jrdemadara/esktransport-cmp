@@ -56,19 +56,21 @@ import androidx.navigation.navigation
 import androidx.savedstate.read
 import asktransport_cmp.shared.generated.resources.Res
 import asktransport_cmp.shared.generated.resources.compose_multiplatform
-import com.composables.icons.lucide.ArrowLeft
-import com.composables.icons.lucide.Bell
-import com.composables.icons.lucide.Bot
-import com.composables.icons.lucide.Grid2x2
-import com.composables.icons.lucide.House
-import com.composables.icons.lucide.Lucide
-import com.composables.icons.lucide.MapPin
-import com.composables.icons.lucide.User
-import com.composables.icons.lucide.WalletCards
+import com.composables.icons.heroicons.outline.ArrowLeft
+import com.composables.icons.heroicons.outline.Bell
+import com.composables.icons.heroicons.outline.Sparkles
+import com.composables.icons.heroicons.outline.SquaresPlus
+import com.composables.icons.heroicons.outline.Home
+import com.composables.icons.heroicons.Heroicons
+import com.composables.icons.heroicons.outline.MapPin
+import com.composables.icons.heroicons.outline.User
+import com.composables.icons.heroicons.outline.RectangleStack
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.painterResource
+import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
+import org.noztek.esktransport.core.realtime.passenger.PassengerRealtimeCoordinator
 import org.noztek.esktransport.feature.passenger.booking_review.domain.model.BookingReviewInput
 import org.noztek.esktransport.feature.passenger.booking_review.presentation.BookingReviewScreen
 import org.noztek.esktransport.feature.passenger.booking_review.presentation.BookingReviewUiEvent
@@ -107,6 +109,7 @@ private fun PassengerShell(onLogout: () -> Unit) {
     val navController = rememberNavController()
     val ridePlannerViewModel: RidePlannerViewModel = koinViewModel()
     val bookingReviewViewModel: BookingReviewViewModel = koinViewModel()
+    val passengerRealtimeCoordinator: PassengerRealtimeCoordinator = koinInject()
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
     val tabs = passengerTabs
@@ -137,6 +140,16 @@ private fun PassengerShell(onLogout: () -> Unit) {
                         popUpTo(ROUTE_HOME) { inclusive = false }
                     }
                 }
+            }
+        }
+    }
+
+    LaunchedEffect(passengerRealtimeCoordinator) {
+        passengerRealtimeCoordinator.subscribePassengerDriverAssigned()
+        passengerRealtimeCoordinator.passengerBookingAccepted().collectLatest { event ->
+            navController.navigate("$ROUTE_TRIP_TRACKING/${event.bookingPublicId}") {
+                popUpTo(ROUTE_HOME) { inclusive = false }
+                launchSingleTop = true
             }
         }
     }
@@ -291,7 +304,7 @@ private fun PassengerBackTopBar(title: String, onBack: () -> Unit) {
         title = { Text(title) },
         navigationIcon = {
             IconButton(onClick = onBack) {
-                Icon(Lucide.ArrowLeft, contentDescription = "Back")
+                Icon(Heroicons.Outline.ArrowLeft, contentDescription = "Back")
             }
         },
     )
@@ -308,7 +321,7 @@ private fun PassengerHomeTopBar(onProfileClick: () -> Unit) {
             Row(horizontalArrangement = Arrangement.spacedBy(2.dp), verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = {}) {
                     Box {
-                        Icon(Lucide.Bell, contentDescription = "Notifications")
+                        Icon(Heroicons.Outline.Bell, contentDescription = "Notifications")
                         Box(
                             modifier = Modifier
                                 .align(Alignment.TopEnd)
@@ -321,7 +334,7 @@ private fun PassengerHomeTopBar(onProfileClick: () -> Unit) {
                 IconButton(onClick = onProfileClick) {
                     Surface(modifier = Modifier.size(28.dp), shape = CircleShape, color = MaterialTheme.colorScheme.primaryContainer) {
                         Box(contentAlignment = Alignment.Center) {
-                            Icon(Lucide.User, contentDescription = "Profile", modifier = Modifier.size(18.dp))
+                            Icon(Heroicons.Outline.User, contentDescription = "Profile", modifier = Modifier.size(18.dp))
                         }
                     }
                 }
@@ -355,11 +368,11 @@ private data class PassengerTab(
 )
 
 private val passengerTabs = listOf(
-    PassengerTab(ROUTE_HOME, "Home", Lucide.House),
-    PassengerTab(ROUTE_SERVICES, "Services", Lucide.Grid2x2),
-    PassengerTab(ROUTE_KUDI, "Kudi AI", Lucide.Bot),
-    PassengerTab(ROUTE_ACTIVITY, "Activity", Lucide.WalletCards),
-    PassengerTab(ROUTE_PROFILE, "Profile", Lucide.User),
+    PassengerTab(ROUTE_HOME, "Home", Heroicons.Outline.Home),
+    PassengerTab(ROUTE_SERVICES, "Services", Heroicons.Outline.SquaresPlus),
+    PassengerTab(ROUTE_KUDI, "Kudi AI", Heroicons.Outline.Sparkles),
+    PassengerTab(ROUTE_ACTIVITY, "Activity", Heroicons.Outline.RectangleStack),
+    PassengerTab(ROUTE_PROFILE, "Profile", Heroicons.Outline.User),
 )
 
 

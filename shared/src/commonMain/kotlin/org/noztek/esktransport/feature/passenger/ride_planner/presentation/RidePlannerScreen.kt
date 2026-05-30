@@ -35,11 +35,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.composables.icons.lucide.Locate
-import com.composables.icons.lucide.LocateFixed
-import com.composables.icons.lucide.Lucide
-import com.composables.icons.lucide.Map
-import com.composables.icons.lucide.MapPin
+import com.composables.icons.heroicons.Heroicons
+import com.composables.icons.heroicons.outline.Map
+import com.composables.icons.heroicons.outline.MapPin
 import org.koin.compose.viewmodel.koinViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -162,7 +160,7 @@ private fun PickupDestinationPanel(
 private fun LocationIcon() {
     Surface(color = MaterialTheme.colorScheme.surfaceVariant, shape = RoundedCornerShape(14.dp)) {
         Box(modifier = Modifier.size(40.dp), contentAlignment = Alignment.Center) {
-            Icon(Lucide.MapPin, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp))
+            Icon(Heroicons.Outline.MapPin, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp))
         }
     }
 }
@@ -193,7 +191,7 @@ private fun LocationTextBlock(
         if (actionIcon) {
             Spacer(modifier = Modifier.width(8.dp))
             Icon(
-                Lucide.Map,
+                Heroicons.Outline.Map,
                 contentDescription = "Search pickup location",
                 tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier
