@@ -11,7 +11,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import org.noztek.esktransport.core.realtime.driver.DriverRealtimeCoordinator
+import org.noztek.esktransport.core.realtime.driver.DriverBookingOfferRealtime
 import org.noztek.esktransport.feature.driver.home.domain.usecase.AcceptDriverHomeOfferUseCase
 import org.noztek.esktransport.feature.driver.home.domain.usecase.GetDriverAvailabilityUseCase
 import org.noztek.esktransport.feature.driver.home.domain.usecase.SetDriverAvailabilityUseCase
@@ -35,7 +35,7 @@ class DriverHomeViewModel(
     private val getDriverAvailabilityUseCase: GetDriverAvailabilityUseCase,
     private val setDriverAvailabilityUseCase: SetDriverAvailabilityUseCase,
     private val acceptDriverHomeOfferUseCase: AcceptDriverHomeOfferUseCase,
-    private val realtimeCoordinator: DriverRealtimeCoordinator,
+    private val realtimeCoordinator: DriverBookingOfferRealtime,
     private val ioDispatcher: CoroutineDispatcher,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(DriverHomeUiState())

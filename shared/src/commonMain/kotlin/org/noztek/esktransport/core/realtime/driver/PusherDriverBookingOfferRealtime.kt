@@ -12,18 +12,19 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.doubleOrNull
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.contentOrNull
 import org.noztek.esktransport.core.realtime.RealtimeChannelNamer
 import org.noztek.esktransport.core.realtime.RealtimeClient
 import org.noztek.esktransport.core.realtime.model.DriverBookingOfferedEvent
 import org.noztek.esktransport.core.session.SessionManager
 
-class DefaultDriverRealtimeCoordinator(
+class PusherDriverBookingOfferRealtime(
     private val realtimeClient: RealtimeClient,
     private val channelNamer: RealtimeChannelNamer,
     private val sessionManager: SessionManager,
     ioDispatcher: CoroutineDispatcher,
     private val json: Json,
-) : DriverRealtimeCoordinator {
+) : DriverBookingOfferRealtime {
     private val scope = CoroutineScope(SupervisorJob() + ioDispatcher)
     private val bookingOffers = MutableSharedFlow<DriverBookingOfferedEvent>(extraBufferCapacity = 32)
     private var bookingOffersChannel: String? = null
@@ -55,7 +56,8 @@ class DefaultDriverRealtimeCoordinator(
 
     private fun parseBookingOffer(payload: String): DriverBookingOfferedEvent? {
         return runCatching {
-            val root = json.parseToJsonElement(payload).jsonObject
+            val parsed = json.parseToJsonElement(payload).jsonObject
+            val root = parsed.unwrapRealtimeData(json)
             val bookingPublicId = root.string("booking_public_id") ?: return null
             DriverBookingOfferedEvent(
                 bookingPublicId = bookingPublicId,
@@ -74,6 +76,14 @@ class DefaultDriverRealtimeCoordinator(
             )
         }.getOrNull()
     }
+}
+
+private fun JsonObject.unwrapRealtimeData(json: Json): JsonObject {
+    val dataNode = this["data"] ?: return this
+    val objectNode = dataNode as? JsonObject
+    if (objectNode != null) return objectNode
+    val raw = dataNode.jsonPrimitive.contentOrNull ?: return this
+    return runCatching { json.parseToJsonElement(raw).jsonObject }.getOrNull() ?: this
 }
 
 private fun JsonObject.objectValue(key: String): JsonObject? = this[key]?.jsonObject

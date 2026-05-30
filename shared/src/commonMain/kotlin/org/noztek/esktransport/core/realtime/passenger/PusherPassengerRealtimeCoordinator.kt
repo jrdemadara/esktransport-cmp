@@ -11,6 +11,7 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.doubleOrNull
 import kotlinx.serialization.json.intOrNull
+import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import org.noztek.esktransport.core.realtime.RealtimeChannelNamer
@@ -18,7 +19,7 @@ import org.noztek.esktransport.core.realtime.RealtimeClient
 import org.noztek.esktransport.core.realtime.model.PassengerDriverAssignedEvent
 import org.noztek.esktransport.core.session.SessionManager
 
-class DefaultPassengerRealtimeCoordinator(
+class PusherPassengerRealtimeCoordinator(
     private val realtimeClient: RealtimeClient,
     private val channelNamer: RealtimeChannelNamer,
     private val sessionManager: SessionManager,
@@ -56,7 +57,8 @@ class DefaultPassengerRealtimeCoordinator(
 
     private fun parseDriverAssigned(payload: String): PassengerDriverAssignedEvent? {
         return runCatching {
-            val root = json.parseToJsonElement(payload).jsonObject
+            val parsed = json.parseToJsonElement(payload).jsonObject
+            val root = parsed.unwrapRealtimeData(json)
             val bookingPublicId = root.string("booking_public_id") ?: return null
             val riderUserId = root.long("rider_user_id") ?: return null
             PassengerDriverAssignedEvent(
@@ -71,6 +73,14 @@ class DefaultPassengerRealtimeCoordinator(
             )
         }.getOrNull()
     }
+}
+
+private fun JsonObject.unwrapRealtimeData(json: Json): JsonObject {
+    val dataNode = this["data"] ?: return this
+    val objectNode = dataNode as? JsonObject
+    if (objectNode != null) return objectNode
+    val raw = dataNode.jsonPrimitive.contentOrNull ?: return this
+    return runCatching { json.parseToJsonElement(raw).jsonObject }.getOrNull() ?: this
 }
 
 private fun JsonObject.string(key: String): String? = this[key]

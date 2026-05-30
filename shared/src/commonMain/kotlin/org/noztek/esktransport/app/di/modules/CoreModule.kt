@@ -9,9 +9,9 @@ import org.noztek.esktransport.core.realtime.BaseRealtimeCoordinator
 import org.noztek.esktransport.core.realtime.DefaultBaseRealtimeCoordinator
 import org.noztek.esktransport.core.realtime.RealtimeChannelNamer
 import org.noztek.esktransport.core.realtime.createRealtimeClient
-import org.noztek.esktransport.core.realtime.driver.DefaultDriverRealtimeCoordinator
-import org.noztek.esktransport.core.realtime.driver.DriverRealtimeCoordinator
-import org.noztek.esktransport.core.realtime.passenger.DefaultPassengerRealtimeCoordinator
+import org.noztek.esktransport.core.realtime.driver.PusherDriverBookingOfferRealtime
+import org.noztek.esktransport.core.realtime.driver.DriverBookingOfferRealtime
+import org.noztek.esktransport.core.realtime.passenger.PusherPassengerRealtimeCoordinator
 import org.noztek.esktransport.core.realtime.passenger.PassengerRealtimeCoordinator
 import org.noztek.esktransport.core.session.SessionManager
 
@@ -28,8 +28,8 @@ val coreModule = module {
     }
     single { RealtimeChannelNamer() }
     single<BaseRealtimeCoordinator> { DefaultBaseRealtimeCoordinator(realtimeClient = get()) }
-    single<DriverRealtimeCoordinator> {
-        DefaultDriverRealtimeCoordinator(
+    single<DriverBookingOfferRealtime> {
+        PusherDriverBookingOfferRealtime(
             realtimeClient = get(),
             channelNamer = get(),
             sessionManager = get(),
@@ -38,7 +38,7 @@ val coreModule = module {
         )
     }
     single<PassengerRealtimeCoordinator> {
-        DefaultPassengerRealtimeCoordinator(
+        PusherPassengerRealtimeCoordinator(
             realtimeClient = get(),
             channelNamer = get(),
             sessionManager = get(),
