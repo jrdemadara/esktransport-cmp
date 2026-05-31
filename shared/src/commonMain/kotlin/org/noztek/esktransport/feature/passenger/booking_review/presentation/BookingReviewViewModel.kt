@@ -97,7 +97,6 @@ class BookingReviewViewModel(
 
             result.onSuccess { booking ->
                 println("Booking created: booking_public_id=${booking.publicId}")
-                _uiEvents.tryEmit(BookingReviewUiEvent.ShowSnackbar("Booking created successfully."))
                 pendingBookingPublicId = booking.publicId
                 println("BookingReviewVM pending booking set to ${booking.publicId}")
                 _uiState.value = _uiState.value.copy(isSearchingForRider = true)
