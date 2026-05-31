@@ -18,9 +18,13 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import org.koin.compose.koinInject
+import org.noztek.esktransport.core.location.CurrentLocationProvider
 import org.koin.compose.viewmodel.koinViewModel
 import org.noztek.esktransport.core.map.MapCameraDefaults
+import org.noztek.esktransport.core.map.MapMarker
 import org.noztek.esktransport.core.map.MapPoint
 import org.noztek.esktransport.core.map.MapRouteLine
 import org.noztek.esktransport.core.map.MapboxConfig
@@ -32,11 +36,16 @@ fun TripNavigationScreen(
     viewModel: TripNavigationViewModel = koinViewModel(),
     mapboxConfig: MapboxConfig,
 ) {
+    val currentLocationProvider: CurrentLocationProvider = koinInject()
     val uiState by viewModel.uiState.collectAsState()
     var pickupConfirmed by remember { mutableStateOf(false) }
+    var driverLocation by remember { mutableStateOf<MapPoint?>(null) }
 
     LaunchedEffect(bookingPublicId) {
         viewModel.load(bookingPublicId)
+        currentLocationProvider.getLastKnownLocation()?.let { geo ->
+            driverLocation = MapPoint(geo.latitude, geo.longitude)
+        }
     }
 
     Surface(modifier = Modifier.fillMaxSize()) {
@@ -69,7 +78,7 @@ fun TripNavigationScreen(
                 val session = uiState.tripSession ?: return@Surface
                 val pickup = MapPoint(session.pickupPoint.latitude, session.pickupPoint.longitude)
                 val destination = MapPoint(session.destinationPoint.latitude, session.destinationPoint.longitude)
-                val center = if (pickupConfirmed) destination else pickup
+                val center = driverLocation ?: if (pickupConfirmed) destination else pickup
 
                 Column(modifier = Modifier.fillMaxSize()) {
                     Surface(
@@ -97,12 +106,26 @@ fun TripNavigationScreen(
                         config = mapboxConfig,
                         cameraCenter = center,
                         cameraDefaults = MapCameraDefaults(zoom = 13.2, pitch = 30.0),
+                        markers = buildList {
+                            driverLocation?.let { add(MapMarker("driver", it, Color(0xFF2563EB), 8.0)) }
+                            add(MapMarker("pickup", pickup, Color(0xFFF59E0B), 7.0))
+                            add(MapMarker("destination", destination, Color(0xFFEF4444), 7.0))
+                        },
                         routeLines = listOf(
                             MapRouteLine(
-                                id = "trip-route",
-                                points = uiState.routePoints.map { point ->
-                                    MapPoint(point.latitude, point.longitude)
+                                id = "driver-pickup",
+                                points = buildList {
+                                    driverLocation?.let { add(it) }
+                                    add(pickup)
                                 },
+                                color = Color(0xFF2563EB),
+                                width = 5.0,
+                            ),
+                            MapRouteLine(
+                                id = "pickup-destination",
+                                points = uiState.routePoints.ifEmpty { listOf(pickup, destination) },
+                                color = Color(0xFF10B981),
+                                width = 5.0,
                             ),
                         ),
                     )
