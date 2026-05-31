@@ -142,7 +142,6 @@ class DriverHomeViewModel(
             }
             result.onSuccess {
                 _uiState.update { it.copy(isAcceptingOffer = false, currentOffer = null) }
-                _uiEvents.emit(DriverHomeUiEvent.ShowSnackbar("Booking accepted."))
                 _uiEvents.emit(DriverHomeUiEvent.NavigateToTrip(offer.bookingPublicId))
             }.onFailure { error ->
                 _uiState.update { it.copy(isAcceptingOffer = false) }
