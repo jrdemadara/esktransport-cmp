@@ -2,6 +2,10 @@ import CoreLocation
 import MapboxMaps
 import Shared
 import UIKit
+import MapboxNavigationUIKit
+import MapboxNavigationCore
+
+
 
 final class IosMapboxViewFactory: NSObject, Shared.IosMapboxViewFactory {
     private final class MapContainerView: UIView {
@@ -32,8 +36,8 @@ final class IosMapboxViewFactory: NSObject, Shared.IosMapboxViewFactory {
 
     private final class PanObserver: NSObject {
         weak var mapView: MapView?
-        var onCameraMoving: ((MapPoint) -> Void)?
-        var onCameraIdle: ((MapPoint) -> Void)?
+        var onCameraMoving: ((Shared.MapPoint) -> Void)?
+        var onCameraIdle: ((Shared.MapPoint) -> Void)?
 
         init(mapView: MapView) {
             self.mapView = mapView
@@ -42,7 +46,7 @@ final class IosMapboxViewFactory: NSObject, Shared.IosMapboxViewFactory {
         @objc func handlePan(_ recognizer: UIPanGestureRecognizer) {
             guard let mapView else { return }
             let center = mapView.mapboxMap.cameraState.center
-            let point = MapPoint(latitude: center.latitude, longitude: center.longitude)
+            let point = Shared.MapPoint(latitude: center.latitude, longitude: center.longitude)
 
             switch recognizer.state {
             case .began, .changed:

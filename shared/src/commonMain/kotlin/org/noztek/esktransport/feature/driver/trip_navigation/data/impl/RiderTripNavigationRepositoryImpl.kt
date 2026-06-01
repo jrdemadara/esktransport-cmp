@@ -33,6 +33,7 @@ class RiderTripNavigationRepositoryImpl(
                 RiderTripSession(
                     bookingPublicId = data.bookingPublicId,
                     phase = phase,
+                    passengerName = data.passengerName,
                     pickupLabel = data.pickup.label ?: "Pickup",
                     destinationLabel = data.destination.label ?: "Destination",
                     pickupPoint = RiderTripPoint(latitude = pickupLat, longitude = pickupLng),
@@ -41,6 +42,16 @@ class RiderTripNavigationRepositoryImpl(
             )
         } catch (throwable: Throwable) {
             val message = ApiErrorParser.parse(throwable, "Failed to load trip session.")
+            Result.failure(IllegalStateException(message))
+        }
+    }
+
+    override suspend fun arrivePickup(bookingPublicId: String): Result<Unit> {
+        return try {
+            api.arrivePickup(bookingPublicId)
+            Result.success(Unit)
+        } catch (throwable: Throwable) {
+            val message = ApiErrorParser.parse(throwable, "Failed to confirm pickup.")
             Result.failure(IllegalStateException(message))
         }
     }

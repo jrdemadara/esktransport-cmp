@@ -1,34 +1,45 @@
 package org.noztek.esktransport.feature.driver.trip_navigation.presentation
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Divider
+import androidx.compose.material3.DividerDefaults
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Modifier
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import org.koin.compose.koinInject
-import org.noztek.esktransport.core.location.CurrentLocationProvider
+import com.composables.icons.heroicons.Heroicons
+import com.composables.icons.heroicons.outline.AdjustmentsHorizontal
+import com.composables.icons.heroicons.outline.Bars3
+import com.composables.icons.heroicons.outline.ChatBubbleOvalLeftEllipsis
+import com.composables.icons.heroicons.outline.MapPin
+import com.composables.icons.heroicons.outline.PaperAirplane
+import com.composables.icons.heroicons.outline.ShieldCheck
 import org.koin.compose.viewmodel.koinViewModel
-import org.noztek.esktransport.core.map.MapCameraDefaults
-import org.noztek.esktransport.core.map.MapMarker
 import org.noztek.esktransport.core.map.MapPoint
-import org.noztek.esktransport.core.map.MapRouteLine
 import org.noztek.esktransport.core.map.MapboxConfig
-import org.noztek.esktransport.core.map.PlatformMapView
+import org.noztek.esktransport.feature.rider.trip_navigation.domain.model.RiderTripPhase
 
 @Composable
 fun TripNavigationScreen(
@@ -36,16 +47,10 @@ fun TripNavigationScreen(
     viewModel: TripNavigationViewModel = koinViewModel(),
     mapboxConfig: MapboxConfig,
 ) {
-    val currentLocationProvider: CurrentLocationProvider = koinInject()
     val uiState by viewModel.uiState.collectAsState()
-    var pickupConfirmed by remember { mutableStateOf(false) }
-    var driverLocation by remember { mutableStateOf<MapPoint?>(null) }
 
     LaunchedEffect(bookingPublicId) {
         viewModel.load(bookingPublicId)
-        currentLocationProvider.getLastKnownLocation()?.let { geo ->
-            driverLocation = MapPoint(geo.latitude, geo.longitude)
-        }
     }
 
     Surface(modifier = Modifier.fillMaxSize()) {
@@ -78,57 +83,114 @@ fun TripNavigationScreen(
                 val session = uiState.tripSession ?: return@Surface
                 val pickup = MapPoint(session.pickupPoint.latitude, session.pickupPoint.longitude)
                 val destination = MapPoint(session.destinationPoint.latitude, session.destinationPoint.longitude)
-                val center = driverLocation ?: if (pickupConfirmed) destination else pickup
+                Box(modifier = Modifier.fillMaxSize()) {
+                    DriverTurnByTurnHost(
+                        modifier = Modifier.fillMaxSize(),
+                        mapboxConfig = mapboxConfig,
+                        pickupPoint = pickup,
+                        destinationPoint = destination,
+                        routePoints = uiState.routePoints,
+                        pickupConfirmed = session.phase != RiderTripPhase.TO_PICKUP,
+                    )
 
-                Column(modifier = Modifier.fillMaxSize()) {
                     Surface(
                         tonalElevation = 6.dp,
-                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(14.dp),
+                        color = Color.Black.copy(alpha = 0.95f),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(start = 16.dp, end = 16.dp, top = 14.dp),
                     ) {
-                        Column(
-                            modifier = Modifier.padding(12.dp),
-                            verticalArrangement = Arrangement.spacedBy(6.dp),
+//                        Column(
+//                            modifier = Modifier.padding(14.dp),
+//                            verticalArrangement = Arrangement.spacedBy(4.dp),
+//                        ) {
+//                            Row(verticalAlignment = Alignment.CenterVertically) {
+//                                Text("↑", color = Color.White, style = MaterialTheme.typography.headlineSmall)
+//                                Text(
+//                                    "  ${uiState.nextInstruction ?: "Continue"}",
+//                                    style = MaterialTheme.typography.titleLarge,
+//                                    color = Color.White,
+//                                )
+//                            }
+//                            Text(
+//                                "${formatDistance(uiState.distanceMeters)} toward ${if (session.phase == RiderTripPhase.TO_PICKUP) session.pickupLabel else session.destinationLabel}",
+//                                style = MaterialTheme.typography.bodyLarge,
+//                                color = Color.White,
+//                            )
+//                            HorizontalDivider(
+//                                modifier = Modifier.padding(vertical = 6.dp),
+//                                thickness = DividerDefaults.Thickness,
+//                                color = Color.White.copy(alpha = 0.2f)
+//                            )
+//                            Text(
+//                                if (session.phase == RiderTripPhase.TO_PICKUP) "Pickup ${session.passengerName}" else "Dropoff ${session.passengerName}",
+//                                style = MaterialTheme.typography.titleMedium,
+//                                color = Color.White,
+//                            )
+//                            Text(
+//                                if (session.phase == RiderTripPhase.TO_PICKUP) session.pickupLabel else session.destinationLabel,
+//                                style = MaterialTheme.typography.bodyMedium,
+//                                color = Color.White.copy(alpha = 0.9f),
+//                            )
+//                        }
+                    }
+
+                    Column(
+                        modifier = Modifier
+                            .align(Alignment.CenterEnd)
+                            .padding(end = 16.dp)
+                            .offset(y = (-8).dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        FloatingActionButton(
+                            onClick = {},
+                            containerColor = Color.White,
+                            contentColor = Color.Black,
+                            modifier = Modifier.size(48.dp),
+                        ) { Icon(Heroicons.Outline.ChatBubbleOvalLeftEllipsis, contentDescription = "Chat") }
+                        FloatingActionButton(
+                            onClick = {},
+                            containerColor = Color.White,
+                            contentColor = Color.Black,
+                            modifier = Modifier.size(48.dp),
+                        ) { Icon(Heroicons.Outline.MapPin, contentDescription = "Pin") }
+                        FloatingActionButton(
+                            onClick = {},
+                            containerColor = Color.White,
+                            contentColor = Color.Black,
+                            modifier = Modifier.size(48.dp),
+                        ) { Text("↕") }
+                    }
+
+                    Surface(
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .padding(end = 18.dp, bottom = 94.dp),
+                        shape = RoundedCornerShape(999.dp),
+                        color = Color.Black,
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
-                            Text(uiState.nextInstruction ?: "Continue on route", style = MaterialTheme.typography.titleMedium)
-                            Text(
-                                "Remaining: ${formatDistance(uiState.distanceMeters)} • ${formatDuration(uiState.durationSeconds)}",
-                                style = MaterialTheme.typography.bodyMedium,
-                            )
-                            if (!pickupConfirmed) {
-                                Button(onClick = { pickupConfirmed = true }) {
-                                    Text("Confirm Pickup")
-                                }
-                            }
+                            Icon(Heroicons.Outline.PaperAirplane, contentDescription = null, tint = Color.White)
+                            Text("Navigate", color = Color.White, style = MaterialTheme.typography.titleMedium)
                         }
                     }
-                    PlatformMapView(
-                        modifier = Modifier.fillMaxSize(),
-                        config = mapboxConfig,
-                        cameraCenter = center,
-                        cameraDefaults = MapCameraDefaults(zoom = 13.2, pitch = 30.0),
-                        markers = buildList {
-                            driverLocation?.let { add(MapMarker("driver", it, Color(0xFF2563EB), 8.0)) }
-                            add(MapMarker("pickup", pickup, Color(0xFFF59E0B), 7.0))
-                            add(MapMarker("destination", destination, Color(0xFFEF4444), 7.0))
-                        },
-                        routeLines = listOf(
-                            MapRouteLine(
-                                id = "driver-pickup",
-                                points = buildList {
-                                    driverLocation?.let { add(it) }
-                                    add(pickup)
-                                },
-                                color = Color(0xFF2563EB),
-                                width = 5.0,
-                            ),
-                            MapRouteLine(
-                                id = "pickup-destination",
-                                points = uiState.routePoints.ifEmpty { listOf(pickup, destination) },
-                                color = Color(0xFF10B981),
-                                width = 5.0,
-                            ),
-                        ),
-                    )
+
+                    FloatingActionButton(
+                        onClick = {},
+                        containerColor = Color.White,
+                        contentColor = Color(0xFF2B6EF2),
+                        modifier = Modifier
+                            .align(Alignment.BottomStart)
+                            .padding(start = 16.dp, bottom = 94.dp)
+                            .size(48.dp),
+                    ) { Icon(Heroicons.Outline.ShieldCheck, contentDescription = "Safety") }
+
                 }
             }
         }

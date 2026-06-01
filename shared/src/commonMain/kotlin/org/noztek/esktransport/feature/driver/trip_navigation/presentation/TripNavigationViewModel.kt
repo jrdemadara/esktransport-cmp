@@ -9,11 +9,13 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.noztek.esktransport.core.map.MapboxDirectionsClient
+import org.noztek.esktransport.feature.rider.trip_navigation.domain.usecase.ConfirmRiderPickupUseCase
 import org.noztek.esktransport.feature.rider.trip_navigation.domain.usecase.GetRiderTripSessionUseCase
 import org.noztek.esktransport.feature.rider.trip_navigation.domain.usecase.UpdateRiderTripLocationUseCase
 
 class TripNavigationViewModel(
     private val getRiderTripSessionUseCase: GetRiderTripSessionUseCase,
+    private val confirmRiderPickupUseCase: ConfirmRiderPickupUseCase,
     private val updateRiderTripLocationUseCase: UpdateRiderTripLocationUseCase,
     private val mapboxDirectionsClient: MapboxDirectionsClient,
     private val ioDispatcher: CoroutineDispatcher,
@@ -81,6 +83,25 @@ class TripNavigationViewModel(
                 _uiState.value = TripNavigationUiState(
                     isLoading = false,
                     message = throwable.message ?: "Unexpected trip loading error.",
+                )
+            }
+        }
+    }
+
+    fun confirmPickup(bookingPublicId: String) {
+        if (bookingPublicId.isBlank()) return
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isSubmittingPickup = true, message = null)
+            val result = withContext(ioDispatcher) {
+                confirmRiderPickupUseCase(bookingPublicId)
+            }
+            result.onSuccess {
+                load(bookingPublicId)
+                _uiState.value = _uiState.value.copy(isSubmittingPickup = false)
+            }.onFailure { error ->
+                _uiState.value = _uiState.value.copy(
+                    isSubmittingPickup = false,
+                    message = error.message ?: "Failed to confirm pickup.",
                 )
             }
         }

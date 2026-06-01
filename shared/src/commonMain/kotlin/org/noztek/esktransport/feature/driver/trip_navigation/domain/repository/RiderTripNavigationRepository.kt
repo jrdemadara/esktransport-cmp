@@ -4,6 +4,7 @@ import org.noztek.esktransport.feature.rider.trip_navigation.domain.model.RiderT
 
 interface RiderTripNavigationRepository {
     suspend fun getTripSession(bookingPublicId: String): Result<RiderTripSession>
+    suspend fun arrivePickup(bookingPublicId: String): Result<Unit>
     suspend fun updateTripLocation(
         bookingPublicId: String,
         latitude: Double,

@@ -14,5 +14,9 @@
 	<string>$(PUSHER_APP_KEY)</string>
 	<key>PusherAuthEndpoint</key>
 	<string>$(PUSHER_AUTH_ENDPOINT)</string>
+    <key>UIBackgroundModes</key>
+    <array>
+        <string>audio</string>
+    </array>
 </dict>
 </plist>

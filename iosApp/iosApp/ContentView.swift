@@ -6,6 +6,7 @@ struct ComposeView: UIViewControllerRepresentable {
     func makeUIViewController(context: Self.Context) -> UIViewController {
         let mapboxAccessToken = Bundle.main.object(forInfoDictionaryKey: "MBXAccessToken") as? String ?? ""
         IosMapboxBridge.shared.setFactory(factory: IosMapboxViewFactory())
+        IosDriverNavigationBridge.shared.setFactory(factory: IosDriverNavigationViewFactory())
         return MainViewControllerKt.MainViewController(mapboxAccessToken: mapboxAccessToken)
     }
 
@@ -15,6 +16,7 @@ struct ComposeView: UIViewControllerRepresentable {
 struct ContentView: View {
     var body: some View {
         ComposeView()
-            .ignoresSafeArea()
+            .ignoresSafeArea(.container, edges: .bottom)
+
     }
 }

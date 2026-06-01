@@ -24,4 +24,8 @@ class RiderTripNavigationApi(
             setBody(request)
         }
     }
+
+    suspend fun arrivePickup(bookingPublicId: String) {
+        client.post("${baseUrl.trimEnd('/')}/api/v1/rider/bookings/$bookingPublicId/arrive-pickup")
+    }
 }
