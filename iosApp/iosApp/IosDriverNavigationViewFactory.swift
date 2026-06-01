@@ -5,6 +5,16 @@ import Shared
 import UIKit
 
 final class IosDriverNavigationViewFactory: NSObject, Shared.IosDriverNavigationViewFactory {
+    private final class EmptyBottomBannerViewController: ContainerViewController {
+        override func loadView() {
+            let view = UIView(frame: .zero)
+            view.backgroundColor = .clear
+            view.isHidden = true
+            self.view = view
+            preferredContentSize = .zero
+        }
+    }
+
     @MainActor
     private static var sharedNavigationOptions: NavigationOptions?
 
@@ -12,6 +22,7 @@ final class IosDriverNavigationViewFactory: NSObject, Shared.IosDriverNavigation
         var currentRequest: IosDriverNavigationRequest
         var navigationController: NavigationViewController?
         var currentStageKey: String?
+        var isFinalStage: Bool = false
         var routeTask: Task<Void, Never>?
         let loading = UIActivityIndicatorView(style: .large)
 
@@ -32,6 +43,15 @@ final class IosDriverNavigationViewFactory: NSObject, Shared.IosDriverNavigation
         required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
     }
 
+    private static func parentViewController(for view: UIView) -> UIViewController? {
+        var responder: UIResponder? = view
+        while let current = responder {
+            if let vc = current as? UIViewController { return vc }
+            responder = current.next
+        }
+        return nil
+    }
+
     func createNavigationView(request: IosDriverNavigationRequest) -> UIView {
         let container = Container(request: request)
         updateNavigationView(view: container, request: request)
@@ -43,13 +63,19 @@ final class IosDriverNavigationViewFactory: NSObject, Shared.IosDriverNavigation
         container.currentRequest = request
 
         let stageKey = request.pickupConfirmed ? "to-destination" : "to-pickup"
+        container.isFinalStage = request.pickupConfirmed
         if container.currentStageKey == stageKey, container.navigationController != nil {
             return
         }
         container.currentStageKey = stageKey
 
-        let from = CLLocationCoordinate2D(latitude: request.pickupLatitude, longitude: request.pickupLongitude)
-        let to = CLLocationCoordinate2D(latitude: request.destinationLatitude, longitude: request.destinationLongitude)
+        let pickup = CLLocationCoordinate2D(latitude: request.pickupLatitude, longitude: request.pickupLongitude)
+        let destination = CLLocationCoordinate2D(latitude: request.destinationLatitude, longitude: request.destinationLongitude)
+        let currentDriverLocation = CLLocationManager().location?.coordinate
+        let from = request.pickupConfirmed
+            ? pickup
+            : (currentDriverLocation ?? pickup)
+        let to = request.pickupConfirmed ? destination : pickup
 
         mountNavigation(in: container, from: from, to: to)
     }
@@ -67,7 +93,9 @@ final class IosDriverNavigationViewFactory: NSObject, Shared.IosDriverNavigation
             guard let container else { return }
             let (navigationOptions, routingProvider): (NavigationOptions, RoutingProvider) = await MainActor.run {
                 if Self.sharedNavigationOptions == nil {
-                    Self.sharedNavigationOptions = NavigationOptions()
+                    let options = NavigationOptions()
+                    options.bottomBanner = EmptyBottomBannerViewController()
+                    Self.sharedNavigationOptions = options
                 }
                 let options = Self.sharedNavigationOptions!
                 let provider = options.mapboxNavigation.routingProvider()
@@ -86,12 +114,19 @@ final class IosDriverNavigationViewFactory: NSObject, Shared.IosDriverNavigation
                         navigationOptions: navigationOptions
                     )
                     navVC.routeLineTracksTraversal = true
+                    navVC.showsEndOfRouteFeedback = container.isFinalStage
 
-                    container.navigationController?.willMove(toParent: nil)
-                    container.navigationController?.view.removeFromSuperview()
-                    container.navigationController?.removeFromParent()
+                    if let existing = container.navigationController {
+                        existing.willMove(toParent: nil)
+                        existing.view.removeFromSuperview()
+                        existing.removeFromParent()
+                    }
 
                     container.navigationController = navVC
+
+                    if let parentVC = Self.parentViewController(for: container) {
+                        parentVC.addChild(navVC)
+                    }
 
                     navVC.view.translatesAutoresizingMaskIntoConstraints = false
                     container.addSubview(navVC.view)
@@ -101,6 +136,7 @@ final class IosDriverNavigationViewFactory: NSObject, Shared.IosDriverNavigation
                         navVC.view.topAnchor.constraint(equalTo: container.topAnchor),
                         navVC.view.bottomAnchor.constraint(equalTo: container.bottomAnchor),
                     ])
+                    navVC.didMove(toParent: Self.parentViewController(for: container))
                     container.bringSubviewToFront(container.loading)
                     container.loading.stopAnimating()
                 }

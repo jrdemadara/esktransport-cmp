@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.noztek.esktransport.core.map.MapboxDirectionsClient
+import org.noztek.esktransport.feature.rider.trip_navigation.domain.model.RiderTripPhase
 import org.noztek.esktransport.feature.rider.trip_navigation.domain.usecase.ConfirmRiderPickupUseCase
 import org.noztek.esktransport.feature.rider.trip_navigation.domain.usecase.GetRiderTripSessionUseCase
 import org.noztek.esktransport.feature.rider.trip_navigation.domain.usecase.UpdateRiderTripLocationUseCase
@@ -41,21 +42,58 @@ class TripNavigationViewModel(
                 result.onSuccess { session ->
                     viewModelScope.launch {
                         runCatching {
+                            val stageRoute = when (session.phase) {
+                                RiderTripPhase.TO_PICKUP -> {
+                                    val riderCurrent = session.riderCurrentPoint
+                                    if (riderCurrent != null) {
+                                        StageRoute(
+                                            originLng = riderCurrent.longitude,
+                                            originLat = riderCurrent.latitude,
+                                            destinationLng = session.pickupPoint.longitude,
+                                            destinationLat = session.pickupPoint.latitude,
+                                        )
+                                    } else {
+                                        // Fallback while rider current location has not been persisted yet.
+                                        StageRoute(
+                                            originLng = session.pickupPoint.longitude,
+                                            originLat = session.pickupPoint.latitude,
+                                            destinationLng = session.pickupPoint.longitude,
+                                            destinationLat = session.pickupPoint.latitude,
+                                        )
+                                    }
+                                }
+                                RiderTripPhase.TO_DESTINATION -> StageRoute(
+                                    originLng = session.pickupPoint.longitude,
+                                    originLat = session.pickupPoint.latitude,
+                                    destinationLng = session.destinationPoint.longitude,
+                                    destinationLat = session.destinationPoint.latitude,
+                                )
+                            }
+
                             val routeResult = withContext(ioDispatcher) {
                                 mapboxDirectionsClient.getRoutePoints(
-                                    originLongitude = session.pickupPoint.longitude,
-                                    originLatitude = session.pickupPoint.latitude,
-                                    destinationLongitude = session.destinationPoint.longitude,
-                                    destinationLatitude = session.destinationPoint.latitude,
+                                    originLongitude = stageRoute.originLng,
+                                    originLatitude = stageRoute.originLat,
+                                    destinationLongitude = stageRoute.destinationLng,
+                                    destinationLatitude = stageRoute.destinationLat,
+                                )
+                            }
+                            val summaryResult = withContext(ioDispatcher) {
+                                mapboxDirectionsClient.getRouteSummary(
+                                    originLongitude = stageRoute.originLng,
+                                    originLatitude = stageRoute.originLat,
+                                    destinationLongitude = stageRoute.destinationLng,
+                                    destinationLatitude = stageRoute.destinationLat,
                                 )
                             }
                             routeResult.onSuccess { routePoints ->
+                                val summary = summaryResult.getOrNull()
                                 _uiState.value = TripNavigationUiState(
                                     isLoading = false,
                                     tripSession = session,
                                     routePoints = routePoints,
-                                    distanceMeters = null,
-                                    durationSeconds = null,
+                                    distanceMeters = summary?.distanceMeters,
+                                    durationSeconds = summary?.durationSeconds,
                                     nextInstruction = "Continue on route",
                                 )
                             }.onFailure {
@@ -96,6 +134,12 @@ class TripNavigationViewModel(
                 confirmRiderPickupUseCase(bookingPublicId)
             }
             result.onSuccess {
+                val current = _uiState.value.tripSession
+                if (current != null) {
+                    _uiState.value = _uiState.value.copy(
+                        tripSession = current.copy(phase = RiderTripPhase.TO_DESTINATION),
+                    )
+                }
                 load(bookingPublicId)
                 _uiState.value = _uiState.value.copy(isSubmittingPickup = false)
             }.onFailure { error ->
@@ -134,3 +178,10 @@ class TripNavigationViewModel(
         }
     }
 }
+
+private data class StageRoute(
+    val originLng: Double,
+    val originLat: Double,
+    val destinationLng: Double,
+    val destinationLat: Double,
+)

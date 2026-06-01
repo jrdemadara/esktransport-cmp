@@ -11,6 +11,11 @@ class MapboxDirectionsClient(
     private val client: HttpClient,
     private val config: MapboxConfig,
 ) {
+    data class RouteSummary(
+        val distanceMeters: Double?,
+        val durationSeconds: Double?,
+    )
+
     suspend fun getRoutePoints(
         originLongitude: Double,
         originLatitude: Double,
@@ -52,6 +57,34 @@ class MapboxDirectionsClient(
         }
     }
 
+    suspend fun getRouteSummary(
+        originLongitude: Double,
+        originLatitude: Double,
+        destinationLongitude: Double,
+        destinationLatitude: Double,
+    ): Result<RouteSummary> {
+        if (!config.hasAccessToken) {
+            return Result.success(RouteSummary(distanceMeters = null, durationSeconds = null))
+        }
+
+        return runCatching {
+            val response = client.get(
+                "https://api.mapbox.com/directions/v5/mapbox/driving/" +
+                    "$originLongitude,$originLatitude;$destinationLongitude,$destinationLatitude",
+            ) {
+                parameter("geometries", "geojson")
+                parameter("overview", "full")
+                parameter("access_token", config.accessToken)
+            }.body<MapboxDirectionsResponse>()
+
+            val firstRoute = response.routes.firstOrNull()
+            RouteSummary(
+                distanceMeters = firstRoute?.distance,
+                durationSeconds = firstRoute?.duration,
+            )
+        }
+    }
+
     @Serializable
     private data class MapboxDirectionsResponse(
         val routes: List<MapboxRoute> = emptyList(),
@@ -60,6 +93,8 @@ class MapboxDirectionsClient(
     @Serializable
     private data class MapboxRoute(
         val geometry: MapboxGeometry? = null,
+        val distance: Double? = null,
+        val duration: Double? = null,
     )
 
     @Serializable

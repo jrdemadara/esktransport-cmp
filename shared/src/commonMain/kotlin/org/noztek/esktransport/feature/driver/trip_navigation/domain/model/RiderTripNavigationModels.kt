@@ -16,6 +16,7 @@ data class RiderTripSession(
     val passengerName: String,
     val pickupLabel: String,
     val destinationLabel: String,
+    val riderCurrentPoint: RiderTripPoint?,
     val pickupPoint: RiderTripPoint,
     val destinationPoint: RiderTripPoint,
 )

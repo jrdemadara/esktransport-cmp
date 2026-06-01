@@ -9,16 +9,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Divider
-import androidx.compose.material3.DividerDefaults
 import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -28,13 +24,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.composables.icons.heroicons.Heroicons
-import com.composables.icons.heroicons.outline.AdjustmentsHorizontal
-import com.composables.icons.heroicons.outline.Bars3
-import com.composables.icons.heroicons.outline.ChatBubbleOvalLeftEllipsis
+import com.composables.icons.heroicons.outline.Check
+import com.composables.icons.heroicons.outline.ChatBubbleOvalLeft
 import com.composables.icons.heroicons.outline.MapPin
-import com.composables.icons.heroicons.outline.PaperAirplane
 import com.composables.icons.heroicons.outline.ShieldCheck
 import org.koin.compose.viewmodel.koinViewModel
 import org.noztek.esktransport.core.map.MapPoint
@@ -83,6 +78,7 @@ fun TripNavigationScreen(
                 val session = uiState.tripSession ?: return@Surface
                 val pickup = MapPoint(session.pickupPoint.latitude, session.pickupPoint.longitude)
                 val destination = MapPoint(session.destinationPoint.latitude, session.destinationPoint.longitude)
+                val showConfirmPickup = session.phase == RiderTripPhase.TO_PICKUP
                 Box(modifier = Modifier.fillMaxSize()) {
                     DriverTurnByTurnHost(
                         modifier = Modifier.fillMaxSize(),
@@ -93,63 +89,14 @@ fun TripNavigationScreen(
                         pickupConfirmed = session.phase != RiderTripPhase.TO_PICKUP,
                     )
 
-                    Surface(
-                        tonalElevation = 6.dp,
-                        shape = RoundedCornerShape(14.dp),
-                        color = Color.Black.copy(alpha = 0.95f),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(start = 16.dp, end = 16.dp, top = 14.dp),
-                    ) {
-//                        Column(
-//                            modifier = Modifier.padding(14.dp),
-//                            verticalArrangement = Arrangement.spacedBy(4.dp),
-//                        ) {
-//                            Row(verticalAlignment = Alignment.CenterVertically) {
-//                                Text("↑", color = Color.White, style = MaterialTheme.typography.headlineSmall)
-//                                Text(
-//                                    "  ${uiState.nextInstruction ?: "Continue"}",
-//                                    style = MaterialTheme.typography.titleLarge,
-//                                    color = Color.White,
-//                                )
-//                            }
-//                            Text(
-//                                "${formatDistance(uiState.distanceMeters)} toward ${if (session.phase == RiderTripPhase.TO_PICKUP) session.pickupLabel else session.destinationLabel}",
-//                                style = MaterialTheme.typography.bodyLarge,
-//                                color = Color.White,
-//                            )
-//                            HorizontalDivider(
-//                                modifier = Modifier.padding(vertical = 6.dp),
-//                                thickness = DividerDefaults.Thickness,
-//                                color = Color.White.copy(alpha = 0.2f)
-//                            )
-//                            Text(
-//                                if (session.phase == RiderTripPhase.TO_PICKUP) "Pickup ${session.passengerName}" else "Dropoff ${session.passengerName}",
-//                                style = MaterialTheme.typography.titleMedium,
-//                                color = Color.White,
-//                            )
-//                            Text(
-//                                if (session.phase == RiderTripPhase.TO_PICKUP) session.pickupLabel else session.destinationLabel,
-//                                style = MaterialTheme.typography.bodyMedium,
-//                                color = Color.White.copy(alpha = 0.9f),
-//                            )
-//                        }
-                    }
-
                     Column(
                         modifier = Modifier
-                            .align(Alignment.CenterEnd)
-                            .padding(end = 16.dp)
+                            .align(Alignment.BottomEnd)
+                            .padding(end = 16.dp, bottom = 94.dp)
                             .offset(y = (-8).dp),
                         verticalArrangement = Arrangement.spacedBy(10.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
-                        FloatingActionButton(
-                            onClick = {},
-                            containerColor = Color.White,
-                            contentColor = Color.Black,
-                            modifier = Modifier.size(48.dp),
-                        ) { Icon(Heroicons.Outline.ChatBubbleOvalLeftEllipsis, contentDescription = "Chat") }
                         FloatingActionButton(
                             onClick = {},
                             containerColor = Color.White,
@@ -162,22 +109,57 @@ fun TripNavigationScreen(
                             contentColor = Color.Black,
                             modifier = Modifier.size(48.dp),
                         ) { Text("↕") }
+                        FloatingActionButton(
+                            onClick = {},
+                            containerColor = Color.White,
+                            contentColor = Color.Black,
+                            modifier = Modifier.size(48.dp),
+                        ) { Icon(Heroicons.Outline.ChatBubbleOvalLeft, contentDescription = "Chat") }
                     }
 
                     Surface(
                         modifier = Modifier
-                            .align(Alignment.BottomEnd)
-                            .padding(end = 18.dp, bottom = 94.dp),
-                        shape = RoundedCornerShape(999.dp),
-                        color = Color.Black,
+                            .align(Alignment.BottomCenter)
+                            .fillMaxWidth(),
+                        shape = RoundedCornerShape(topStart = 14.dp, topEnd = 14.dp),
+                        color = MaterialTheme.colorScheme.background,
                     ) {
                         Row(
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 16.dp),
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
                         ) {
-                            Icon(Heroicons.Outline.PaperAirplane, contentDescription = null, tint = Color.White)
-                            Text("Navigate", color = Color.White, style = MaterialTheme.typography.titleMedium)
+                            val stageTitle = if (session.phase == RiderTripPhase.TO_PICKUP) {
+                                "Pickup ${session.passengerName}"
+                            } else {
+                                "Dropoff ${session.passengerName}"
+                            }
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            ) {
+                                Surface(
+                                    shape = RoundedCornerShape(999.dp),
+                                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.18f),
+                                    modifier = Modifier.size(12.dp),
+                                ) {
+                                    Box {}
+                                }
+                                Text(
+                                    stageTitle,
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                )
+                            }
+
+                            Text(
+                                "ETA ${formatDuration(uiState.durationSeconds)} • ${formatDistance(uiState.distanceMeters)}",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
                         }
                     }
 
@@ -190,6 +172,33 @@ fun TripNavigationScreen(
                             .padding(start = 16.dp, bottom = 94.dp)
                             .size(48.dp),
                     ) { Icon(Heroicons.Outline.ShieldCheck, contentDescription = "Safety") }
+
+                    if (showConfirmPickup) {
+                        FloatingActionButton(
+                            onClick = { viewModel.confirmPickup(bookingPublicId) },
+                            containerColor = Color.Black,
+                            contentColor = Color.White,
+                            modifier = Modifier
+                                .align(Alignment.BottomEnd)
+                                .padding(end = 16.dp, bottom = 94.dp)
+                                .widthIn(min = 150.dp)
+                                .size(height = 56.dp, width = 150.dp),
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            ) {
+                                Icon(
+                                    imageVector = Heroicons.Outline.Check,
+                                    contentDescription = null,
+                                )
+                                Text(
+                                    if (uiState.isSubmittingPickup) "..." else "Confirm Pickup",
+                                    style = MaterialTheme.typography.labelMedium,
+                                )
+                            }
+                        }
+                    }
 
                 }
             }

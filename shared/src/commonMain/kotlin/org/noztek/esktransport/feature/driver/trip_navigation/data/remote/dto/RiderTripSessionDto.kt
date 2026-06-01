@@ -17,11 +17,19 @@ data class RiderTripSessionDataDto(
     val passengerName: String,
     val pickup: RiderTripLocationDto,
     val destination: RiderTripLocationDto,
+    @SerialName("rider_current")
+    val riderCurrent: RiderTripCoordinatesDto? = null,
 )
 
 @Serializable
 data class RiderTripLocationDto(
     val label: String? = null,
+    val lat: Double? = null,
+    val lng: Double? = null,
+)
+
+@Serializable
+data class RiderTripCoordinatesDto(
     val lat: Double? = null,
     val lng: Double? = null,
 )

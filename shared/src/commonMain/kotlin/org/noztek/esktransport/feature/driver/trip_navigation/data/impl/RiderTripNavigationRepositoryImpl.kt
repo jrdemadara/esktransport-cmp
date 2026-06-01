@@ -25,7 +25,7 @@ class RiderTripNavigationRepositoryImpl(
             }
 
             val phase = when (data.status) {
-                "in_progress" -> RiderTripPhase.TO_DESTINATION
+                "arriving_pickup", "in_progress" -> RiderTripPhase.TO_DESTINATION
                 else -> RiderTripPhase.TO_PICKUP
             }
 
@@ -36,6 +36,11 @@ class RiderTripNavigationRepositoryImpl(
                     passengerName = data.passengerName,
                     pickupLabel = data.pickup.label ?: "Pickup",
                     destinationLabel = data.destination.label ?: "Destination",
+                    riderCurrentPoint = if (data.riderCurrent?.lat != null && data.riderCurrent.lng != null) {
+                        RiderTripPoint(latitude = data.riderCurrent.lat, longitude = data.riderCurrent.lng)
+                    } else {
+                        null
+                    },
                     pickupPoint = RiderTripPoint(latitude = pickupLat, longitude = pickupLng),
                     destinationPoint = RiderTripPoint(latitude = destinationLat, longitude = destinationLng),
                 ),
