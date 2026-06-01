@@ -78,7 +78,8 @@ fun TripNavigationScreen(
                 val session = uiState.tripSession ?: return@Surface
                 val pickup = MapPoint(session.pickupPoint.latitude, session.pickupPoint.longitude)
                 val destination = MapPoint(session.destinationPoint.latitude, session.destinationPoint.longitude)
-                val showConfirmPickup = session.phase == RiderTripPhase.TO_PICKUP
+                val isNearPickup = (uiState.distanceMeters ?: Double.MAX_VALUE) <= 30.0
+                val showConfirmPickup = session.phase == RiderTripPhase.TO_PICKUP && isNearPickup
                 Box(modifier = Modifier.fillMaxSize()) {
                     DriverTurnByTurnHost(
                         modifier = Modifier.fillMaxSize(),

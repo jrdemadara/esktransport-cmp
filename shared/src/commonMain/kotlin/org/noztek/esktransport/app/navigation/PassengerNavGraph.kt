@@ -70,6 +70,7 @@ import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.painterResource
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
+import org.noztek.esktransport.core.platform.isIosPlatform
 import org.noztek.esktransport.core.realtime.passenger.PassengerRealtimeCoordinator
 import org.noztek.esktransport.feature.passenger.booking_review.domain.model.BookingReviewInput
 import org.noztek.esktransport.feature.passenger.booking_review.presentation.BookingReviewScreen
@@ -156,9 +157,11 @@ private fun PassengerShell(onLogout: () -> Unit) {
 
     Scaffold(
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
-        contentWindowInsets = WindowInsets.safeDrawing.only(
-            WindowInsetsSides.Top + WindowInsetsSides.Horizontal,
-        ),
+        contentWindowInsets = if (isIosPlatform()) {
+            WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal)
+        } else {
+            WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal)
+        },
         topBar = {
             when {
                 currentRoute == ROUTE_RIDE_PLANNER -> PassengerBackTopBar("Plan your trip") { navController.popBackStack() }
@@ -301,6 +304,7 @@ private fun PassengerShell(onLogout: () -> Unit) {
 @Composable
 private fun PassengerBackTopBar(title: String, onBack: () -> Unit) {
     TopAppBar(
+        windowInsets = WindowInsets(0),
         title = { Text(title) },
         navigationIcon = {
             IconButton(onClick = onBack) {
@@ -314,6 +318,7 @@ private fun PassengerBackTopBar(title: String, onBack: () -> Unit) {
 @Composable
 private fun PassengerHomeTopBar(onProfileClick: () -> Unit) {
     CenterAlignedTopAppBar(
+        windowInsets = WindowInsets(0),
         colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface),
         title = {},
         navigationIcon = { AppLogoBadge() },

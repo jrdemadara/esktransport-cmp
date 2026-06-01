@@ -40,11 +40,18 @@ kotlin {
             implementation(libs.compose.uiToolingPreview)
             implementation(libs.androidx.activity.compose)
             implementation(libs.compose.ui.text.google.fonts)
+            implementation(libs.androidx.constraintlayout)
             implementation(libs.koin.android)
             implementation(libs.ktor.client.okhttp)
             implementation(libs.pusher.android)
             implementation(libs.mapbox.maps.android)
             implementation(libs.mapbox.maps.compose)
+            implementation(libs.mapbox.navigationcore.ui.maps)
+            implementation(libs.mapbox.navigationcore.voice)
+            implementation(libs.mapbox.navigationcore.tripdata)
+            implementation(libs.mapbox.navigationcore.android)
+            implementation(libs.mapbox.navigationcore.ui.components)
+
         }
         commonMain.dependencies {
             implementation(libs.compose.runtime)

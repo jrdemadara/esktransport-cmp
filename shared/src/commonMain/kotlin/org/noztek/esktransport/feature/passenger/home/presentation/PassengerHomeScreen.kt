@@ -47,17 +47,20 @@ import com.composables.icons.heroicons.outline.PaperAirplane
 import com.composables.icons.heroicons.outline.MagnifyingGlass
 import com.composables.icons.heroicons.outline.BuildingStorefront
 import com.composables.icons.heroicons.outline.Bolt
+import org.noztek.esktransport.core.platform.isIosPlatform
 
 @Composable
 fun PassengerHomeScreen(
     onWhereToClick: () -> Unit = {},
     contentPadding: PaddingValues = PaddingValues(0.dp),
 ) {
+    val topPadding = if (isIosPlatform()) 4.dp else 12.dp
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(contentPadding)
-            .padding(horizontal = 16.dp, vertical = 12.dp),
+            .padding(horizontal = 16.dp)
+            .padding(top = topPadding, bottom = 12.dp),
     ) {
         SearchRow(onWhereToClick = onWhereToClick)
         Spacer(modifier = Modifier.height(10.dp))
