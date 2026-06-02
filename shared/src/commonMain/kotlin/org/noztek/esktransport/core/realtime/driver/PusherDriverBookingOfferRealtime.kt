@@ -62,6 +62,7 @@ class PusherDriverBookingOfferRealtime(
             DriverBookingOfferedEvent(
                 bookingPublicId = bookingPublicId,
                 passengerUserId = root.long("passenger_user_id"),
+                passengerName = root.string("passenger_name"),
                 pickupLabel = root.objectValue("pickup")?.string("label")
                     ?: root.string("pickup_label")
                     ?: "N/A",

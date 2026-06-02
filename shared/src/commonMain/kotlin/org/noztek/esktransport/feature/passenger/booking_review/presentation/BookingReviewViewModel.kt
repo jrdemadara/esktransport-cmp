@@ -39,7 +39,7 @@ class BookingReviewViewModel(
             launch {
                 realtimeCoordinator.passengerDriverAssigned().collect { event ->
                     if (event.bookingPublicId == pendingBookingPublicId) {
-                        _uiEvents.tryEmit(BookingReviewUiEvent.ShowSnackbar("Driver assigned. Waiting for acceptance..."))
+                        println("BookingReviewVM got booking.driver_assigned event bookingId=${event.bookingPublicId}, pending=$pendingBookingPublicId")
                     }
                 }
             }

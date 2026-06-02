@@ -56,7 +56,7 @@ class DriverHomeViewModel(
                     it.copy(
                         currentOffer = DriverHomeBookingOfferUiModel(
                             bookingPublicId = event.bookingPublicId,
-                            passengerName = DefaultPassengerName,
+                            passengerName = event.passengerName ?: DefaultPassengerName,
                             pickupLabel = event.pickupLabel,
                             destinationLabel = event.destinationLabel,
                             fareLabel = event.finalFare?.let(::formatFare) ?: "N/A",

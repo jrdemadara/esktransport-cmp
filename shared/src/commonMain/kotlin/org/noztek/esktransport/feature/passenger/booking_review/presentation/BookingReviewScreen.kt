@@ -1,17 +1,31 @@
 package org.noztek.esktransport.feature.passenger.booking_review.presentation
 
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.BottomSheetScaffold
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -21,6 +35,7 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SheetValue
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberBottomSheetScaffoldState
 import androidx.compose.material3.rememberStandardBottomSheetState
@@ -32,10 +47,16 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.composables.icons.heroicons.Heroicons
+import com.composables.icons.heroicons.outline.Bolt
 import com.composables.icons.heroicons.outline.Map
 import com.composables.icons.heroicons.outline.MapPin
 import com.composables.icons.heroicons.outline.Users
@@ -141,24 +162,154 @@ fun BookingReviewScreen(
 }
 
 @Composable
-private fun SearchingSheet() {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
+private fun SearchingSheet(
+    modifier: Modifier = Modifier
+) {
+    val primaryColor = MaterialTheme.colorScheme.primary
+    val onSurfaceColor = MaterialTheme.colorScheme.onSurface
+    val secondaryTextColor = MaterialTheme.colorScheme.onSurfaceVariant
+    // Infinite transitions for subtle, premium micro-animations
+    val infiniteTransition = rememberInfiniteTransition(label = "SearchingAnimations")
+
+    // Shimmer offset progress for the custom progress bar
+    val progressTranslation by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 2000, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "shimmerTranslation"
+    )
+    // Pulse alpha for the LIVE status green dot
+    val pulseAlpha by infiniteTransition.animateFloat(
+        initialValue = 0.4f,
+        targetValue = 1.0f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 1000, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "liveIndicatorPulse"
+    )
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        color = MaterialTheme.colorScheme.surface,
+        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
     ) {
-        Text("Searching for driver", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-        Text(
-            "Your booking request has been sent. Please wait while we find a driver.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
-        Spacer(modifier = Modifier.height(8.dp))
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 10.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            // Header Section
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                // A small rounded icon container, around 34.dp
+                Box(
+                    modifier = Modifier
+                        .size(34.dp)
+                        .clip(CircleShape) // Rounded iOS-style circular accent container
+                        .background(primaryColor.copy(alpha = 0.08f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    // Bolt icon custom drawn for high-fidelity Apple SF-Symbol look (around 18.dp)
+                    Canvas(modifier = Modifier.size(18.dp)) {
+                        val path = Path().apply {
+                            moveTo(size.width * 0.56f, size.height * 0.04f)
+                            lineTo(size.width * 0.20f, size.height * 0.54f)
+                            lineTo(size.width * 0.50f, size.height * 0.54f)
+                            lineTo(size.width * 0.44f, size.height * 0.96f)
+                            lineTo(size.width * 0.80f, size.height * 0.46f)
+                            lineTo(size.width * 0.50f, size.height * 0.46f)
+                            close()
+                        }
+                        drawPath(path, color = primaryColor)
+                    }
+                }
+                // Title & Subtitle block
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                ) {
+                    // Main title: "Finding your driver" (titleMedium, semi-bold weight)
+                    Text(
+                        text = "Finding your driver",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = onSurfaceColor,
+                        letterSpacing = (-0.3).sp // Apple-style tight tracking
+                    )
+                    // Subtitle: "Request sent. Matching nearby online drivers." (bodySmall, secondary color)
+                    Text(
+                        text = "Request sent. Matching nearby online drivers.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = secondaryTextColor,
+                        lineHeight = 14.sp
+                    )
+                }
+                // A small "LIVE" status label on the trailing side
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(5.dp),
+                    modifier = Modifier
+                        .clip(CircleShape)
+                        .background(primaryColor.copy(alpha = 0.08f))
+                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                ) {
+                    // Pulse dot to give it a reactive, active native look
+                    Box(
+                        modifier = Modifier
+                            .size(5.dp)
+                            .graphicsLayer(alpha = pulseAlpha)
+                            .clip(CircleShape)
+                            .background(primaryColor)
+                    )
+                    Text(
+                        text = "LIVE",
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 0.5.sp
+                        ),
+                        color = primaryColor
+                    )
+                }
+            }
+            // A custom thin progress indicator, around 3.dp tall
+            // Animates a smooth, organic iOS-like shimmer gradient across the screen width
+            BoxWithConstraints(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(3.dp)
+                    .clip(CircleShape)
+                    .background(primaryColor.copy(alpha = 0.08f))
+            ) {
+                val width = maxWidth
+                val barWidth = width * 0.35f
+                val offset = (width + barWidth) * progressTranslation - barWidth
+                Box(
+                    modifier = Modifier
+                        .width(barWidth)
+                        .fillMaxHeight()
+                        .offset(x = offset)
+                        .background(
+                            brush = Brush.horizontalGradient(
+                                colors = listOf(
+                                    primaryColor.copy(alpha = 0.2f),
+                                    primaryColor,
+                                    primaryColor.copy(alpha = 0.2f)
+                                )
+                            ),
+                            shape = CircleShape
+                        )
+                )
+            }
+        }
     }
 }
-
 @Composable
 private fun ReviewSheet(
     pickupLocation: String,
