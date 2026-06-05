@@ -1,5 +1,4 @@
 @file:OptIn(com.mapbox.navigation.base.ExperimentalPreviewMapboxNavigationAPI::class)
-@file:Suppress("DEPRECATION")
 
 package org.noztek.esktransport.feature.driver.trip_navigation.presentation
 
@@ -27,6 +26,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.appcompat.widget.AppCompatImageView
 import androidx.core.content.ContextCompat
 import com.mapbox.api.directions.v5.DirectionsCriteria
 import com.mapbox.api.directions.v5.models.RouteOptions
@@ -128,54 +128,55 @@ private class AndroidDriverTurnByTurnHost(
         )
     }
     private val maneuverView = MapboxManeuverView(context).apply {
-        visibility = View.INVISIBLE
         layoutParams = FrameLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT,
             ViewGroup.LayoutParams.WRAP_CONTENT,
             Gravity.TOP,
         ).apply {
-            setMargins(8.dp, 8.dp, 8.dp, 0)
+            setMargins(8.dp, 64.dp, 8.dp, 0)
         }
     }
     private val speedInfoView = MapboxSpeedInfoView(context).apply {
-        visibility = View.INVISIBLE
         layoutParams = FrameLayout.LayoutParams(
             ViewGroup.LayoutParams.WRAP_CONTENT,
             ViewGroup.LayoutParams.WRAP_CONTENT,
             Gravity.START or Gravity.TOP,
         ).apply {
-            setMargins(16.dp, 134.dp, 0, 0)
+            setMargins(16.dp, 198.dp, 0, 0)
         }
     }
     private val soundButton = MapboxSoundButton(context).apply {
-        visibility = View.INVISIBLE
         unmute()
+        minimumWidth = 48.dp
+        minimumHeight = 48.dp
         layoutParams = FrameLayout.LayoutParams(
             ViewGroup.LayoutParams.WRAP_CONTENT,
             ViewGroup.LayoutParams.WRAP_CONTENT,
             Gravity.END or Gravity.TOP,
         ).apply {
-            setMargins(0, 134.dp, 16.dp, 0)
+            setMargins(0, 198.dp, 16.dp, 0)
         }
     }
     private val routeOverviewButton = MapboxRouteOverviewButton(context).apply {
-        visibility = View.INVISIBLE
+        minimumWidth = 48.dp
+        minimumHeight = 48.dp
         layoutParams = FrameLayout.LayoutParams(
             ViewGroup.LayoutParams.WRAP_CONTENT,
             ViewGroup.LayoutParams.WRAP_CONTENT,
             Gravity.END or Gravity.TOP,
         ).apply {
-            setMargins(0, 188.dp, 16.dp, 0)
+            setMargins(0, 252.dp, 16.dp, 0)
         }
     }
     private val recenterButton = MapboxRecenterButton(context).apply {
-        visibility = View.INVISIBLE
+        minimumWidth = 48.dp
+        minimumHeight = 48.dp
         layoutParams = FrameLayout.LayoutParams(
             ViewGroup.LayoutParams.WRAP_CONTENT,
             ViewGroup.LayoutParams.WRAP_CONTENT,
             Gravity.END or Gravity.TOP,
         ).apply {
-            setMargins(0, 242.dp, 16.dp, 0)
+            setMargins(0, 306.dp, 16.dp, 0)
         }
     }
 
@@ -196,8 +197,8 @@ private class AndroidDriverTurnByTurnHost(
     )
     private val navigationLocationProvider = NavigationLocationProvider()
     private val viewportDataSource = MapboxNavigationViewportDataSource(mapView.getMapboxMap()).apply {
-        followingPadding = EdgeInsets(240.0, 64.0, 170.0, 64.0)
-        overviewPadding = EdgeInsets(240.0, 64.0, 170.0, 64.0)
+        followingPadding = EdgeInsets(306.0, 64.0, 170.0, 64.0)
+        overviewPadding = EdgeInsets(306.0, 64.0, 170.0, 64.0)
     }
     private val navigationCamera = NavigationCamera(
         mapView.getMapboxMap(),
@@ -277,6 +278,7 @@ private class AndroidDriverTurnByTurnHost(
             {
                 maneuverView.visibility = View.VISIBLE
                 maneuverView.renderManeuvers(maneuvers)
+                bringFloatingControlsToFront()
             },
         )
         routeLineApi.updateWithRouteProgress(routeProgress) { update ->
@@ -315,7 +317,8 @@ private class AndroidDriverTurnByTurnHost(
         view.addView(soundButton)
         view.addView(routeOverviewButton)
         view.addView(recenterButton)
-
+        maneuverView.bringToFront()
+        bringFloatingControlsToFront()
         mapView.location.setLocationProvider(navigationLocationProvider)
         mapView.location.locationPuck = createNavigationPuck()
         mapView.location.puckBearingEnabled = true
@@ -336,6 +339,7 @@ private class AndroidDriverTurnByTurnHost(
         mapboxNavigation.registerRoutesObserver(routesObserver)
         mapboxNavigation.registerVoiceInstructionsObserver(voiceInstructionsObserver)
         navigationCamera.registerNavigationCameraStateChangeObserver { state ->
+            println("DriverTurnByTurnHost navigation camera state=$state")
             recenterButton.visibility = when (state) {
                 NavigationCameraState.TRANSITION_TO_FOLLOWING,
                 NavigationCameraState.FOLLOWING -> View.INVISIBLE
@@ -343,6 +347,8 @@ private class AndroidDriverTurnByTurnHost(
                 NavigationCameraState.OVERVIEW,
                 NavigationCameraState.IDLE -> View.VISIBLE
             }
+            println("DriverTurnByTurnHost recenter visible=${recenterButton.visibility == View.VISIBLE}")
+            bringFloatingControlsToFront()
         }
 
         mapView.getMapboxMap().loadStyleUri(NavigationStyles.NAVIGATION_DAY_STYLE) { style ->
@@ -354,26 +360,16 @@ private class AndroidDriverTurnByTurnHost(
             mapView.location.enabled = true
             seedDeviceLocationPuck()
             renderLatestRoutes()
+            soundButton.visibility = View.VISIBLE
+            routeOverviewButton.visibility = if (latestRoutes.isNotEmpty()) View.VISIBLE else View.INVISIBLE
+            recenterButton.visibility = View.INVISIBLE
+            println(
+                "DriverTurnByTurnHost style loaded soundVisible=${soundButton.visibility == View.VISIBLE} " +
+                    "routeOverviewVisible=${routeOverviewButton.visibility == View.VISIBLE} " +
+                    "recenterVisible=${recenterButton.visibility == View.VISIBLE}",
+            )
+            bringFloatingControlsToFront()
             navigationCamera.requestNavigationCameraToFollowing()
-        }
-
-        soundButton.setOnClickListener {
-            isVoiceMuted = !isVoiceMuted
-            if (isVoiceMuted) {
-                soundButton.muteAndExtend(1200L)
-                voiceInstructionsPlayer.volume(SpeechVolume(0f))
-            } else {
-                soundButton.unmuteAndExtend(1200L)
-                voiceInstructionsPlayer.volume(SpeechVolume(1f))
-            }
-        }
-        routeOverviewButton.setOnClickListener {
-            navigationCamera.requestNavigationCameraToOverview()
-            recenterButton.showTextAndExtend(1200L)
-        }
-        recenterButton.setOnClickListener {
-            navigationCamera.requestNavigationCameraToFollowing()
-            routeOverviewButton.showTextAndExtend(1200L)
         }
 
         startTripSessionSafely()
@@ -463,8 +459,17 @@ private class AndroidDriverTurnByTurnHost(
                     println("DriverTurnByTurnHost route ready routes=${routes.size} origin=$routerOrigin")
                     mapboxNavigation.setNavigationRoutes(routes)
                     soundButton.visibility = View.VISIBLE
+                    soundButton.unmute()
                     routeOverviewButton.visibility = View.VISIBLE
+                    routeOverviewButton.showTextAndExtend(1200L)
                     speedInfoView.visibility = View.VISIBLE
+                    println(
+                        "DriverTurnByTurnHost route controls soundVisible=${soundButton.visibility == View.VISIBLE} " +
+                            "routeOverviewVisible=${routeOverviewButton.visibility == View.VISIBLE} " +
+                            "speedVisible=${speedInfoView.visibility == View.VISIBLE} " +
+                            "recenterVisible=${recenterButton.visibility == View.VISIBLE}",
+                    )
+                    bringFloatingControlsToFront()
                 }
 
                 override fun onFailure(reasons: List<RouterFailure>, routeOptions: RouteOptions) {
@@ -494,6 +499,41 @@ private class AndroidDriverTurnByTurnHost(
             }
         }
     }
+
+    private fun bringFloatingControlsToFront() {
+        speedInfoView.bringToFront()
+        soundButton.bringToFront()
+        routeOverviewButton.bringToFront()
+        recenterButton.bringToFront()
+    }
+
+//    private fun applyDefaultMapboxButtonIcons() {
+//        setButtonIcon(
+//            view = soundButton,
+//            drawableRes = if (isVoiceMuted) {
+//                com.mapbox.navigation.ui.components.R.drawable.mapbox_ic_sound_off
+//            } else {
+//                com.mapbox.navigation.ui.components.R.drawable.mapbox_ic_sound_on
+//            },
+//        )
+//        setButtonIcon(
+//            view = routeOverviewButton,
+//            drawableRes = com.mapbox.navigation.ui.components.R.drawable.mapbox_ic_route_overview,
+//        )
+//        setButtonIcon(
+//            view = recenterButton,
+//            drawableRes = com.mapbox.navigation.ui.components.R.drawable.mapbox_ic_recenter,
+//        )
+//    }
+
+//    private fun setButtonIcon(view: View, drawableRes: Int) {
+//        view.findViewById<AppCompatImageView>(com.mapbox.navigation.ui.components.R.id.iconImage)
+//            ?.apply {
+//                setImageResource(drawableRes)
+//                setColorFilter(Color.BLACK)
+//                visibility = View.VISIBLE
+//            }
+//    }
 
     private fun seedDeviceLocationPuck(): MapPoint? {
         val location = getBestLastKnownLocation() ?: return null
