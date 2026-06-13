@@ -23,6 +23,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -183,7 +184,12 @@ private fun PassengerShell(onLogout: () -> Unit) {
         },
         bottomBar = {
             if (showChrome) {
-                NavigationBar(windowInsets = WindowInsets(0)) {
+                NavigationBar(
+                    windowInsets = WindowInsets(0),
+                    containerColor = Color.White,
+                    contentColor = MaterialTheme.colorScheme.onSurface,
+                    tonalElevation = 0.dp,
+                ) {
                     tabs.forEach { tab ->
                         val selected = currentDestination?.hierarchy?.any { it.route == tab.route } == true
                         NavigationBarItem(
@@ -197,6 +203,13 @@ private fun PassengerShell(onLogout: () -> Unit) {
                             },
                             icon = { Icon(tab.icon, contentDescription = tab.label) },
                             label = { Text(tab.label) },
+                            colors = NavigationBarItemDefaults.colors(
+                                selectedIconColor = MaterialTheme.colorScheme.primary,
+                                selectedTextColor = MaterialTheme.colorScheme.primary,
+                                indicatorColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                                unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                            ),
                         )
                     }
                 }
