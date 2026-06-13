@@ -174,42 +174,43 @@ private fun PickupDestinationPanel(
 ) {
     val dottedLineColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
     Surface(color = Color.Transparent, modifier = Modifier.fillMaxWidth()) {
-        Row(verticalAlignment = Alignment.Top) {
-            Column(
-                modifier = Modifier
-                    .padding(end = 12.dp)
-                    .drawBehind {
-                        val x = size.width / 2f
-                        var y = 46f
-                        val endY = size.height - 46f
-                        while (y < endY) {
-                            drawCircle(color = dottedLineColor, radius = 2f, center = Offset(x, y))
-                            y += 10f
-                        }
-                    },
-                verticalArrangement = Arrangement.spacedBy(32.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                LocationIcon()
-                LocationIcon()
-            }
-
-            Column(modifier = Modifier.weight(1f)) {
-                LocationTextBlock(
-                    label = "Pickup Point",
-                    value = pickupLocation.ifBlank { "My Current Location" },
-                    onClick = if (pickupLocation.isBlank()) onUseCurrentLocationClick else onPickupClick,
-                    actionIcon = pickupLocation.isBlank(),
-                    onActionIconClick = onPickupClick,
-                )
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .drawBehind {
+                    val x = 20.dp.toPx()
+                    var y = 46.dp.toPx()
+                    val endY = size.height - 46.dp.toPx()
+                    while (y < endY) {
+                        drawCircle(color = dottedLineColor, radius = 2f, center = Offset(x, y))
+                        y += 10f
+                    }
+                },
+        ) {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                Row(verticalAlignment = Alignment.Top) {
+                    LocationIcon()
+                    Spacer(modifier = Modifier.width(12.dp))
+                    LocationTextBlock(
+                        label = "Pickup Point",
+                        value = pickupLocation.ifBlank { "My Current Location" },
+                        onClick = if (pickupLocation.isBlank()) onUseCurrentLocationClick else onPickupClick,
+                        actionIcon = pickupLocation.isBlank(),
+                        onActionIconClick = onPickupClick,
+                    )
+                }
                 Spacer(modifier = Modifier.height(28.dp))
-                LocationTextBlock(
-                    label = "Destination",
-                    value = destinationLocation.ifBlank { "Where to?" },
-                    onClick = onDestinationClick,
-                    actionIcon = false,
-                    onActionIconClick = onDestinationClick,
-                )
+                Row(verticalAlignment = Alignment.Top) {
+                    LocationIcon()
+                    Spacer(modifier = Modifier.width(12.dp))
+                    LocationTextBlock(
+                        label = "Destination",
+                        value = destinationLocation.ifBlank { "Where to?" },
+                        onClick = onDestinationClick,
+                        actionIcon = false,
+                        onActionIconClick = onDestinationClick,
+                    )
+                }
             }
         }
     }
