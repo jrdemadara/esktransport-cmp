@@ -1,6 +1,7 @@
 package org.noztek.esktransport.feature.passenger.ride_planner.presentation
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,7 +16,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -39,6 +39,7 @@ import com.composables.icons.heroicons.Heroicons
 import com.composables.icons.heroicons.outline.Map
 import com.composables.icons.heroicons.outline.MapPin
 import org.koin.compose.viewmodel.koinViewModel
+import org.noztek.esktransport.core.ui.composables.AppPrimaryButton
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -52,11 +53,11 @@ fun RidePlannerScreen(
     viewModel: RidePlannerViewModel = koinViewModel(),
 ) {
     val passengerCount by viewModel.passengerCount.collectAsState()
-    val selectedVehicleType by viewModel.selectedVehicleType.collectAsState()
 
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
+            .background(Color.White)
             .padding(contentPadding)
             .padding(horizontal = 16.dp),
     ) {
@@ -82,24 +83,12 @@ fun RidePlannerScreen(
                 }
             }
             Spacer(modifier = Modifier.height(24.dp))
-            Text("Vehicle Type", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-            Spacer(modifier = Modifier.height(8.dp))
-            SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-                listOf("Moto", "Trike", "Car", "Van").forEachIndexed { index, label ->
-                    SegmentedButton(
-                        shape = SegmentedButtonDefaults.itemShape(index = index, count = 4),
-                        onClick = { viewModel.setVehicleType(index) },
-                        selected = selectedVehicleType == index,
-                        label = { Text(label) },
-                    )
-                }
-            }
-            Spacer(modifier = Modifier.height(32.dp))
-            Button(
+            AppPrimaryButton(
+                text = "Review Booking",
                 onClick = { viewModel.onReviewBookingClick() },
                 modifier = Modifier.fillMaxWidth(),
                 enabled = pickupLocation.isNotBlank() && destinationLocation.isNotBlank(),
-            ) { Text("Review Booking") }
+            )
             Spacer(modifier = Modifier.height(24.dp))
         }
     }

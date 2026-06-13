@@ -121,7 +121,9 @@ private fun PassengerShell(onLogout: () -> Unit) {
     val currentDestination = navBackStackEntry?.destination
     val currentRoute = currentDestination?.route
     val locationMode = navBackStackEntry?.arguments?.read { getStringOrNull(ARG_MODE) } ?: "destination"
-    val showChrome = currentRoute != ROUTE_RIDE_PLANNER &&
+    val isRidePlannerRoute = currentRoute == ROUTE_RIDE_PLANNER ||
+        currentRoute == ROUTE_RIDE_PLANNER_WITH_VEHICLE
+    val showChrome = !isRidePlannerRoute &&
         currentRoute != ROUTE_BOOKING_REVIEW &&
         currentRoute?.startsWith(ROUTE_TRIP_TRACKING) != true &&
         currentRoute?.startsWith("location-search/") != true
@@ -167,7 +169,7 @@ private fun PassengerShell(onLogout: () -> Unit) {
         },
         topBar = {
             when {
-                currentRoute == ROUTE_RIDE_PLANNER -> PassengerBackTopBar("Plan your trip") { navController.popBackStack() }
+                isRidePlannerRoute -> PassengerBackTopBar("Plan your trip") { navController.popBackStack() }
                 currentRoute == ROUTE_BOOKING_REVIEW -> PassengerBackTopBar("Review Booking") { navController.popBackStack() }
                 currentRoute?.startsWith(ROUTE_TRIP_TRACKING) == true -> PassengerBackTopBar("Trip Tracking") { navController.popBackStack() }
                 currentRoute?.startsWith("location-search/") == true -> {
