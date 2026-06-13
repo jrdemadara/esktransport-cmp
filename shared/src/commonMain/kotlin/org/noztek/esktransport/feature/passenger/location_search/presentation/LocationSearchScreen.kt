@@ -4,11 +4,13 @@ import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -18,11 +20,14 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Button
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -33,12 +38,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import asktransport_cmp.shared.generated.resources.Res
 import asktransport_cmp.shared.generated.resources.map_pin_black
 import com.composables.icons.heroicons.Heroicons
 import com.composables.icons.heroicons.outline.MagnifyingGlass
+import com.composables.icons.heroicons.outline.MapPin
 import org.jetbrains.compose.resources.painterResource
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
@@ -46,6 +54,7 @@ import org.noztek.esktransport.core.map.MapCameraDefaults
 import org.noztek.esktransport.core.map.MapPoint
 import org.noztek.esktransport.core.map.MapboxConfig
 import org.noztek.esktransport.core.map.PlatformMapView
+import org.noztek.esktransport.core.ui.composables.AppPrimaryButton
 import org.noztek.esktransport.feature.passenger.location_search.domain.model.GeoPoint
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -59,7 +68,6 @@ fun LocationSearchScreen(
 ) {
     val state by viewModel.state.collectAsState()
     val normalizedMode = if (mode == "pickup") "pickup" else "destination"
-    val title = if (normalizedMode == "pickup") "Search pickup point" else "Search destination"
     val selectActionText = if (normalizedMode == "pickup") "Select as Pickup Point" else "Select as Destination"
     val selectedPoint = state.selectedPoint ?: state.currentLocationPoint ?: GeoPoint(6.6920431660391095, 124.68050838312321)
     var cameraCenter by remember { mutableStateOf(MapPoint(selectedPoint.latitude, selectedPoint.longitude)) }
@@ -89,10 +97,10 @@ fun LocationSearchScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .background(Color.White)
             .padding(contentPadding),
     ) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text(title, style = MaterialTheme.typography.headlineSmall)
+        Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             OutlinedTextField(
                 value = state.query,
                 onValueChange = viewModel::onQueryChanged,
@@ -100,18 +108,33 @@ fun LocationSearchScreen(
                 leadingIcon = { Icon(Heroicons.Outline.MagnifyingGlass, contentDescription = null) },
                 placeholder = { Text("Search location") },
                 singleLine = true,
+                shape = RoundedCornerShape(14.dp),
+                textStyle = MaterialTheme.typography.bodyMedium,
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedContainerColor = Color(0xFFF7F8FA),
+                    unfocusedContainerColor = Color(0xFFF7F8FA),
+                    focusedBorderColor = Color.Transparent,
+                    unfocusedBorderColor = Color.Transparent,
+                    cursorColor = MaterialTheme.colorScheme.primary,
+                ),
             )
             if (state.suggestions.isNotEmpty()) {
-                LazyColumn(modifier = Modifier.fillMaxWidth().height(120.dp)) {
-                    items(state.suggestions) { suggestion ->
-                        Text(
-                            text = suggestion.label,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable { viewModel.onSuggestionSelected(suggestion) }
-                                .padding(vertical = 10.dp),
-                            style = MaterialTheme.typography.bodyLarge,
-                        )
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(14.dp),
+                    color = Color(0xFFF7F8FA),
+                ) {
+                    LazyColumn(modifier = Modifier.fillMaxWidth().height(120.dp).padding(horizontal = 12.dp)) {
+                        items(state.suggestions) { suggestion ->
+                            Text(
+                                text = suggestion.label,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { viewModel.onSuggestionSelected(suggestion) }
+                                    .padding(vertical = 10.dp),
+                                style = MaterialTheme.typography.bodyMedium,
+                            )
+                        }
                     }
                 }
             }
@@ -141,18 +164,42 @@ fun LocationSearchScreen(
             )
         }
 
-        Column(modifier = Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(
-                selectedLabel,
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.Bold,
-            )
-            Button(
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Color.White)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Row(
                 modifier = Modifier.fillMaxWidth(),
-                onClick = { onLocationSelected(SelectedLocation(label = selectedLabel, point = selectedPoint)) },
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalAlignment = Alignment.Top,
             ) {
-                Text(selectActionText)
+                Icon(
+                    Heroicons.Outline.MapPin,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier
+                        .padding(top = 1.dp)
+                        .size(18.dp),
+                )
+                Text(
+                    selectedLabel,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f),
+                )
             }
+            Spacer(Modifier.height(4.dp))
+            HorizontalDivider(color = Color(0xFFE7E9EF))
+            Spacer(Modifier.height(4.dp))
+            AppPrimaryButton(
+                text = selectActionText,
+                onClick = { onLocationSelected(SelectedLocation(label = selectedLabel, point = selectedPoint)) },
+            )
             Spacer(Modifier.height(8.dp))
         }
     }
