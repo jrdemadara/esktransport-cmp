@@ -13,6 +13,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.noztek.esktransport.core.realtime.passenger.PassengerRealtimeCoordinator
 import org.noztek.esktransport.feature.passenger.booking_review.domain.model.BookingReviewInput
+import org.noztek.esktransport.feature.passenger.booking_review.domain.usecase.CancelBookingUseCase
 import org.noztek.esktransport.feature.passenger.booking_review.domain.usecase.CreateBookingUseCase
 
 sealed class BookingReviewUiEvent {
@@ -22,6 +23,7 @@ sealed class BookingReviewUiEvent {
 
 class BookingReviewViewModel(
     private val createBookingUseCase: CreateBookingUseCase,
+    private val cancelBookingUseCase: CancelBookingUseCase,
     private val ioDispatcher: CoroutineDispatcher,
     private val realtimeCoordinator: PassengerRealtimeCoordinator,
     private val currentDriverAssigned: PassengerDriverAssignedUiModel? = null,
@@ -99,9 +101,36 @@ class BookingReviewViewModel(
                 println("Booking created: booking_public_id=${booking.publicId}")
                 pendingBookingPublicId = booking.publicId
                 println("BookingReviewVM pending booking set to ${booking.publicId}")
-                _uiState.value = _uiState.value.copy(isSearchingForRider = true)
+                _uiState.value = _uiState.value.copy(isSearchingForRider = true, isCancellingBooking = false)
             }.onFailure { error ->
                 _uiEvents.tryEmit(BookingReviewUiEvent.ShowSnackbar("Booking failed: ${error.message}"))
+            }
+        }
+    }
+
+    fun cancelSearch() {
+        val bookingPublicId = pendingBookingPublicId
+        if (bookingPublicId == null) {
+            _uiState.value = _uiState.value.copy(isSearchingForRider = false, isCancellingBooking = false)
+            return
+        }
+
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isCancellingBooking = true)
+
+            val result = withContext(ioDispatcher) {
+                cancelBookingUseCase(bookingPublicId)
+            }
+
+            result.onSuccess {
+                pendingBookingPublicId = null
+                _uiState.value = _uiState.value.copy(
+                    isSearchingForRider = false,
+                    isCancellingBooking = false,
+                )
+            }.onFailure { error ->
+                _uiState.value = _uiState.value.copy(isCancellingBooking = false)
+                _uiEvents.tryEmit(BookingReviewUiEvent.ShowSnackbar(error.message ?: "Cancel booking failed."))
             }
         }
     }

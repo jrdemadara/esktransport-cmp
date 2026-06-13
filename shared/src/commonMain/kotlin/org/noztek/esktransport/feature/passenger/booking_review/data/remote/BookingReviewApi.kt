@@ -6,6 +6,7 @@ import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
+import org.noztek.esktransport.feature.passenger.booking_review.data.remote.dto.CancelBookingResponseDto
 import org.noztek.esktransport.feature.passenger.booking_review.data.remote.dto.CreateBookingRequestDto
 import org.noztek.esktransport.feature.passenger.booking_review.data.remote.dto.CreateBookingResponseDto
 
@@ -17,6 +18,12 @@ class BookingReviewApi(
         return client.post("${baseUrl.trimEnd('/')}/api/passenger/bookings") {
             contentType(ContentType.Application.Json)
             setBody(request)
+        }.body()
+    }
+
+    suspend fun cancelBooking(bookingPublicId: String): CancelBookingResponseDto {
+        return client.post("${baseUrl.trimEnd('/')}/api/passenger/bookings/$bookingPublicId/cancel") {
+            contentType(ContentType.Application.Json)
         }.body()
     }
 }

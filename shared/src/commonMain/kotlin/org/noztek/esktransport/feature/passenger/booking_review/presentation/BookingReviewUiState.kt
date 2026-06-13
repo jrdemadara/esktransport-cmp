@@ -6,4 +6,5 @@ data class BookingReviewUiState(
     val input: BookingReviewInput? = null,
     val isCreatingBooking: Boolean = false,
     val isSearchingForRider: Boolean = false,
+    val isCancellingBooking: Boolean = false,
 )

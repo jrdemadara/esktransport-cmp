@@ -5,4 +5,5 @@ import org.noztek.esktransport.feature.passenger.booking_review.domain.model.Boo
 
 interface BookingReviewRepository {
     suspend fun createBooking(input: BookingReviewInput): Result<Booking>
+    suspend fun cancelBooking(bookingPublicId: String): Result<Unit>
 }

@@ -1,13 +1,12 @@
 package org.noztek.esktransport.feature.passenger.booking_review.presentation
 
-import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -30,7 +29,6 @@ import androidx.compose.material3.BottomSheetScaffold
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SheetValue
 import androidx.compose.material3.SnackbarHostState
@@ -44,18 +42,19 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.composables.icons.heroicons.Heroicons
-import com.composables.icons.heroicons.outline.Bolt
+import com.composables.icons.heroicons.outline.MagnifyingGlass
 import com.composables.icons.heroicons.outline.Map
 import com.composables.icons.heroicons.outline.MapPin
 import com.composables.icons.heroicons.outline.Users
@@ -65,6 +64,7 @@ import org.noztek.esktransport.core.map.MapboxConfig
 import org.noztek.esktransport.core.platform.isIosPlatform
 import org.noztek.esktransport.core.ui.composables.AppPrimaryButton
 import org.noztek.esktransport.feature.passenger.booking_review.domain.model.BookingReviewInput
+import kotlinx.coroutines.launch
 import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.sin
@@ -132,7 +132,14 @@ fun BookingReviewScreen(
         sheetPeekHeight = 252.dp,
         sheetContent = {
             if (uiState.isSearchingForRider) {
-                SearchingSheet()
+                SearchingSheet(
+                    vehicleLabel = vehicleLabel,
+                    seatCount = stateInput.requiredSeats,
+                    distanceLabel = tripDistanceLabel,
+                    destinationLocation = stateInput.destinationLocation,
+                    isCancelling = uiState.isCancellingBooking,
+                    onCancel = viewModel::cancelSearch,
+                )
             } else {
                 ReviewSheet(
                     pickupLocation = stateInput.pickupLocation,
@@ -165,15 +172,19 @@ fun BookingReviewScreen(
 
 @Composable
 private fun SearchingSheet(
-    modifier: Modifier = Modifier
+    vehicleLabel: String,
+    seatCount: Int,
+    distanceLabel: String,
+    destinationLocation: String,
+    isCancelling: Boolean,
+    onCancel: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val primaryColor = MaterialTheme.colorScheme.primary
     val onSurfaceColor = MaterialTheme.colorScheme.onSurface
     val secondaryTextColor = MaterialTheme.colorScheme.onSurfaceVariant
-    // Infinite transitions for subtle, premium micro-animations
     val infiniteTransition = rememberInfiniteTransition(label = "SearchingAnimations")
 
-    // Shimmer offset progress for the custom progress bar
     val progressTranslation by infiniteTransition.animateFloat(
         initialValue = 0f,
         targetValue = 1f,
@@ -182,16 +193,6 @@ private fun SearchingSheet(
             repeatMode = RepeatMode.Restart
         ),
         label = "shimmerTranslation"
-    )
-    // Pulse alpha for the LIVE status green dot
-    val pulseAlpha by infiniteTransition.animateFloat(
-        initialValue = 0.4f,
-        targetValue = 1.0f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 1000, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "liveIndicatorPulse"
     )
     Surface(
         modifier = modifier.fillMaxWidth(),
@@ -204,40 +205,29 @@ private fun SearchingSheet(
                 .padding(horizontal = 16.dp, vertical = 10.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            // Header Section
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                // A small rounded icon container, around 34.dp
                 Box(
                     modifier = Modifier
                         .size(34.dp)
-                        .clip(CircleShape) // Rounded iOS-style circular accent container
+                        .clip(CircleShape)
                         .background(primaryColor.copy(alpha = 0.08f)),
                     contentAlignment = Alignment.Center
                 ) {
-                    // Bolt icon custom drawn for high-fidelity Apple SF-Symbol look (around 18.dp)
-                    Canvas(modifier = Modifier.size(18.dp)) {
-                        val path = Path().apply {
-                            moveTo(size.width * 0.56f, size.height * 0.04f)
-                            lineTo(size.width * 0.20f, size.height * 0.54f)
-                            lineTo(size.width * 0.50f, size.height * 0.54f)
-                            lineTo(size.width * 0.44f, size.height * 0.96f)
-                            lineTo(size.width * 0.80f, size.height * 0.46f)
-                            lineTo(size.width * 0.50f, size.height * 0.46f)
-                            close()
-                        }
-                        drawPath(path, color = primaryColor)
-                    }
+                    Icon(
+                        imageVector = Heroicons.Outline.MagnifyingGlass,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp),
+                        tint = primaryColor,
+                    )
                 }
-                // Title & Subtitle block
                 Column(
                     modifier = Modifier.weight(1f),
                     verticalArrangement = Arrangement.spacedBy(2.dp)
                 ) {
-                    // Main title: "Finding your driver" (titleMedium, semi-bold weight)
                     Text(
                         text = "Finding your driver",
                         style = MaterialTheme.typography.titleMedium,
@@ -245,7 +235,6 @@ private fun SearchingSheet(
                         color = onSurfaceColor,
                         letterSpacing = (-0.3).sp // Apple-style tight tracking
                     )
-                    // Subtitle: "Request sent. Matching nearby online drivers." (bodySmall, secondary color)
                     Text(
                         text = "Request sent. Matching nearby online drivers.",
                         style = MaterialTheme.typography.bodySmall,
@@ -253,35 +242,18 @@ private fun SearchingSheet(
                         lineHeight = 14.sp
                     )
                 }
-                // A small "LIVE" status label on the trailing side
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(5.dp),
-                    modifier = Modifier
-                        .clip(CircleShape)
-                        .background(primaryColor.copy(alpha = 0.08f))
-                        .padding(horizontal = 8.dp, vertical = 4.dp)
-                ) {
-                    // Pulse dot to give it a reactive, active native look
-                    Box(
-                        modifier = Modifier
-                            .size(5.dp)
-                            .graphicsLayer(alpha = pulseAlpha)
-                            .clip(CircleShape)
-                            .background(primaryColor)
-                    )
-                    Text(
-                        text = "LIVE",
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = 0.5.sp
-                        ),
-                        color = primaryColor
-                    )
-                }
             }
-            // A custom thin progress indicator, around 3.dp tall
-            // Animates a smooth, organic iOS-like shimmer gradient across the screen width
+            Text(
+                text = "$vehicleLabel • $seatCount ${if (seatCount == 1) "seat" else "seats"} • $distanceLabel",
+                style = MaterialTheme.typography.bodySmall,
+                color = secondaryTextColor,
+            )
+            Text(
+                text = "To: $destinationLocation",
+                style = MaterialTheme.typography.bodySmall,
+                color = secondaryTextColor,
+                maxLines = 1,
+            )
             BoxWithConstraints(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -309,9 +281,80 @@ private fun SearchingSheet(
                         )
                 )
             }
+            HoldToCancelButton(
+                isCancelling = isCancelling,
+                onCancel = onCancel,
+            )
         }
     }
 }
+
+@Composable
+private fun HoldToCancelButton(
+    isCancelling: Boolean,
+    onCancel: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val scope = rememberCoroutineScope()
+    val progress = remember { Animatable(0f) }
+    val errorColor = MaterialTheme.colorScheme.error
+    val onErrorColor = MaterialTheme.colorScheme.onError
+    val errorContainerColor = MaterialTheme.colorScheme.error.copy(alpha = 0.10f)
+
+    BoxWithConstraints(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(48.dp)
+            .clip(RoundedCornerShape(14.dp))
+            .background(errorContainerColor)
+            .pointerInput(isCancelling, onCancel) {
+                if (isCancelling) return@pointerInput
+                awaitPointerEventScope {
+                    while (true) {
+                        val down = awaitPointerEvent(PointerEventPass.Main)
+                            .changes
+                            .firstOrNull { it.pressed }
+                        if (down == null) continue
+
+                        val holdJob = scope.launch {
+                            progress.snapTo(0f)
+                            progress.animateTo(
+                                targetValue = 1f,
+                                animationSpec = tween(durationMillis = 3000, easing = LinearEasing),
+                            )
+                            onCancel()
+                        }
+
+                        do {
+                            val event = awaitPointerEvent(PointerEventPass.Main)
+                            val stillPressed = event.changes.any { it.pressed }
+                            if (!stillPressed) {
+                                holdJob.cancel()
+                                scope.launch { progress.animateTo(0f, tween(durationMillis = 160)) }
+                                break
+                            }
+                        } while (true)
+                    }
+                }
+            },
+        contentAlignment = Alignment.Center,
+    ) {
+        Box(
+            modifier = Modifier
+                .align(Alignment.CenterStart)
+                .fillMaxHeight()
+                .width(maxWidth * progress.value)
+                .background(errorColor),
+        )
+        Text(
+            text = if (isCancelling) "Cancelling..." else "Press and hold 3s to cancel",
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.SemiBold,
+            color = if (progress.value > 0.55f) onErrorColor else errorColor,
+        )
+    }
+}
+
 @Composable
 private fun ReviewSheet(
     pickupLocation: String,

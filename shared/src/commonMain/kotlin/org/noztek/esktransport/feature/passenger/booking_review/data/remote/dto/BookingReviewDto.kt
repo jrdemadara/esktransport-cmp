@@ -59,4 +59,18 @@ data class BookingLocationDto(
     val lng: Double
 )
 
+@Serializable
+data class CancelBookingResponseDto(
+    val message: String,
+    val data: CancelBookingDataDto,
+)
+
+@Serializable
+data class CancelBookingDataDto(
+    @SerialName("booking_public_id")
+    val bookingPublicId: String,
+    val status: String,
+    @SerialName("cancelled_at")
+    val cancelledAt: String,
+)
 

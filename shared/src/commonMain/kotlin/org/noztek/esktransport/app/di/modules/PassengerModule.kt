@@ -5,6 +5,7 @@ import org.koin.dsl.module
 import org.noztek.esktransport.feature.passenger.booking_review.data.impl.BookingReviewRepositoryImpl
 import org.noztek.esktransport.feature.passenger.booking_review.data.remote.BookingReviewApi
 import org.noztek.esktransport.feature.passenger.booking_review.domain.repository.BookingReviewRepository
+import org.noztek.esktransport.feature.passenger.booking_review.domain.usecase.CancelBookingUseCase
 import org.noztek.esktransport.feature.passenger.booking_review.domain.usecase.CreateBookingUseCase
 import org.noztek.esktransport.feature.passenger.booking_review.presentation.BookingReviewViewModel
 import org.noztek.esktransport.feature.passenger.location_search.data.impl.LocationRepositoryImpl
@@ -69,9 +70,11 @@ val passengerModule = module {
     single { BookingReviewApi(client = get(), baseUrl = get(named(API_BASE_URL_QUALIFIER))) }
     single<BookingReviewRepository> { BookingReviewRepositoryImpl(api = get()) }
     single { CreateBookingUseCase(repository = get()) }
+    single { CancelBookingUseCase(repository = get()) }
     factory {
         BookingReviewViewModel(
             createBookingUseCase = get(),
+            cancelBookingUseCase = get(),
             ioDispatcher = get(named(IO_DISPATCHER_QUALIFIER)),
             realtimeCoordinator = get(),
         )
