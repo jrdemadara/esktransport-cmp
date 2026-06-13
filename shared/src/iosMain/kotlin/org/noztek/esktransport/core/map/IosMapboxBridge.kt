@@ -11,11 +11,19 @@ class IosMapboxViewRequest(
     val pitch: Double,
     val bearing: Double,
     val routePoints: List<MapPoint>,
+    val markers: List<IosMapMarkerRequest>,
     val antPathEnabled: Boolean,
     val antPathColorHex: String,
     val antPathWidth: Double,
     val onCameraMoving: ((MapPoint) -> Unit)?,
     val onCameraIdle: ((MapPoint) -> Unit)?,
+)
+
+class IosMapMarkerRequest(
+    val id: String,
+    val point: MapPoint,
+    val colorHex: String,
+    val radius: Double,
 )
 
 interface IosMapboxViewFactory {

@@ -28,7 +28,7 @@ actual fun PlatformMapView(
     if (config.hasAccessToken) {
         val adaptiveStyle = if (isSystemInDarkTheme()) MapboxStyle.DARK else MapboxStyle.LIGHT
         val antRoute = routeLines.firstOrNull { it.animatedAntPath && it.points.size >= 2 }
-        val request = remember(config, adaptiveStyle, cameraCenter, cameraDefaults, onCameraMoving, onCameraIdle) {
+        val request = remember(config, adaptiveStyle, cameraCenter, cameraDefaults, markers, routeLines, onCameraMoving, onCameraIdle) {
             IosMapboxViewRequest(
                 accessToken = config.accessToken,
                 styleUri = adaptiveStyle.uri,
@@ -38,6 +38,14 @@ actual fun PlatformMapView(
                 pitch = cameraDefaults.pitch,
                 bearing = cameraDefaults.bearing,
                 routePoints = antRoute?.points ?: emptyList(),
+                markers = markers.map { marker ->
+                    IosMapMarkerRequest(
+                        id = marker.id,
+                        point = marker.point,
+                        colorHex = marker.color.toHexColorString(),
+                        radius = marker.radius,
+                    )
+                },
                 antPathEnabled = antRoute != null,
                 antPathColorHex = antRoute?.color?.toHexColorString() ?: "#2563EB",
                 antPathWidth = antRoute?.width ?: 6.0,

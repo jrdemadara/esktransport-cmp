@@ -14,6 +14,8 @@ final class IosMapboxViewFactory: NSObject, Shared.IosMapboxViewFactory {
         var lastCameraCenter: CLLocationCoordinate2D?
         var antTimer: Timer?
         var styleLoadedCancelable: Cancelable?
+        var markerManager: CircleAnnotationManager?
+        var destinationMarkerManager: PointAnnotationManager?
 
         init(mapView: MapView) {
             self.mapView = mapView
@@ -75,6 +77,7 @@ final class IosMapboxViewFactory: NSObject, Shared.IosMapboxViewFactory {
         container.styleLoadedCancelable = mapView.mapboxMap.onStyleLoaded.observeNext { [weak self, weak mapView, weak container] _ in
             guard let self, let mapView, let container else { return }
             self.applyAntPath(to: mapView, container: container, request: request)
+            self.applyMarkers(to: mapView, container: container, request: request)
         }
         applyCamera(to: mapView, request: request, lastCenter: nil)
         container.lastCameraCenter = CLLocationCoordinate2D(latitude: request.latitude, longitude: request.longitude)
@@ -93,7 +96,74 @@ final class IosMapboxViewFactory: NSObject, Shared.IosMapboxViewFactory {
         container.panObserver?.onCameraIdle = request.onCameraIdle
         applyCamera(to: mapView, request: request, lastCenter: container.lastCameraCenter)
         applyAntPath(to: mapView, container: container, request: request)
+        applyMarkers(to: mapView, container: container, request: request)
         container.lastCameraCenter = CLLocationCoordinate2D(latitude: request.latitude, longitude: request.longitude)
+    }
+
+    private func applyMarkers(to mapView: MapView, container: MapContainerView, request: IosMapboxViewRequest) {
+        guard !request.markers.isEmpty else {
+            if container.markerManager != nil {
+                mapView.annotations.removeAnnotationManager(withId: "ios-map-markers")
+                container.markerManager = nil
+            }
+            if container.destinationMarkerManager != nil {
+                mapView.annotations.removeAnnotationManager(withId: "ios-destination-marker")
+                container.destinationMarkerManager = nil
+            }
+            return
+        }
+
+        // Recreate managers after route layers so markers stay above the animated ant path.
+        if container.markerManager != nil {
+            mapView.annotations.removeAnnotationManager(withId: "ios-map-markers")
+        }
+        if container.destinationMarkerManager != nil {
+            mapView.annotations.removeAnnotationManager(withId: "ios-destination-marker")
+        }
+
+        let pickupManager = mapView.annotations.makeCircleAnnotationManager(id: "ios-map-markers")
+        let destinationManager = mapView.annotations.makePointAnnotationManager(id: "ios-destination-marker")
+        container.markerManager = pickupManager
+        container.destinationMarkerManager = destinationManager
+
+        pickupManager.annotations = request.markers.flatMap { marker -> [CircleAnnotation] in
+            guard marker.id == "pickup" else { return [] }
+            let coordinate = CLLocationCoordinate2D(
+                latitude: marker.point.latitude,
+                longitude: marker.point.longitude
+            )
+
+            var outerGlow = CircleAnnotation(centerCoordinate: coordinate)
+            outerGlow.circleColor = StyleColor(UIColor.white)
+            outerGlow.circleOpacity = 0.48
+            outerGlow.circleRadius = 18.0
+
+            var innerGlow = CircleAnnotation(centerCoordinate: coordinate)
+            innerGlow.circleColor = StyleColor(UIColor.white)
+            innerGlow.circleOpacity = 0.86
+            innerGlow.circleRadius = 12.0
+
+            var core = CircleAnnotation(centerCoordinate: coordinate)
+            core.circleColor = StyleColor(UIColor(hex: marker.colorHex) ?? UIColor(red: 0.145, green: 0.388, blue: 0.922, alpha: 1.0))
+            core.circleRadius = 7.0
+
+            return [outerGlow, innerGlow, core]
+        }
+
+        destinationManager.annotations = request.markers.compactMap { marker in
+            guard marker.id == "destination" else { return nil }
+            let coordinate = CLLocationCoordinate2D(
+                latitude: marker.point.latitude,
+                longitude: marker.point.longitude
+            )
+            guard let image = UIImage.composeResourceImage(named: "map_pin_red", type: "png") else { return nil }
+
+            var annotation = PointAnnotation(coordinate: coordinate)
+            annotation.image = .init(image: image, name: "map-pin-red")
+            annotation.iconAnchor = .bottom
+            annotation.iconSize = 0.14
+            return annotation
+        }
     }
 
     private func applyAntPath(to mapView: MapView, container: MapContainerView, request: IosMapboxViewRequest) {
@@ -199,5 +269,18 @@ private extension UIColor {
         let g = CGFloat((value >> 8) & 0xFF) / 255.0
         let b = CGFloat(value & 0xFF) / 255.0
         self.init(red: r, green: g, blue: b, alpha: 1.0)
+    }
+}
+
+private extension UIImage {
+    static func composeResourceImage(named name: String, type: String) -> UIImage? {
+        guard let path = Bundle.main.path(
+            forResource: name,
+            ofType: type,
+            inDirectory: "compose-resources/composeResources/asktransport_cmp.shared.generated.resources/drawable"
+        ) else {
+            return nil
+        }
+        return UIImage(contentsOfFile: path)
     }
 }

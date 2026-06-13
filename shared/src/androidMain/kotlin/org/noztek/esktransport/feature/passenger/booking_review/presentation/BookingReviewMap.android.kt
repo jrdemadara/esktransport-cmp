@@ -1,6 +1,7 @@
 package org.noztek.esktransport.feature.passenger.booking_review.presentation
 
 import android.animation.ValueAnimator
+import android.graphics.BitmapFactory
 import android.view.ViewGroup
 import android.view.animation.LinearInterpolator
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -21,13 +22,16 @@ import com.mapbox.maps.MapView
 import com.mapbox.maps.Style
 import com.mapbox.maps.extension.style.layers.addLayer
 import com.mapbox.maps.extension.style.layers.generated.LineLayer
+import com.mapbox.maps.extension.style.layers.properties.generated.IconAnchor
 import com.mapbox.maps.extension.style.layers.properties.generated.LineCap
 import com.mapbox.maps.extension.style.layers.properties.generated.LineJoin
 import com.mapbox.maps.extension.style.sources.addSource
 import com.mapbox.maps.extension.style.sources.generated.geoJsonSource
 import com.mapbox.maps.plugin.annotation.annotations
 import com.mapbox.maps.plugin.annotation.generated.CircleAnnotationOptions
+import com.mapbox.maps.plugin.annotation.generated.PointAnnotationOptions
 import com.mapbox.maps.plugin.annotation.generated.createCircleAnnotationManager
+import com.mapbox.maps.plugin.annotation.generated.createPointAnnotationManager
 import org.noztek.esktransport.core.map.MapboxConfig
 import org.noztek.esktransport.feature.passenger.location_search.domain.model.GeoPoint
 
@@ -112,10 +116,29 @@ actual fun BookingReviewMap(
 
             val circleManager = mapView.annotations.createCircleAnnotationManager()
             circleManager.deleteAll()
-            circleManager.create(CircleAnnotationOptions().withPoint(pickup).withCircleRadius(8.0).withCircleColor("#2563EB").withCircleStrokeColor("#FFFFFF").withCircleStrokeWidth(2.0))
-            circleManager.create(CircleAnnotationOptions().withPoint(destination).withCircleRadius(8.0).withCircleColor("#EF4444").withCircleStrokeColor("#FFFFFF").withCircleStrokeWidth(2.0))
+            circleManager.create(CircleAnnotationOptions().withPoint(pickup).withCircleRadius(18.0).withCircleColor("#FFFFFF").withCircleOpacity(0.48))
+            circleManager.create(CircleAnnotationOptions().withPoint(pickup).withCircleRadius(12.0).withCircleColor("#FFFFFF").withCircleOpacity(0.86))
+            circleManager.create(CircleAnnotationOptions().withPoint(pickup).withCircleRadius(7.0).withCircleColor("#2563EB"))
+
+            val pointManager = mapView.annotations.createPointAnnotationManager()
+            pointManager.deleteAll()
+            runCatching {
+                context.assets.open("$ComposeResourceAssetRoot/drawable/map_pin_red.png").use { input ->
+                    BitmapFactory.decodeStream(input)
+                }
+            }.getOrNull()?.let { markerBitmap ->
+                pointManager.create(
+                    PointAnnotationOptions()
+                        .withPoint(destination)
+                        .withIconImage(markerBitmap)
+                        .withIconAnchor(IconAnchor.BOTTOM)
+                        .withIconSize(0.22),
+                )
+            } ?: circleManager.create(CircleAnnotationOptions().withPoint(destination).withCircleRadius(8.0).withCircleColor("#EF4444").withCircleStrokeColor("#FFFFFF").withCircleStrokeWidth(2.0))
         }
     }
 
     AndroidView(modifier = modifier, factory = { mapView })
 }
+
+private const val ComposeResourceAssetRoot = "composeResources/asktransport_cmp.shared.generated.resources"
