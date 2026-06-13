@@ -29,7 +29,7 @@ actual fun BookingReviewMap(
         modifier = modifier,
         config = mapboxConfig,
         cameraCenter = MapPoint(pickupPoint.latitude, pickupPoint.longitude),
-        cameraDefaults = MapCameraDefaults(zoom = 14.0, pitch = 30.0),
+        cameraDefaults = MapCameraDefaults(zoom = 14.0, pitch = 45.0),
         markers = listOf(
             MapMarker("pickup", MapPoint(pickupPoint.latitude, pickupPoint.longitude), Color(0xFF2563EB), 8.0),
             MapMarker("destination", MapPoint(destinationPoint.latitude, destinationPoint.longitude), Color(0xFFEF4444), 8.0),

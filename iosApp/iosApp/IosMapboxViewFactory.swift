@@ -239,6 +239,29 @@ final class IosMapboxViewFactory: NSObject, Shared.IosMapboxViewFactory {
         request: IosMapboxViewRequest,
         lastCenter: CLLocationCoordinate2D?
     ) {
+        if request.routePoints.count >= 2 {
+            let coordinates = request.routePoints.map {
+                CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude)
+            }
+            let camera = CameraOptions(
+                bearing: request.bearing,
+                pitch: request.pitch
+            )
+            let padding = UIEdgeInsets(top: 100.0, left: 80.0, bottom: 410.0, right: 80.0)
+            if let routeCamera = try? mapView.mapboxMap.camera(
+                for: coordinates,
+                camera: camera,
+                coordinatesPadding: padding,
+                maxZoom: 16.0,
+                offset: nil
+            ) {
+                var adjustedCamera = routeCamera
+                adjustedCamera.zoom = (routeCamera.zoom ?? request.zoom) + 0.35
+                mapView.mapboxMap.setCamera(to: adjustedCamera)
+                return
+            }
+        }
+
         let newCenter = CLLocationCoordinate2D(latitude: request.latitude, longitude: request.longitude)
         if let lastCenter {
             let sameCenter = abs(lastCenter.latitude - newCenter.latitude) < 0.0000001 &&

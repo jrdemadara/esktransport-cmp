@@ -334,7 +334,7 @@ private fun ReviewSheet(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column {
-                Text("Review ride", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                Text("Review ride", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                 Text("Confirm the details before proceeding.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             Surface(

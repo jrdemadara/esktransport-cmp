@@ -243,7 +243,7 @@ private fun LocationTextBlock(
                 } else {
                     MaterialTheme.colorScheme.onSurface
                 },
-                style = MaterialTheme.typography.titleLarge.copy(fontSize = 18.sp),
+                style = MaterialTheme.typography.titleLarge.copy(fontSize = 16.sp),
                 fontWeight = FontWeight.Medium,
                 modifier = Modifier.clickable(onClick = onClick),
             )

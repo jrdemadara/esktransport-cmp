@@ -111,7 +111,12 @@ actual fun BookingReviewMap(
             }
             antAnimator.start()
 
-            val camera = mapView.getMapboxMap().cameraForCoordinates(path, EdgeInsets(100.0, 80.0, 360.0, 80.0), null, 30.0)
+            val fittedCamera = mapView.getMapboxMap()
+                .cameraForCoordinates(path, EdgeInsets(100.0, 80.0, 410.0, 80.0), null, 45.0)
+            val camera = fittedCamera
+                .toBuilder()
+                .zoom((fittedCamera.zoom ?: 14.0) + 0.35)
+                .build()
             mapView.getMapboxMap().setCamera(camera)
 
             val circleManager = mapView.annotations.createCircleAnnotationManager()
