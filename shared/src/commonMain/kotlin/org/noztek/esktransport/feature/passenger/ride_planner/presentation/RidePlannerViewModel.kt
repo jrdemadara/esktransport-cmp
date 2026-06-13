@@ -82,7 +82,15 @@ class RidePlannerViewModel(
     }
 
     fun setPassengerCount(index: Int) {
-        _passengerCount.value = index
+        _passengerCount.value = index.coerceIn(MIN_PASSENGER_INDEX, MAX_PASSENGER_INDEX)
+    }
+
+    fun incrementPassengerCount() {
+        setPassengerCount(_passengerCount.value + 1)
+    }
+
+    fun decrementPassengerCount() {
+        setPassengerCount(_passengerCount.value - 1)
     }
 
     fun setVehicleType(index: Int) {
@@ -114,4 +122,8 @@ class RidePlannerViewModel(
         // This is now deprecated as driver cards are removed from UI
     }
 
+    companion object {
+        private const val MIN_PASSENGER_INDEX = 0
+        private const val MAX_PASSENGER_INDEX = 4
+    }
 }

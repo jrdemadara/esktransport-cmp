@@ -1,13 +1,20 @@
 package org.noztek.esktransport.feature.common.reset_password.presentation
 
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
+import androidx.compose.foundation.layout.sizeIn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -16,10 +23,22 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import asktransport_cmp.shared.generated.resources.Res
+import asktransport_cmp.shared.generated.resources.compose_multiplatform
+import asktransport_cmp.shared.generated.resources.logo
+import asktransport_cmp.shared.generated.resources.reset_password
+import org.jetbrains.compose.resources.painterResource
 import org.koin.compose.viewmodel.koinViewModel
+import org.noztek.esktransport.core.ui.composables.AppInputField
+import org.noztek.esktransport.core.ui.composables.AppPrimaryButton
 
 @Composable
 fun ResetPasswordScreen(
@@ -27,7 +46,7 @@ fun ResetPasswordScreen(
     resetToken: String,
     onResetSuccess: () -> Unit,
     modifier: Modifier = Modifier,
-    viewModel: org.noztek.esktransport.feature.common.reset_password.presentation.ResetPasswordViewModel = koinViewModel(),
+    viewModel: ResetPasswordViewModel = koinViewModel(),
 ) {
     var password by remember { mutableStateOf("") }
     var passwordConfirmation by remember { mutableStateOf("") }
@@ -39,72 +58,129 @@ fun ResetPasswordScreen(
         }
     }
 
-    Column(
+    Scaffold(
         modifier = modifier
             .fillMaxSize()
-            .padding(horizontal = 24.dp, vertical = 32.dp),
-        verticalArrangement = Arrangement.Center,
-    ) {
-        Text(
-            text = "Reset Password",
-            style = MaterialTheme.typography.headlineMedium,
-        )
-        Text(
-            text = "Enter your new password below.",
-            style = MaterialTheme.typography.bodyMedium,
-            modifier = Modifier.padding(top = 8.dp, bottom = 24.dp),
-        )
-
-        OutlinedTextField(
-            value = password,
-            onValueChange = {
-                password = it
-                if (state.errorMessage != null) viewModel.clearError()
-            },
-            label = { Text("New Password") },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true,
-            visualTransformation = PasswordVisualTransformation(),
-        )
-
-        OutlinedTextField(
-            value = passwordConfirmation,
-            onValueChange = {
-                passwordConfirmation = it
-                if (state.errorMessage != null) viewModel.clearError()
-            },
-            label = { Text("Confirm Password") },
+            .background(Color.White),
+        containerColor = Color.White,
+        topBar = { ResetPasswordTopBar() },
+    ) { contentPadding ->
+        Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 12.dp),
-            singleLine = true,
-            visualTransformation = PasswordVisualTransformation(),
-        )
+                .fillMaxSize()
+                .padding(contentPadding)
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 22.dp, vertical = 22.dp),
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(250.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Image(
+                    painter = painterResource(Res.drawable.reset_password),
+                    contentDescription = "Reset password illustration",
+                    contentScale = ContentScale.Fit,
+                    modifier = Modifier.sizeIn(maxWidth = 280.dp, maxHeight = 240.dp),
+                )
+            }
 
-        if (state.errorMessage != null) {
             Text(
-                text = state.errorMessage ?: "",
+                text = "Create new password",
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+                letterSpacing = (-0.6).sp,
+            )
+            Text(
+                text = "Choose a secure password you haven’t used before.",
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.error,
-                modifier = Modifier.padding(top = 12.dp),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                lineHeight = 21.sp,
+                modifier = Modifier.padding(top = 10.dp, bottom = 26.dp),
+            )
+
+            AppInputField(
+                value = password,
+                onValueChange = {
+                    password = it
+                    if (state.errorMessage != null) viewModel.clearError()
+                },
+                label = "New Password",
+                modifier = Modifier.fillMaxWidth(),
+                visualTransformation = PasswordVisualTransformation(),
+            )
+
+            AppInputField(
+                value = passwordConfirmation,
+                onValueChange = {
+                    passwordConfirmation = it
+                    if (state.errorMessage != null) viewModel.clearError()
+                },
+                label = "Confirm Password",
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 12.dp),
+                visualTransformation = PasswordVisualTransformation(),
+            )
+
+            if (state.errorMessage != null) {
+                Text(
+                    text = state.errorMessage ?: "",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.padding(top = 12.dp),
+                )
+            }
+
+            AppPrimaryButton(
+                text = if (state.isLoading) "Resetting..." else "Reset Password",
+                onClick = {
+                    viewModel.resetPassword(
+                        phone = phone,
+                        token = resetToken,
+                        password = password,
+                        passwordConfirmation = passwordConfirmation,
+                    )
+                },
+                modifier = Modifier.padding(top = 22.dp),
+                enabled = !state.isLoading,
             )
         }
+    }
+}
 
-        Button(
-            onClick = {
-                viewModel.resetPassword(
-                    phone = phone,
-                    token = resetToken,
-                    password = password,
-                    passwordConfirmation = passwordConfirmation
-                )
-            },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 20.dp),
-            enabled = !state.isLoading,
-        ) {
-            Text(if (state.isLoading) "Resetting..." else "Reset Password")
-        }
+@Composable
+private fun ResetPasswordTopBar(modifier: Modifier = Modifier) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .background(Color.White)
+            .padding(horizontal = 22.dp, vertical = 18.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        ResetPasswordLogo()
+    }
+}
+
+@Composable
+private fun ResetPasswordLogo(modifier: Modifier = Modifier) {
+    Row(
+        modifier = modifier,
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Image(
+            painter = painterResource(Res.drawable.logo),
+            contentDescription = "EskTransport logo",
+            modifier = Modifier.height(34.dp),
+        )
+        Text(
+            text = "EskTransport",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
     }
 }

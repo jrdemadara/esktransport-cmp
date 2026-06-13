@@ -47,6 +47,7 @@ import asktransport_cmp.shared.generated.resources.Res
 import asktransport_cmp.shared.generated.resources.big_truck
 import asktransport_cmp.shared.generated.resources.car
 import asktransport_cmp.shared.generated.resources.compose_multiplatform
+import asktransport_cmp.shared.generated.resources.logo
 import asktransport_cmp.shared.generated.resources.medium_truck
 import asktransport_cmp.shared.generated.resources.scooter
 import asktransport_cmp.shared.generated.resources.starter
@@ -185,9 +186,9 @@ private fun StarterLogo(modifier: Modifier = Modifier) {
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Image(
-            painter = painterResource(Res.drawable.compose_multiplatform),
+            painter = painterResource(Res.drawable.logo),
             contentDescription = "EskTransport logo",
-            modifier = Modifier.size(34.dp),
+            modifier = Modifier.size(28.dp),
         )
         Text(
             text = "EskTransport",

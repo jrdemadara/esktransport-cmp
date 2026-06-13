@@ -57,6 +57,7 @@ import androidx.navigation.navigation
 import androidx.savedstate.read
 import asktransport_cmp.shared.generated.resources.Res
 import asktransport_cmp.shared.generated.resources.compose_multiplatform
+import asktransport_cmp.shared.generated.resources.logo
 import com.composables.icons.heroicons.outline.ArrowLeft
 import com.composables.icons.heroicons.outline.Bell
 import com.composables.icons.heroicons.outline.Sparkles
@@ -403,9 +404,9 @@ private fun PassengerHomeTopBar(onProfileClick: () -> Unit) {
 
 @Composable
 private fun AppLogoBadge() {
-    Surface(modifier = Modifier.size(42.dp), shape = CircleShape, color = Color.Transparent) {
+    Surface(modifier = Modifier.size(32.dp), shape = CircleShape, color = Color.Transparent) {
         Image(
-            painter = painterResource(Res.drawable.compose_multiplatform),
+            painter = painterResource(Res.drawable.logo),
             contentDescription = "Esk Transport",
             modifier = Modifier.fillMaxSize(),
         )
