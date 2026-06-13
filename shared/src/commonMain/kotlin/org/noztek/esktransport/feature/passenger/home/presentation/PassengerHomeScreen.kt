@@ -59,6 +59,7 @@ import org.noztek.esktransport.core.platform.isIosPlatform
 @Composable
 fun PassengerHomeScreen(
     onWhereToClick: () -> Unit = {},
+    onSuggestionClick: (Int) -> Unit = {},
     contentPadding: PaddingValues = PaddingValues(0.dp),
 ) {
     val topPadding = if (isIosPlatform()) 4.dp else 12.dp
@@ -96,7 +97,7 @@ fun PassengerHomeScreen(
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             items(suggestions) { item ->
-                SuggestionCard(item = item, onClick = onWhereToClick)
+                SuggestionCard(item = item, onClick = { onSuggestionClick(item.vehicleTypeIndex) })
             }
         }
     }
@@ -205,14 +206,18 @@ private fun SuggestionCard(item: SuggestionItem, onClick: () -> Unit) {
     }
 }
 
-private data class SuggestionItem(val label: String, val image: DrawableResource)
+private data class SuggestionItem(
+    val label: String,
+    val image: DrawableResource,
+    val vehicleTypeIndex: Int,
+)
 private data class PlaceSuggestion(val name: String, val icon: androidx.compose.ui.graphics.vector.ImageVector)
 
 private val suggestions = listOf(
-    SuggestionItem("Moto", Res.drawable.home_scooter),
-    SuggestionItem("Trike", Res.drawable.home_tricycle),
-    SuggestionItem("Car", Res.drawable.home_car),
-    SuggestionItem("Rentals", Res.drawable.home_big_truck),
+    SuggestionItem("Moto", Res.drawable.home_scooter, vehicleTypeIndex = 0),
+    SuggestionItem("Trike", Res.drawable.home_tricycle, vehicleTypeIndex = 1),
+    SuggestionItem("Car", Res.drawable.home_car, vehicleTypeIndex = 2),
+    SuggestionItem("Rentals", Res.drawable.home_big_truck, vehicleTypeIndex = 3),
 )
 
 private val placeSuggestions = listOf(

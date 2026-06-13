@@ -88,9 +88,11 @@ import org.noztek.esktransport.feature.passenger.trip_tracking.presentation.Trip
 
 private const val ROUTE_HOME = "home"
 private const val ROUTE_RIDE_PLANNER = "ride-planner"
+private const val ROUTE_RIDE_PLANNER_WITH_VEHICLE = "ride-planner/{vehicleTypeIndex}"
 private const val ROUTE_BOOKING_REVIEW = "booking-review"
 private const val ROUTE_LOCATION_SEARCH = "location-search/{mode}"
 private const val ARG_MODE = "mode"
+private const val ARG_VEHICLE_TYPE_INDEX = "vehicleTypeIndex"
 private const val ROUTE_SERVICES = "services"
 private const val ROUTE_KUDI = "kudi"
 private const val ROUTE_ACTIVITY = "activity"
@@ -227,10 +229,45 @@ private fun PassengerShell(onLogout: () -> Unit) {
             composable(ROUTE_HOME) {
                 PassengerHomeScreen(
                     onWhereToClick = { navController.navigate(ROUTE_RIDE_PLANNER) },
+                    onSuggestionClick = { vehicleTypeIndex ->
+                        navController.navigate("ride-planner/$vehicleTypeIndex")
+                    },
                     contentPadding = innerPadding,
                 )
             }
             composable(ROUTE_RIDE_PLANNER) {
+                val pickupLocation by ridePlannerViewModel.pickupLocation.collectAsState()
+                val destinationLocation by ridePlannerViewModel.destinationLocation.collectAsState()
+                RidePlannerScreen(
+                    contentPadding = innerPadding,
+                    onPickupClick = { navController.navigate("location-search/pickup") },
+                    onDestinationClick = { navController.navigate("location-search/destination") },
+                    onUseCurrentLocationClick = {
+                        scope.launch {
+                            val currentLocationLabel = ridePlannerViewModel.resolveCurrentLocationLabel()
+                            val currentLocationPoint = ridePlannerViewModel.resolveCurrentLocationPoint()
+                            if (currentLocationLabel != null && currentLocationPoint != null) {
+                                ridePlannerViewModel.setPickupLocation(currentLocationLabel, currentLocationPoint)
+                            } else {
+                                snackbarHostState.showSnackbar("Unable to get current location. Check location permission/GPS.")
+                            }
+                        }
+                    },
+                    pickupLocation = pickupLocation,
+                    destinationLocation = destinationLocation,
+                    viewModel = ridePlannerViewModel,
+                )
+            }
+            composable(
+                route = ROUTE_RIDE_PLANNER_WITH_VEHICLE,
+                arguments = listOf(navArgument(ARG_VEHICLE_TYPE_INDEX) { type = NavType.IntType }),
+            ) { backStackEntry ->
+                val selectedVehicleTypeIndex = backStackEntry.arguments?.read {
+                    getInt(ARG_VEHICLE_TYPE_INDEX)
+                } ?: 0
+                LaunchedEffect(selectedVehicleTypeIndex) {
+                    ridePlannerViewModel.setVehicleType(selectedVehicleTypeIndex)
+                }
                 val pickupLocation by ridePlannerViewModel.pickupLocation.collectAsState()
                 val destinationLocation by ridePlannerViewModel.destinationLocation.collectAsState()
                 RidePlannerScreen(
