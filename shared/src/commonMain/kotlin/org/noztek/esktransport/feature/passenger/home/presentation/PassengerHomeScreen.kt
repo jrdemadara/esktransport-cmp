@@ -1,6 +1,7 @@
 package org.noztek.esktransport.feature.passenger.home.presentation
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -31,14 +32,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.composables.icons.heroicons.outline.BookOpen
 import com.composables.icons.heroicons.outline.BuildingStorefront
 import com.composables.icons.heroicons.outline.CalendarDays
-import com.composables.icons.heroicons.outline.Truck
 import com.composables.icons.heroicons.outline.Clock
 import com.composables.icons.heroicons.outline.AcademicCap
 import com.composables.icons.heroicons.outline.BuildingLibrary
@@ -47,7 +47,13 @@ import com.composables.icons.heroicons.outline.MapPin
 import com.composables.icons.heroicons.outline.PaperAirplane
 import com.composables.icons.heroicons.outline.MagnifyingGlass
 import com.composables.icons.heroicons.outline.BuildingStorefront
-import com.composables.icons.heroicons.outline.Bolt
+import asktransport_cmp.shared.generated.resources.Res
+import asktransport_cmp.shared.generated.resources.home_big_truck
+import asktransport_cmp.shared.generated.resources.home_car
+import asktransport_cmp.shared.generated.resources.home_scooter
+import asktransport_cmp.shared.generated.resources.home_tricycle
+import org.jetbrains.compose.resources.DrawableResource
+import org.jetbrains.compose.resources.painterResource
 import org.noztek.esktransport.core.platform.isIosPlatform
 
 @Composable
@@ -102,8 +108,8 @@ private fun PlaceSuggestionsRow() {
         rowItems(placeSuggestions) { place ->
             Surface(
                 shape = RoundedCornerShape(6.dp),
-                color = MaterialTheme.colorScheme.surfaceContainerLow,
-                tonalElevation = 2.dp,
+                color = Color(0xFFF6F7F9),
+                tonalElevation = 0.dp,
             ) {
                 Row(
                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
@@ -122,7 +128,7 @@ private fun PlaceSuggestionsRow() {
 private fun SearchRow(onWhereToClick: () -> Unit) {
     Surface(
         shape = RoundedCornerShape(30.dp),
-        color = lerp(MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.colorScheme.surface, 0.35f),
+        color = Color(0xFFF3F4F6),
         modifier = Modifier.fillMaxWidth(),
         onClick = onWhereToClick,
     ) {
@@ -135,7 +141,7 @@ private fun SearchRow(onWhereToClick: () -> Unit) {
             Text("Where to?", style = MaterialTheme.typography.headlineSmall, modifier = Modifier.weight(1f))
             Box(modifier = Modifier.height(26.dp).width(1.dp).background(MaterialTheme.colorScheme.outlineVariant))
             Spacer(modifier = Modifier.width(10.dp))
-            Surface(shape = RoundedCornerShape(16.dp), color = MaterialTheme.colorScheme.surface) {
+            Surface(shape = RoundedCornerShape(16.dp), color = Color.White) {
                 Row(
                     modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
                     verticalAlignment = Alignment.CenterVertically,
@@ -153,16 +159,16 @@ private fun SearchRow(onWhereToClick: () -> Unit) {
 private fun AddressCard(title: String, subtitle: String, icon: androidx.compose.ui.graphics.vector.ImageVector) {
     Card(
         shape = RoundedCornerShape(8.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.background),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
         modifier = Modifier.fillMaxWidth(),
-        border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.surfaceVariant),
+        border = BorderStroke(0.5.dp, Color(0xFFE7E9EF)),
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            Surface(color = MaterialTheme.colorScheme.surfaceVariant, shape = RoundedCornerShape(10.dp), modifier = Modifier.size(34.dp)) {
+            Surface(color = Color(0xFFF4F6FA), shape = RoundedCornerShape(10.dp), modifier = Modifier.size(34.dp)) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(icon, contentDescription = null, modifier = Modifier.size(17.dp))
                 }
@@ -180,28 +186,33 @@ private fun SuggestionCard(item: SuggestionItem, onClick: () -> Unit) {
     Card(
         onClick = onClick,
         shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFFF7F8FA)),
     ) {
         Column(
-            modifier = Modifier.fillMaxWidth().heightIn(min = 80.dp).padding(8.dp),
+            modifier = Modifier.fillMaxWidth().heightIn(min = 86.dp).padding(8.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
         ) {
-            Icon(item.icon, contentDescription = item.label, modifier = Modifier.size(24.dp))
+            Image(
+                painter = painterResource(item.image),
+                contentDescription = item.label,
+                contentScale = ContentScale.Fit,
+                modifier = Modifier.size(42.dp),
+            )
             Spacer(modifier = Modifier.height(8.dp))
             Text(item.label, style = MaterialTheme.typography.bodyMedium, maxLines = 2, overflow = TextOverflow.Ellipsis)
         }
     }
 }
 
-private data class SuggestionItem(val label: String, val icon: androidx.compose.ui.graphics.vector.ImageVector)
+private data class SuggestionItem(val label: String, val image: DrawableResource)
 private data class PlaceSuggestion(val name: String, val icon: androidx.compose.ui.graphics.vector.ImageVector)
 
 private val suggestions = listOf(
-    SuggestionItem("Moto", Heroicons.Outline.Bolt),
-    SuggestionItem("Trike", Heroicons.Outline.MapPin),
-    SuggestionItem("Car", Heroicons.Outline.Truck),
-    SuggestionItem("Rentals", Heroicons.Outline.Clock),
+    SuggestionItem("Moto", Res.drawable.home_scooter),
+    SuggestionItem("Trike", Res.drawable.home_tricycle),
+    SuggestionItem("Car", Res.drawable.home_car),
+    SuggestionItem("Rentals", Res.drawable.home_big_truck),
 )
 
 private val placeSuggestions = listOf(

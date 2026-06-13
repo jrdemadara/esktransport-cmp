@@ -186,7 +186,7 @@ private fun PassengerShell(onLogout: () -> Unit) {
             if (showChrome) {
                 NavigationBar(
                     windowInsets = WindowInsets(0),
-                    containerColor = Color.White,
+                    containerColor = Color(0xFFF7F7F9),
                     contentColor = MaterialTheme.colorScheme.onSurface,
                     tonalElevation = 0.dp,
                 ) {
@@ -318,6 +318,7 @@ private fun PassengerShell(onLogout: () -> Unit) {
 private fun PassengerBackTopBar(title: String, onBack: () -> Unit) {
     TopAppBar(
         windowInsets = WindowInsets(0),
+        colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White),
         title = { Text(title) },
         navigationIcon = {
             IconButton(onClick = onBack) {
@@ -332,7 +333,7 @@ private fun PassengerBackTopBar(title: String, onBack: () -> Unit) {
 private fun PassengerHomeTopBar(onProfileClick: () -> Unit) {
     CenterAlignedTopAppBar(
         windowInsets = WindowInsets(0),
-        colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface),
+        colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White),
         title = {},
         navigationIcon = { AppLogoBadge() },
         actions = {
@@ -345,7 +346,7 @@ private fun PassengerHomeTopBar(onProfileClick: () -> Unit) {
                                 .align(Alignment.TopEnd)
                                 .size(9.dp)
                                 .background(Color(0xFFE53935), CircleShape)
-                                .border(1.dp, MaterialTheme.colorScheme.surface, CircleShape),
+                                .border(1.dp, Color.White, CircleShape),
                         )
                     }
                 }
