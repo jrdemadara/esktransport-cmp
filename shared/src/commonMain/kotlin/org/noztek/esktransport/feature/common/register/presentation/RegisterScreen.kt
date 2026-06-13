@@ -281,7 +281,6 @@ private fun FooterLink(
     Text(
         text = text,
         style = MaterialTheme.typography.bodySmall,
-        fontWeight = FontWeight.Normal,
         color = MaterialTheme.colorScheme.primary,
         textDecoration = TextDecoration.Underline,
         modifier = modifier.clickable(onClick = onClick),
