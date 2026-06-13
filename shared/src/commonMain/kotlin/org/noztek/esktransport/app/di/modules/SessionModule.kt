@@ -33,7 +33,6 @@ val sessionModule = module {
         StartupViewModel(
             observeCurrentSessionUseCase = get(),
             observeIsLoggedInUseCase = get(),
-            hasSeenStarterUseCase = get(),
         )
     }
 }

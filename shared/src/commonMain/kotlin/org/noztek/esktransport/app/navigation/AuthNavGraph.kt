@@ -8,8 +8,10 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.composable
 import androidx.navigation.navigation
+import androidx.navigation.navArgument
 import org.koin.compose.koinInject
 import org.noztek.esktransport.core.session.domain.SessionUser
 import org.noztek.esktransport.core.session.domain.usecase.ObserveCurrentSessionUseCase
@@ -79,6 +81,25 @@ fun NavGraphBuilder.authNavGraph(
         }
 
         composable(AuthRoute.REGISTER) {
+            RegisterScreen(
+                selectedRole = AuthNavState.registerRole,
+                onBackToWelcome = { navController.popBackStack() },
+                onLoginClick = { navController.navigate(AuthRoute.LOGIN) },
+                onRegisterSuccess = { phone ->
+                    AuthNavState.otpPhone = phone
+                    AuthNavState.otpPurpose = "register"
+                    navController.navigate(AuthRoute.OTP)
+                },
+            )
+        }
+
+        composable(
+            route = "${AuthRoute.REGISTER}/{role}",
+            arguments = listOf(navArgument("role") { type = NavType.StringType }),
+        ) { backStackEntry ->
+            AuthNavState.registerRole = backStackEntry.arguments
+                ?.let { NavType.StringType[it, "role"] }
+                ?: "passenger"
             RegisterScreen(
                 selectedRole = AuthNavState.registerRole,
                 onBackToWelcome = { navController.popBackStack() },

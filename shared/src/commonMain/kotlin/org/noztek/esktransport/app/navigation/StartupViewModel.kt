@@ -11,12 +11,10 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import org.noztek.esktransport.core.session.domain.usecase.ObserveCurrentSessionUseCase
 import org.noztek.esktransport.core.session.domain.usecase.ObserveIsLoggedInUseCase
-import org.noztek.esktransport.core.session.domain.usecase.HasSeenStarterUseCase
 
 class StartupViewModel(
     observeCurrentSessionUseCase: ObserveCurrentSessionUseCase,
     observeIsLoggedInUseCase: ObserveIsLoggedInUseCase,
-    hasSeenStarterUseCase: HasSeenStarterUseCase,
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
@@ -31,10 +29,8 @@ class StartupViewModel(
             ) { isLoggedIn, session ->
                 val normalizedRoles = session.roles.map { it.trim().lowercase() }.toSet()
                 val normalizedRole = session.primaryRole?.trim()?.lowercase()
-                val hasSeenStarter = hasSeenStarterUseCase()
                 val destination = when {
-                    !hasSeenStarter -> RootRoute.STARTER
-                    !isLoggedIn -> RootRoute.AUTH
+                    !isLoggedIn -> RootRoute.STARTER
                     normalizedRole == "driver" || normalizedRoles.contains("driver") -> RootRoute.DRIVER
                     normalizedRole == "passenger" || normalizedRole == "customer" ||
                         normalizedRoles.contains("passenger") || normalizedRoles.contains("customer") -> RootRoute.PASSENGER
@@ -55,5 +51,5 @@ class StartupViewModel(
 
 data class StartupUiState(
     val isReady: Boolean = false,
-    val startRoute: String = RootRoute.AUTH,
+    val startRoute: String = RootRoute.STARTER,
 )
