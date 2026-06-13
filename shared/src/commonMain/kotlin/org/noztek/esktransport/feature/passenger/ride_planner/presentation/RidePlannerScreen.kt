@@ -96,32 +96,31 @@ private fun PassengerCountCard(
 ) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(18.dp),
+        shape = RoundedCornerShape(16.dp),
         color = Color(0xFFF7F8FA),
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 14.dp),
+                .padding(horizontal = 14.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "How many passengers?",
-                    style = MaterialTheme.typography.titleMedium,
+                    text = "Passengers",
+                    style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold,
                 )
                 Text(
-                    text = "We’ll match a vehicle with enough seats.",
+                    text = "We’ll match enough seats.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = 2.dp),
                 )
             }
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 PassengerStepperButton(
                     enabled = passengerCount > 1,
@@ -130,9 +129,9 @@ private fun PassengerCountCard(
                 )
                 Text(
                     text = passengerCount.toString(),
-                    style = MaterialTheme.typography.titleMedium,
+                    style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
-                    modifier = Modifier.width(28.dp),
+                    modifier = Modifier.width(22.dp),
                     textAlign = TextAlign.Center,
                 )
                 PassengerStepperButton(
@@ -158,7 +157,7 @@ private fun PassengerStepperButton(
         IconButton(
             onClick = onClick,
             enabled = enabled,
-            modifier = Modifier.size(36.dp),
+            modifier = Modifier.size(32.dp),
         ) {
             icon()
         }
