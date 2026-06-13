@@ -64,7 +64,7 @@ actual fun BookingReviewMap(
             )
             style.addLayer(
                 LineLayer(bgLayerId, sourceId)
-                    .lineColor("#FFD54F")
+                    .lineColor("#2563EB")
                     .lineWidth(6.0)
                     .lineOpacity(0.0)
                     .lineCap(LineCap.BUTT)
@@ -72,7 +72,7 @@ actual fun BookingReviewMap(
             )
             style.addLayer(
                 LineLayer(dashLayerId, sourceId)
-                    .lineColor("#FFD54F")
+                    .lineColor("#2563EB")
                     .lineWidth(6.0)
                     .lineDasharray(listOf(0.0, 4.0, 3.0))
                     .lineCap(LineCap.BUTT)

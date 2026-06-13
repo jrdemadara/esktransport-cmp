@@ -126,7 +126,7 @@ final class IosMapboxViewFactory: NSObject, Shared.IosMapboxViewFactory {
 
         if !mapView.mapboxMap.layerExists(withId: bgLayerId) {
             var bg = LineLayer(id: bgLayerId, source: sourceId)
-            bg.lineColor = .constant(StyleColor(UIColor(hex: request.antPathColorHex) ?? .yellow))
+            bg.lineColor = .constant(StyleColor(UIColor(hex: request.antPathColorHex) ?? UIColor(red: 0.145, green: 0.388, blue: 0.922, alpha: 1.0)))
             bg.lineWidth = .constant(request.antPathWidth)
             bg.lineOpacity = .constant(0.0)
             bg.lineCap = .constant(.butt)
@@ -135,7 +135,7 @@ final class IosMapboxViewFactory: NSObject, Shared.IosMapboxViewFactory {
         }
         if !mapView.mapboxMap.layerExists(withId: dashLayerId) {
             var dash = LineLayer(id: dashLayerId, source: sourceId)
-            dash.lineColor = .constant(StyleColor(UIColor(hex: request.antPathColorHex) ?? .yellow))
+            dash.lineColor = .constant(StyleColor(UIColor(hex: request.antPathColorHex) ?? UIColor(red: 0.145, green: 0.388, blue: 0.922, alpha: 1.0)))
             dash.lineWidth = .constant(request.antPathWidth)
             dash.lineDasharray = .constant([0.0, 4.0, 3.0])
             dash.lineCap = .constant(.butt)

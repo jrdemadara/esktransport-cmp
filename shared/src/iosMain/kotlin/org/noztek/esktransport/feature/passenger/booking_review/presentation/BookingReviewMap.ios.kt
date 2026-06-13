@@ -35,7 +35,7 @@ actual fun BookingReviewMap(
             MapMarker("destination", MapPoint(destinationPoint.latitude, destinationPoint.longitude), Color(0xFFEF4444), 8.0),
         ),
         routeLines = listOf(
-            MapRouteLine("pickup-destination", route, Color(0xFFFFD54F), 6.0, animatedAntPath = true),
+            MapRouteLine("pickup-destination", route, Color(0xFF2563EB), 6.0, animatedAntPath = true),
         ),
     )
 }

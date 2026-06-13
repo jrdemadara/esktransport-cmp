@@ -27,7 +27,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.BottomSheetScaffold
-import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -63,6 +62,8 @@ import com.composables.icons.heroicons.outline.Users
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 import org.noztek.esktransport.core.map.MapboxConfig
+import org.noztek.esktransport.core.platform.isIosPlatform
+import org.noztek.esktransport.core.ui.composables.AppPrimaryButton
 import org.noztek.esktransport.feature.passenger.booking_review.domain.model.BookingReviewInput
 import kotlin.math.atan2
 import kotlin.math.cos
@@ -119,7 +120,7 @@ fun BookingReviewScreen(
     }
     val scaffoldState = rememberBottomSheetScaffoldState(
         bottomSheetState = rememberStandardBottomSheetState(
-            initialValue = SheetValue.Expanded,
+            initialValue = if (isIosPlatform()) SheetValue.Expanded else SheetValue.PartiallyExpanded,
             skipHiddenState = true,
         ),
     )
@@ -128,6 +129,7 @@ fun BookingReviewScreen(
         scaffoldState = scaffoldState,
         containerColor = Color.Transparent,
         sheetContainerColor = MaterialTheme.colorScheme.surface,
+        sheetPeekHeight = 252.dp,
         sheetContent = {
             if (uiState.isSearchingForRider) {
                 SearchingSheet()
@@ -323,47 +325,87 @@ private fun ReviewSheet(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+            .padding(top = 0.dp, start = 16.dp, end = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(8  .dp),
     ) {
-        Text("Review Booking", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Medium)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column {
+                Text("Review ride", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                Text("Confirm the details before proceeding.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            Surface(
+                shape = RoundedCornerShape(999.dp),
+                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.10f),
+            ) {
+                Text(
+                    vehicleLabel,
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                )
+            }
+        }
         TripPointRow("Pickup", pickupLocation, MaterialTheme.colorScheme.primary)
         TripPointRow("Destination", destinationLocation, Color(0xFFEF4444))
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Column {
-                Text(vehicleLabel, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                Text("Standard Ride", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            Column(horizontalAlignment = Alignment.End) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Heroicons.Outline.Users, contentDescription = null, modifier = Modifier.size(16.dp))
-                    Spacer(Modifier.width(4.dp))
-                    Text("$seatCount seats")
-                }
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Heroicons.Outline.Map, contentDescription = null, modifier = Modifier.size(16.dp))
-                    Spacer(Modifier.width(4.dp))
-                    Text(distanceLabel)
-                }
-            }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            RideMetaPill(
+                icon = { Icon(Heroicons.Outline.Users, contentDescription = null, modifier = Modifier.size(18.dp)) },
+                label = "$seatCount seats",
+                modifier = Modifier.weight(1f),
+            )
+            RideMetaPill(
+                icon = { Icon(Heroicons.Outline.Map, contentDescription = null, modifier = Modifier.size(18.dp)) },
+                label = distanceLabel,
+                modifier = Modifier.weight(1f),
+            )
         }
-        Spacer(modifier = Modifier.height(12.dp))
-        Button(onClick = onConfirm, modifier = Modifier.fillMaxWidth(), enabled = !isCreatingBooking) {
-            Text(if (isCreatingBooking) "Confirming..." else "Confirm Booking")
-        }
-        Spacer(modifier = Modifier.height(12.dp))
+        AppPrimaryButton(
+            text = if (isCreatingBooking) "Confirming..." else "Confirm Booking",
+            onClick = onConfirm,
+            enabled = !isCreatingBooking,
+        )
+        Spacer(modifier = Modifier.height(4.dp))
     }
 }
 
 @Composable
 private fun TripPointRow(label: String, value: String, iconColor: Color) {
-    Row(verticalAlignment = Alignment.Top) {
-        Icon(Heroicons.Outline.MapPin, contentDescription = null, modifier = Modifier.size(20.dp), tint = iconColor)
-        Spacer(modifier = Modifier.width(12.dp))
-        Column {
+    Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        Icon(Heroicons.Outline.MapPin, contentDescription = null, modifier = Modifier.size(22.dp), tint = iconColor)
+        Column(modifier = Modifier.weight(1f)) {
             Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text(value, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
+            Text(value, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, maxLines = 2)
+        }
+    }
+}
+
+@Composable
+private fun RideMetaPill(
+    icon: @Composable () -> Unit,
+    label: String,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(14.dp),
+        color = Color(0xFFF7F8FA),
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 9.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            icon()
+            Text(label, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
         }
     }
 }

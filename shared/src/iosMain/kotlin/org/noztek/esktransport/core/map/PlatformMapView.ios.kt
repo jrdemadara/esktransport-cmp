@@ -39,7 +39,7 @@ actual fun PlatformMapView(
                 bearing = cameraDefaults.bearing,
                 routePoints = antRoute?.points ?: emptyList(),
                 antPathEnabled = antRoute != null,
-                antPathColorHex = antRoute?.color?.toHexColorString() ?: "#FFD54F",
+                antPathColorHex = antRoute?.color?.toHexColorString() ?: "#2563EB",
                 antPathWidth = antRoute?.width ?: 6.0,
                 onCameraMoving = onCameraMoving,
                 onCameraIdle = onCameraIdle,
