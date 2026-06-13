@@ -1,13 +1,24 @@
 package org.noztek.esktransport.feature.common.login.presentation
 
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -15,11 +26,23 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import asktransport_cmp.shared.generated.resources.Res
+import asktransport_cmp.shared.generated.resources.compose_multiplatform
+import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.painterResource
 import org.koin.compose.viewmodel.koinViewModel
+import org.noztek.esktransport.core.ui.composables.AppInputField
 
 @Composable
 fun LoginScreen(
@@ -33,6 +56,8 @@ fun LoginScreen(
     var phone by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     val state by viewModel.state.collectAsState()
+    val snackbarHostState = remember { SnackbarHostState() }
+    val coroutineScope = rememberCoroutineScope()
 
     LaunchedEffect(state.isLogin) {
         val loginSuccess = state.isLogin
@@ -41,95 +66,230 @@ fun LoginScreen(
         }
     }
 
-    Column(
+    Scaffold(
         modifier = modifier
             .fillMaxSize()
-            .padding(horizontal = 24.dp, vertical = 32.dp),
-        verticalArrangement = Arrangement.Center,
-    ) {
-        Text(
-            text = "Log in",
-            style = MaterialTheme.typography.headlineMedium,
-        )
-        Text(
-            text = "Use your mobile number to access your account.",
-            style = MaterialTheme.typography.bodyMedium,
-            modifier = Modifier.padding(top = 8.dp, bottom = 24.dp),
-        )
-
-        OutlinedTextField(
-            value = phone,
-            onValueChange = {
-                phone = it
-                if (state.errorMessage != null) viewModel.clearError()
-            },
-            label = { Text("Phone") },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true,
-        )
-
-        OutlinedTextField(
-            value = password,
-            onValueChange = {
-                password = it
-                if (state.errorMessage != null) viewModel.clearError()
-            },
-            label = { Text("Password") },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 12.dp),
-            singleLine = true,
-            visualTransformation = PasswordVisualTransformation(),
-        )
-
-        if (state.errorMessage != null) {
-            Text(
-                text = state.errorMessage ?: "",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.error,
-                modifier = Modifier.padding(top = 12.dp),
+            .background(Color.White),
+        containerColor = Color.White,
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
+        topBar = { LoginTopBar() },
+        bottomBar = {
+            LoginLegalFooter(
+                onPrivacyClick = {
+                    coroutineScope.launch {
+                        snackbarHostState.showSnackbar("Privacy Policy will be available soon.")
+                    }
+                },
+                onTermsClick = {
+                    coroutineScope.launch {
+                        snackbarHostState.showSnackbar("Terms and Agreement will be available soon.")
+                    }
+                },
             )
-        }
-
-        Button(
-            onClick = {
-                viewModel.login(
-                    phone = phone,
-                    password = password,
+        },
+    ) { contentPadding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(contentPadding)
+                .padding(horizontal = 22.dp),
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+                    .padding(top = 22.dp),
+            ) {
+                Text(
+                    text = "Welcome back",
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    letterSpacing = (-0.6).sp,
                 )
-            },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 20.dp),
-            enabled = !state.isSubmitting,
-        ) {
-            Text(if (state.isSubmitting) "Logging in..." else "Continue")
-        }
+                Text(
+                    text = "Log in with your mobile number to continue your EskTransport trips.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    lineHeight = 21.sp,
+                    modifier = Modifier.padding(top = 10.dp, bottom = 26.dp),
+                )
 
-        Button(
-            onClick = onRegisterClick,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 12.dp),
-        ) {
-            Text("Create account instead")
-        }
+                AppInputField(
+                    value = phone,
+                    onValueChange = {
+                        phone = it
+                        if (state.errorMessage != null) viewModel.clearError()
+                    },
+                    label = "Phone",
+                    modifier = Modifier.fillMaxWidth(),
+                )
 
-        Button(
-            onClick = onBackToWelcome,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 12.dp),
-        ) {
-            Text("Back")
-        }
-        Button(
-            onClick = onForgotPassword,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 12.dp),
-        ) {
-            Text("Forgot Password")
+                AppInputField(
+                    value = password,
+                    onValueChange = {
+                        password = it
+                        if (state.errorMessage != null) viewModel.clearError()
+                    },
+                    label = "Password",
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 12.dp),
+                    visualTransformation = PasswordVisualTransformation(),
+                )
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 10.dp),
+                    horizontalArrangement = Arrangement.End,
+                ) {
+                    Text(
+                        text = "Forgot Password?",
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.clickable(enabled = !state.isSubmitting, onClick = onForgotPassword),
+                    )
+                }
+
+                if (state.errorMessage != null) {
+                    Text(
+                        text = state.errorMessage ?: "",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.padding(top = 12.dp),
+                    )
+                }
+
+                Button(
+                    onClick = {
+                        viewModel.login(
+                            phone = phone,
+                            password = password,
+                        )
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 22.dp)
+                        .height(54.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    contentPadding = PaddingValues(horizontal = 18.dp),
+                    enabled = !state.isSubmitting,
+                ) {
+                    Text(
+                        if (state.isSubmitting) "Logging in..." else "Login",
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 16.dp),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = "Don't have an account? ",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Text(
+                        text = "Create Account",
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.clickable(enabled = !state.isSubmitting, onClick = onRegisterClick),
+                    )
+                }
+            }
         }
     }
+}
+
+@Composable
+private fun LoginTopBar(modifier: Modifier = Modifier) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .background(Color.White)
+            .padding(horizontal = 22.dp, vertical = 18.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        LoginLogo()
+    }
+}
+
+@Composable
+private fun LoginLogo(modifier: Modifier = Modifier) {
+    Row(
+        modifier = modifier,
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Image(
+            painter = painterResource(Res.drawable.compose_multiplatform),
+            contentDescription = "EskTransport logo",
+            modifier = Modifier.height(34.dp),
+        )
+        Text(
+            text = "EskTransport",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+    }
+}
+
+@Composable
+private fun LoginLegalFooter(
+    onPrivacyClick: () -> Unit,
+    onTermsClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .background(Color.White)
+            .padding(horizontal = 22.dp, vertical = 14.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text(
+            text = "By proceeding, you agree to our",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+        )
+
+        Row(
+            modifier = Modifier.padding(top = 2.dp),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            LoginFooterLink(text = "Privacy Policy", onClick = onPrivacyClick)
+            Text(
+                text = " and ",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            LoginFooterLink(text = "Terms and Agreement", onClick = onTermsClick)
+        }
+    }
+}
+
+@Composable
+private fun LoginFooterLink(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.bodySmall,
+        fontWeight = FontWeight.SemiBold,
+        color = MaterialTheme.colorScheme.primary,
+        textDecoration = TextDecoration.Underline,
+        modifier = modifier.clickable(onClick = onClick),
+    )
 }
