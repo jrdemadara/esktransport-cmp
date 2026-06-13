@@ -33,8 +33,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import asktransport_cmp.shared.generated.resources.Res
@@ -43,6 +41,7 @@ import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.painterResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.noztek.esktransport.core.ui.composables.AppInputField
+import org.noztek.esktransport.core.ui.composables.AppLegalFooter
 
 @Composable
 fun LoginScreen(
@@ -74,7 +73,7 @@ fun LoginScreen(
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         topBar = { LoginTopBar() },
         bottomBar = {
-            LoginLegalFooter(
+            AppLegalFooter(
                 onPrivacyClick = {
                     coroutineScope.launch {
                         snackbarHostState.showSnackbar("Privacy Policy will be available soon.")
@@ -240,56 +239,4 @@ private fun LoginLogo(modifier: Modifier = Modifier) {
             color = MaterialTheme.colorScheme.onSurface,
         )
     }
-}
-
-@Composable
-private fun LoginLegalFooter(
-    onPrivacyClick: () -> Unit,
-    onTermsClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .background(Color.White)
-            .padding(horizontal = 22.dp, vertical = 14.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Text(
-            text = "By proceeding, you agree to our",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-        )
-
-        Row(
-            modifier = Modifier.padding(top = 2.dp),
-            horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            LoginFooterLink(text = "Privacy Policy", onClick = onPrivacyClick)
-            Text(
-                text = " and ",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            LoginFooterLink(text = "Terms and Agreement", onClick = onTermsClick)
-        }
-    }
-}
-
-@Composable
-private fun LoginFooterLink(
-    text: String,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Text(
-        text = text,
-        style = MaterialTheme.typography.bodySmall,
-        fontWeight = FontWeight.SemiBold,
-        color = MaterialTheme.colorScheme.primary,
-        textDecoration = TextDecoration.Underline,
-        modifier = modifier.clickable(onClick = onClick),
-    )
 }
