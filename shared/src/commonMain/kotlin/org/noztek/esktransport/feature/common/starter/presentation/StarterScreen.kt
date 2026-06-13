@@ -29,6 +29,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -63,19 +64,20 @@ fun WelcomeScreen(
     onDriverRegisterClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Box(
+    Scaffold(
         modifier = modifier
             .fillMaxSize()
             .background(Color.White),
-    ) {
+        containerColor = Color.White,
+        topBar = { StarterTopBar() },
+    ) { contentPadding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(top = 24.dp, bottom = 18.dp),
+                .padding(contentPadding)
+                .padding(bottom = 18.dp),
         ) {
-            StarterLogo(modifier = Modifier.padding(horizontal = 22.dp))
-
-            Spacer(modifier = Modifier.height(28.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
             IllustrationPlaceholder(
                 modifier = Modifier
@@ -83,9 +85,7 @@ fun WelcomeScreen(
                     .weight(1f),
             )
 
-            Spacer(modifier = Modifier.height(22.dp))
-
-            Column(modifier = Modifier.padding(horizontal = 22.dp)) {
+            Column(modifier = Modifier.padding(horizontal = 10.dp)) {
                 Text(
                     text = "Move smarter with EskTransport",
                     style = MaterialTheme.typography.headlineMedium,
@@ -165,6 +165,19 @@ fun WelcomeScreen(
 }
 
 @Composable
+private fun StarterTopBar(modifier: Modifier = Modifier) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .background(Color.White)
+            .padding(horizontal = 22.dp, vertical = 18.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        StarterLogo()
+    }
+}
+
+@Composable
 private fun StarterLogo(modifier: Modifier = Modifier) {
     Row(
         modifier = modifier,
@@ -196,8 +209,7 @@ private fun IllustrationPlaceholder(modifier: Modifier = Modifier) {
             contentDescription = "Starter illustration",
             contentScale = ContentScale.Crop,
             modifier = Modifier
-                .fillMaxWidth()
-                .height(280.dp),
+                .fillMaxWidth(),
         )
     }
 }
