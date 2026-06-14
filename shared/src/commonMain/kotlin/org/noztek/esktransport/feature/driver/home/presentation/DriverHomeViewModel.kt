@@ -53,17 +53,33 @@ class DriverHomeViewModel(
     fun startRealtime() {
         viewModelScope.launch {
             realtimeCoordinator.subscribeDriverBookingOffers()
-            realtimeCoordinator.driverBookingOffers().collect { event ->
-                _uiState.update {
-                    it.copy(
-                        currentOffer = DriverHomeBookingOfferUiModel(
-                            bookingPublicId = event.bookingPublicId,
-                            passengerName = event.passengerName ?: DefaultPassengerName,
-                            pickupLabel = event.pickupLabel,
-                            destinationLabel = event.destinationLabel,
-                            fareLabel = event.finalFare?.let(::formatFare) ?: "N/A",
-                        ),
-                    )
+            launch {
+                realtimeCoordinator.driverBookingOffers().collect { event ->
+                    _uiState.update {
+                        it.copy(
+                            currentOffer = DriverHomeBookingOfferUiModel(
+                                bookingPublicId = event.bookingPublicId,
+                                passengerName = event.passengerName ?: DefaultPassengerName,
+                                pickupLabel = event.pickupLabel,
+                                destinationLabel = event.destinationLabel,
+                                fareLabel = event.finalFare?.let(::formatFare) ?: "N/A",
+                            ),
+                        )
+                    }
+                }
+            }
+            launch {
+                realtimeCoordinator.driverBookingCancelled().collect { event ->
+                    val currentOffer = _uiState.value.currentOffer
+                    if (currentOffer?.bookingPublicId == event.bookingPublicId) {
+                        _uiState.update {
+                            it.copy(
+                                currentOffer = null,
+                                isAcceptingOffer = false,
+                            )
+                        }
+                        println("DriverHome dismissed cancelled booking offer: ${event.bookingPublicId}")
+                    }
                 }
             }
         }

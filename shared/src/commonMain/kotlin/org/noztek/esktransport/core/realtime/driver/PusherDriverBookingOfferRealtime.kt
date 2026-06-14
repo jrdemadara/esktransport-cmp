@@ -15,6 +15,7 @@ import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.contentOrNull
 import org.noztek.esktransport.core.realtime.RealtimeChannelNamer
 import org.noztek.esktransport.core.realtime.RealtimeClient
+import org.noztek.esktransport.core.realtime.model.DriverBookingCancelledEvent
 import org.noztek.esktransport.core.realtime.model.DriverBookingOfferedEvent
 import org.noztek.esktransport.core.session.SessionManager
 
@@ -27,6 +28,7 @@ class PusherDriverBookingOfferRealtime(
 ) : DriverBookingOfferRealtime {
     private val scope = CoroutineScope(SupervisorJob() + ioDispatcher)
     private val bookingOffers = MutableSharedFlow<DriverBookingOfferedEvent>(extraBufferCapacity = 32)
+    private val bookingCancelled = MutableSharedFlow<DriverBookingCancelledEvent>(extraBufferCapacity = 32)
     private var bookingOffersChannel: String? = null
 
     override fun subscribeDriverBookingOffers() {
@@ -43,6 +45,9 @@ class PusherDriverBookingOfferRealtime(
             realtimeClient.subscribePrivateChannel(channel, "booking.offered") { _, payload ->
                 parseBookingOffer(payload)?.let { bookingOffers.tryEmit(it) }
             }
+            realtimeClient.subscribePrivateChannel(channel, "booking.cancelled") { _, payload ->
+                parseBookingCancelled(payload)?.let { bookingCancelled.tryEmit(it) }
+            }
             bookingOffersChannel = channel
         }
     }
@@ -53,6 +58,7 @@ class PusherDriverBookingOfferRealtime(
     }
 
     override fun driverBookingOffers() = bookingOffers.asSharedFlow()
+    override fun driverBookingCancelled() = bookingCancelled.asSharedFlow()
 
     private fun parseBookingOffer(payload: String): DriverBookingOfferedEvent? {
         return runCatching {
@@ -74,6 +80,19 @@ class PusherDriverBookingOfferRealtime(
                 destinationLat = root.objectValue("destination")?.double("lat") ?: root.double("destination_lat"),
                 destinationLng = root.objectValue("destination")?.double("lng") ?: root.double("destination_lng"),
                 finalFare = root.double("final_fare"),
+            )
+        }.getOrNull()
+    }
+
+    private fun parseBookingCancelled(payload: String): DriverBookingCancelledEvent? {
+        return runCatching {
+            val parsed = json.parseToJsonElement(payload).jsonObject
+            val root = parsed.unwrapRealtimeData(json)
+            val bookingPublicId = root.string("booking_public_id") ?: return null
+            DriverBookingCancelledEvent(
+                bookingPublicId = bookingPublicId,
+                passengerUserId = root.long("passenger_user_id"),
+                cancelledBy = root.string("cancelled_by"),
             )
         }.getOrNull()
     }
