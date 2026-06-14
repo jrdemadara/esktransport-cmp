@@ -17,6 +17,8 @@ import kotlinx.serialization.json.jsonPrimitive
 import org.noztek.esktransport.core.realtime.RealtimeChannelNamer
 import org.noztek.esktransport.core.realtime.RealtimeClient
 import org.noztek.esktransport.core.realtime.model.PassengerBookingAcceptedEvent
+import org.noztek.esktransport.core.realtime.model.PassengerBookingOfferExpiredEvent
+import org.noztek.esktransport.core.realtime.model.PassengerBookingSearchExpiredEvent
 import org.noztek.esktransport.core.realtime.model.PassengerDriverAssignedEvent
 import org.noztek.esktransport.core.session.SessionManager
 
@@ -30,6 +32,8 @@ class PusherPassengerRealtimeCoordinator(
     private val scope = CoroutineScope(SupervisorJob() + ioDispatcher)
     private val driverAssigned = MutableSharedFlow<PassengerDriverAssignedEvent>(extraBufferCapacity = 32)
     private val bookingAccepted = MutableSharedFlow<PassengerBookingAcceptedEvent>(extraBufferCapacity = 32)
+    private val offerExpired = MutableSharedFlow<PassengerBookingOfferExpiredEvent>(extraBufferCapacity = 32)
+    private val searchExpired = MutableSharedFlow<PassengerBookingSearchExpiredEvent>(extraBufferCapacity = 32)
     private var driverAssignedChannel: String? = null
 
     override fun subscribePassengerDriverAssigned() {
@@ -50,6 +54,12 @@ class PusherPassengerRealtimeCoordinator(
                 println("Passenger realtime raw booking.accepted payload: $payload")
                 parseBookingAccepted(payload)?.let { bookingAccepted.tryEmit(it) }
             }
+            realtimeClient.subscribePrivateChannel(channel, "booking.offer_expired") { _, payload ->
+                parseOfferExpired(payload)?.let { offerExpired.tryEmit(it) }
+            }
+            realtimeClient.subscribePrivateChannel(channel, "booking.search_expired") { _, payload ->
+                parseSearchExpired(payload)?.let { searchExpired.tryEmit(it) }
+            }
             driverAssignedChannel = channel
         }
     }
@@ -61,6 +71,8 @@ class PusherPassengerRealtimeCoordinator(
 
     override fun passengerDriverAssigned() = driverAssigned.asSharedFlow()
     override fun passengerBookingAccepted() = bookingAccepted.asSharedFlow()
+    override fun passengerBookingOfferExpired() = offerExpired.asSharedFlow()
+    override fun passengerBookingSearchExpired() = searchExpired.asSharedFlow()
 
     private fun parseDriverAssigned(payload: String): PassengerDriverAssignedEvent? {
         return runCatching {
@@ -90,6 +102,27 @@ class PusherPassengerRealtimeCoordinator(
             PassengerBookingAcceptedEvent(bookingPublicId = bookingPublicId)
         }.onFailure {
             println("Passenger realtime failed parsing booking.accepted: ${it.message}")
+        }.getOrNull()
+    }
+
+    private fun parseOfferExpired(payload: String): PassengerBookingOfferExpiredEvent? {
+        return runCatching {
+            val parsed = json.parseToJsonElement(payload).jsonObject
+            val root = parsed.unwrapRealtimeData(json)
+            val bookingPublicId = root.string("booking_public_id") ?: return null
+            PassengerBookingOfferExpiredEvent(
+                bookingPublicId = bookingPublicId,
+                riderUserId = root.long("rider_user_id"),
+            )
+        }.getOrNull()
+    }
+
+    private fun parseSearchExpired(payload: String): PassengerBookingSearchExpiredEvent? {
+        return runCatching {
+            val parsed = json.parseToJsonElement(payload).jsonObject
+            val root = parsed.unwrapRealtimeData(json)
+            val bookingPublicId = root.string("booking_public_id") ?: return null
+            PassengerBookingSearchExpiredEvent(bookingPublicId = bookingPublicId)
         }.getOrNull()
     }
 }

@@ -29,4 +29,8 @@ class DriverHomeApi(
     suspend fun acceptBookingOffer(bookingPublicId: String) {
         client.post("${baseUrl.trimEnd('/')}/api/v1/rider/bookings/$bookingPublicId/accept")
     }
+
+    suspend fun expireBookingOffer(bookingPublicId: String) {
+        client.post("${baseUrl.trimEnd('/')}/api/v1/rider/bookings/$bookingPublicId/offer-timeout")
+    }
 }

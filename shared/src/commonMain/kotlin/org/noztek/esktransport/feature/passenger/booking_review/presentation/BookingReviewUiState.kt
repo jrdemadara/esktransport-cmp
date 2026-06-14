@@ -7,4 +7,6 @@ data class BookingReviewUiState(
     val isCreatingBooking: Boolean = false,
     val isSearchingForRider: Boolean = false,
     val isCancellingBooking: Boolean = false,
+    val isSearchExpired: Boolean = false,
+    val searchSecondsRemaining: Int = 60,
 )

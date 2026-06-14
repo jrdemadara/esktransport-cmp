@@ -13,6 +13,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.noztek.esktransport.core.realtime.driver.DriverBookingOfferRealtime
 import org.noztek.esktransport.feature.driver.home.domain.usecase.AcceptDriverHomeOfferUseCase
+import org.noztek.esktransport.feature.driver.home.domain.usecase.ExpireDriverHomeOfferUseCase
 import org.noztek.esktransport.feature.driver.home.domain.usecase.GetDriverAvailabilityUseCase
 import org.noztek.esktransport.feature.driver.home.domain.usecase.SetDriverAvailabilityUseCase
 
@@ -35,6 +36,7 @@ class DriverHomeViewModel(
     private val getDriverAvailabilityUseCase: GetDriverAvailabilityUseCase,
     private val setDriverAvailabilityUseCase: SetDriverAvailabilityUseCase,
     private val acceptDriverHomeOfferUseCase: AcceptDriverHomeOfferUseCase,
+    private val expireDriverHomeOfferUseCase: ExpireDriverHomeOfferUseCase,
     private val realtimeCoordinator: DriverBookingOfferRealtime,
     private val ioDispatcher: CoroutineDispatcher,
 ) : ViewModel() {
@@ -115,6 +117,21 @@ class DriverHomeViewModel(
 
     fun dismissOfferSheet() {
         _uiState.update { it.copy(currentOffer = null, isAcceptingOffer = false) }
+    }
+
+    fun expireCurrentOffer() {
+        val offer = _uiState.value.currentOffer ?: return
+        if (_uiState.value.isAcceptingOffer) return
+
+        _uiState.update { it.copy(currentOffer = null, isAcceptingOffer = false) }
+        viewModelScope.launch {
+            val result = withContext(ioDispatcher) {
+                expireDriverHomeOfferUseCase(offer.bookingPublicId)
+            }
+            result.onFailure { error ->
+                println("DriverHome offer timeout error: ${error.message}")
+            }
+        }
     }
 
     fun showMockIncomingOffer() {

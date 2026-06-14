@@ -211,6 +211,7 @@ fun DriverHomeScreen(
                             soundEffectPlayer.play(SoundEffect.Close)
                             viewModel.dismissOfferSheet()
                         },
+                        onTimeout = viewModel::expireCurrentOffer,
                         onAccept = viewModel::acceptCurrentOffer,
                     )
                 }
@@ -438,6 +439,7 @@ private fun DriverIncomingOfferOverlay(
     isAccepting: Boolean,
     soundEffectPlayer: SoundEffectPlayer,
     onDecline: () -> Unit,
+    onTimeout: () -> Unit,
     onAccept: () -> Unit,
 ) {
     var secondsLeft by remember(offer.bookingPublicId) { mutableIntStateOf(10) }
@@ -458,7 +460,7 @@ private fun DriverIncomingOfferOverlay(
             secondsLeft = 9 - tick
         }
         soundEffectPlayer.play(SoundEffect.Denied)
-        onDecline()
+        onTimeout()
     }
 
     Surface(

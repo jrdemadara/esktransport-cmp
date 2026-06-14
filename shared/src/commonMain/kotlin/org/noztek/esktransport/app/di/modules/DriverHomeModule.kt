@@ -7,6 +7,7 @@ import org.noztek.esktransport.feature.driver.home.data.remote.DriverHomeApi
 import org.noztek.esktransport.feature.driver.home.domain.repository.DriverHomeRepository
 import org.noztek.esktransport.feature.driver.home.domain.lifecycle.DriverAvailabilityLifecycleCoordinator
 import org.noztek.esktransport.feature.driver.home.domain.usecase.AcceptDriverHomeOfferUseCase
+import org.noztek.esktransport.feature.driver.home.domain.usecase.ExpireDriverHomeOfferUseCase
 import org.noztek.esktransport.feature.driver.home.domain.usecase.GetDriverAvailabilityUseCase
 import org.noztek.esktransport.feature.driver.home.domain.usecase.SetDriverAvailabilityUseCase
 import org.noztek.esktransport.feature.driver.home.presentation.DriverHomeViewModel
@@ -17,6 +18,7 @@ val driverHomeModule = module {
     single { GetDriverAvailabilityUseCase(repository = get()) }
     single { SetDriverAvailabilityUseCase(repository = get()) }
     single { AcceptDriverHomeOfferUseCase(api = get()) }
+    single { ExpireDriverHomeOfferUseCase(api = get()) }
     single {
         DriverAvailabilityLifecycleCoordinator(
             sessionManager = get(),
@@ -29,6 +31,7 @@ val driverHomeModule = module {
             getDriverAvailabilityUseCase = get(),
             setDriverAvailabilityUseCase = get(),
             acceptDriverHomeOfferUseCase = get(),
+            expireDriverHomeOfferUseCase = get(),
             realtimeCoordinator = get(),
             ioDispatcher = get(named(IO_DISPATCHER_QUALIFIER)),
         )

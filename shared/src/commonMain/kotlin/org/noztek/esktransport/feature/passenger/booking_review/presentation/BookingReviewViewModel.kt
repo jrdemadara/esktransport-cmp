@@ -3,6 +3,8 @@ package org.noztek.esktransport.feature.passenger.booking_review.presentation
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -34,6 +36,7 @@ class BookingReviewViewModel(
     private val _uiEvents = MutableSharedFlow<BookingReviewUiEvent>(extraBufferCapacity = 1)
     val uiEvents: SharedFlow<BookingReviewUiEvent> = _uiEvents.asSharedFlow()
     private var pendingBookingPublicId: String? = null
+    private var searchCountdownJob: Job? = null
 
     fun startRealtime() {
         viewModelScope.launch {
@@ -54,8 +57,32 @@ class BookingReviewViewModel(
                             (pendingId == null && _uiState.value.isSearchingForRider)
                     if (shouldNavigate) {
                         pendingBookingPublicId = null
+                        stopSearchCountdown()
                         println("BookingReviewVM emitting NavigateToTripTracking bookingId=${event.bookingPublicId}")
                         _uiEvents.tryEmit(BookingReviewUiEvent.NavigateToTripTracking(event.bookingPublicId))
+                    }
+                }
+            }
+            launch {
+                realtimeCoordinator.passengerBookingOfferExpired().collect { event ->
+                    if (event.bookingPublicId == pendingBookingPublicId) {
+                        println("BookingReviewVM got booking.offer_expired event bookingId=${event.bookingPublicId}; continuing search")
+                        _uiState.value = _uiState.value.copy(isSearchingForRider = true)
+                    }
+                }
+            }
+            launch {
+                realtimeCoordinator.passengerBookingSearchExpired().collect { event ->
+                    if (event.bookingPublicId == pendingBookingPublicId) {
+                        println("BookingReviewVM got booking.search_expired event bookingId=${event.bookingPublicId}")
+                        pendingBookingPublicId = null
+                        stopSearchCountdown()
+                        _uiState.value = _uiState.value.copy(
+                            isSearchingForRider = false,
+                            isCancellingBooking = false,
+                            isSearchExpired = true,
+                            searchSecondsRemaining = 0,
+                        )
                     }
                 }
             }
@@ -70,15 +97,19 @@ class BookingReviewViewModel(
     fun stopRealtime() {
         realtimeCoordinator.unsubscribePassengerDriverAssigned()
     }
+
     fun setInput(input: BookingReviewInput) {
         val current = _uiState.value.input
+        val isSameInput = current == null || current == input
         _uiState.value = _uiState.value.copy(
             input = input,
-            isSearchingForRider = if (current == null || current == input) {
+            isSearchingForRider = if (isSameInput) {
                 _uiState.value.isSearchingForRider
             } else {
                 false
             },
+            isSearchExpired = if (isSameInput) _uiState.value.isSearchExpired else false,
+            searchSecondsRemaining = if (isSameInput) _uiState.value.searchSecondsRemaining else SEARCH_TIMEOUT_SECONDS,
         )
     }
 
@@ -101,7 +132,13 @@ class BookingReviewViewModel(
                 println("Booking created: booking_public_id=${booking.publicId}")
                 pendingBookingPublicId = booking.publicId
                 println("BookingReviewVM pending booking set to ${booking.publicId}")
-                _uiState.value = _uiState.value.copy(isSearchingForRider = true, isCancellingBooking = false)
+                _uiState.value = _uiState.value.copy(
+                    isSearchingForRider = true,
+                    isCancellingBooking = false,
+                    isSearchExpired = false,
+                    searchSecondsRemaining = SEARCH_TIMEOUT_SECONDS,
+                )
+                startSearchCountdown()
             }.onFailure { error ->
                 _uiEvents.tryEmit(BookingReviewUiEvent.ShowSnackbar("Booking failed: ${error.message}"))
             }
@@ -111,7 +148,13 @@ class BookingReviewViewModel(
     fun cancelSearch() {
         val bookingPublicId = pendingBookingPublicId
         if (bookingPublicId == null) {
-            _uiState.value = _uiState.value.copy(isSearchingForRider = false, isCancellingBooking = false)
+            stopSearchCountdown()
+            _uiState.value = _uiState.value.copy(
+                isSearchingForRider = false,
+                isCancellingBooking = false,
+                isSearchExpired = false,
+                searchSecondsRemaining = SEARCH_TIMEOUT_SECONDS,
+            )
             return
         }
 
@@ -124,14 +167,55 @@ class BookingReviewViewModel(
 
             result.onSuccess {
                 pendingBookingPublicId = null
+                stopSearchCountdown()
                 _uiState.value = _uiState.value.copy(
                     isSearchingForRider = false,
                     isCancellingBooking = false,
+                    isSearchExpired = false,
+                    searchSecondsRemaining = SEARCH_TIMEOUT_SECONDS,
                 )
             }.onFailure { error ->
                 _uiState.value = _uiState.value.copy(isCancellingBooking = false)
                 _uiEvents.tryEmit(BookingReviewUiEvent.ShowSnackbar(error.message ?: "Cancel booking failed."))
             }
         }
+    }
+
+    fun retryExpiredSearch() {
+        pendingBookingPublicId = null
+        stopSearchCountdown()
+        _uiState.value = _uiState.value.copy(
+            isSearchExpired = false,
+            isSearchingForRider = false,
+            isCancellingBooking = false,
+            searchSecondsRemaining = SEARCH_TIMEOUT_SECONDS,
+        )
+        confirmBooking()
+    }
+
+    private fun startSearchCountdown() {
+        searchCountdownJob?.cancel()
+        searchCountdownJob = viewModelScope.launch {
+            for (remaining in SEARCH_TIMEOUT_SECONDS downTo 0) {
+                _uiState.value = _uiState.value.copy(searchSecondsRemaining = remaining)
+                if (remaining == 0) break
+                delay(1000)
+            }
+        }
+    }
+
+    private fun stopSearchCountdown() {
+        searchCountdownJob?.cancel()
+        searchCountdownJob = null
+    }
+
+    override fun onCleared() {
+        stopSearchCountdown()
+        stopRealtime()
+        super.onCleared()
+    }
+
+    private companion object {
+        const val SEARCH_TIMEOUT_SECONDS = 60
     }
 }

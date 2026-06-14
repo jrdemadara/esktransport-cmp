@@ -131,17 +131,20 @@ fun BookingReviewScreen(
         sheetContainerColor = MaterialTheme.colorScheme.surface,
         sheetPeekHeight = 252.dp,
         sheetContent = {
-            if (uiState.isSearchingForRider) {
-                SearchingSheet(
+            when {
+                uiState.isSearchExpired -> SearchExpiredSheet(
+                    onTryAgain = viewModel::retryExpiredSearch,
+                )
+                uiState.isSearchingForRider -> SearchingSheet(
                     vehicleLabel = vehicleLabel,
                     seatCount = stateInput.requiredSeats,
                     distanceLabel = tripDistanceLabel,
                     destinationLocation = stateInput.destinationLocation,
+                    secondsRemaining = uiState.searchSecondsRemaining,
                     isCancelling = uiState.isCancellingBooking,
                     onCancel = viewModel::cancelSearch,
                 )
-            } else {
-                ReviewSheet(
+                else -> ReviewSheet(
                     pickupLocation = stateInput.pickupLocation,
                     destinationLocation = stateInput.destinationLocation,
                     vehicleLabel = vehicleLabel,
@@ -176,6 +179,7 @@ private fun SearchingSheet(
     seatCount: Int,
     distanceLabel: String,
     destinationLocation: String,
+    secondsRemaining: Int,
     isCancelling: Boolean,
     onCancel: () -> Unit,
     modifier: Modifier = Modifier,
@@ -242,6 +246,18 @@ private fun SearchingSheet(
                         lineHeight = 14.sp
                     )
                 }
+                Surface(
+                    shape = RoundedCornerShape(999.dp),
+                    color = primaryColor.copy(alpha = 0.10f),
+                ) {
+                    Text(
+                        text = formatSearchCountdown(secondsRemaining),
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = primaryColor,
+                        modifier = Modifier.padding(horizontal = 9.dp, vertical = 5.dp),
+                    )
+                }
             }
             Text(
                 text = "$vehicleLabel • $seatCount ${if (seatCount == 1) "seat" else "seats"} • $distanceLabel",
@@ -285,6 +301,45 @@ private fun SearchingSheet(
                 isCancelling = isCancelling,
                 onCancel = onCancel,
             )
+        }
+    }
+}
+
+@Composable
+private fun SearchExpiredSheet(
+    onTryAgain: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        color = MaterialTheme.colorScheme.surface,
+        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                Text(
+                    text = "No drivers found",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Text(
+                    text = "No online driver accepted within 60 seconds. Try again when you are ready.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    lineHeight = 16.sp,
+                )
+            }
+            AppPrimaryButton(
+                text = "Try Again",
+                onClick = onTryAgain,
+            )
+            Spacer(modifier = Modifier.height(4.dp))
         }
     }
 }
@@ -369,7 +424,7 @@ private fun ReviewSheet(
         modifier = Modifier
             .fillMaxWidth()
             .padding(top = 0.dp, start = 16.dp, end = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(8  .dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -418,6 +473,11 @@ private fun ReviewSheet(
         )
         Spacer(modifier = Modifier.height(4.dp))
     }
+}
+
+private fun formatSearchCountdown(secondsRemaining: Int): String {
+    val safeSeconds = secondsRemaining.coerceIn(0, 60)
+    return "0:${safeSeconds.toString().padStart(2, '0')}"
 }
 
 @Composable
