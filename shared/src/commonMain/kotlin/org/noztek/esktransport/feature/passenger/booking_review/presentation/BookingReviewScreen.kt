@@ -81,7 +81,7 @@ fun BookingReviewScreen(
     LaunchedEffect(input) { viewModel.setInput(input) }
 
     val uiState by viewModel.uiState.collectAsState()
-    val stateInput = uiState.input ?: input
+    val stateInput = input
     val pickupPoint = stateInput.pickupPoint
     val destinationPoint = stateInput.destinationPoint
     val routePoints = stateInput.routePoints

@@ -13,7 +13,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlin.time.Clock
 import org.noztek.esktransport.feature.passenger.location_search.domain.model.GeoPoint
 import org.noztek.esktransport.feature.passenger.location_search.domain.model.PlaceSuggestion
 import org.noztek.esktransport.feature.passenger.location_search.domain.usecase.GetCurrentLocationUseCase
@@ -28,7 +27,6 @@ class LocationSearchViewModel(
 ) : ViewModel() {
     private var searchJob: Job? = null
     private var resolveMapIdleJob: Job? = null
-    private var screenOpenedAtMs: Long = 0L
 
     private val _state = MutableStateFlow(LocationSearchUiState())
     val state: StateFlow<LocationSearchUiState> = _state.asStateFlow()
@@ -66,7 +64,6 @@ class LocationSearchViewModel(
     fun onScreenOpened() {
         searchJob?.cancel()
         resolveMapIdleJob?.cancel()
-        screenOpenedAtMs = Clock.System.now().toEpochMilliseconds()
         _state.update {
             it.copy(
                 query = "",
@@ -96,7 +93,6 @@ class LocationSearchViewModel(
     }
 
     fun onMapMoving(point: GeoPoint) {
-        if (isWithinStartupWindow()) return
         resolveMapIdleJob?.cancel()
         _state.update {
             it.copy(
@@ -107,7 +103,6 @@ class LocationSearchViewModel(
     }
 
     fun onMapSettled(point: GeoPoint) {
-        if (isWithinStartupWindow()) return
         resolveMapIdleJob?.cancel()
         resolveMapIdleJob = viewModelScope.launch(ioDispatcher) {
             _state.update { it.copy(selectedPoint = point, isMapMoving = false) }
@@ -123,10 +118,4 @@ class LocationSearchViewModel(
             }
         }
     }
-
-    private fun isWithinStartupWindow(): Boolean {
-        val elapsed = Clock.System.now().toEpochMilliseconds() - screenOpenedAtMs
-        return elapsed in 0..900
-    }
-
 }

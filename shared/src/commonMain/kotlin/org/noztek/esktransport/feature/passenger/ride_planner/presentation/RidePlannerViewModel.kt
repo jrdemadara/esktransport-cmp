@@ -74,11 +74,13 @@ class RidePlannerViewModel(
     fun setPickupLocation(value: String, point: GeoPoint?) {
         _pickupLocation.value = value
         _pickupPoint.value = point
+        _routePoints.value = emptyList()
     }
 
     fun setDestinationLocation(value: String, point: GeoPoint?) {
         _destinationLocation.value = value
         _destinationPoint.value = point
+        _routePoints.value = emptyList()
     }
 
     fun setPassengerCount(index: Int) {
