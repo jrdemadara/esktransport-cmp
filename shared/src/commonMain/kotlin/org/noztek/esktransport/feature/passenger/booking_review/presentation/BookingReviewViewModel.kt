@@ -201,6 +201,15 @@ class BookingReviewViewModel(
                 if (remaining == 0) break
                 delay(1000)
             }
+            if (_uiState.value.isSearchingForRider && pendingBookingPublicId != null) {
+                pendingBookingPublicId = null
+                _uiState.value = _uiState.value.copy(
+                    isSearchingForRider = false,
+                    isCancellingBooking = false,
+                    isSearchExpired = true,
+                    searchSecondsRemaining = 0,
+                )
+            }
         }
     }
 
