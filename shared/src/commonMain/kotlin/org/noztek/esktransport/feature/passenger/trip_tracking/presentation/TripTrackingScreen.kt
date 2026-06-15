@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.BottomSheetScaffold
-import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -46,6 +45,7 @@ import org.noztek.esktransport.core.map.MapPoint
 import org.noztek.esktransport.core.map.MapRouteLine
 import org.noztek.esktransport.core.map.MapboxConfig
 import org.noztek.esktransport.core.map.PlatformMapView
+import org.noztek.esktransport.core.ui.composables.AppPrimaryButton
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -60,7 +60,10 @@ fun TripTrackingScreen(
     LaunchedEffect(bookingId) { viewModel.loadTripData(bookingId) }
 
     BottomSheetScaffold(
-        sheetPeekHeight = 220.dp,
+        sheetPeekHeight = 196.dp,
+        sheetShape = RoundedCornerShape(topStart = 22.dp, topEnd = 22.dp),
+        sheetContainerColor = MaterialTheme.colorScheme.surface,
+        sheetContentColor = MaterialTheme.colorScheme.onSurface,
         sheetContent = {
             session?.let {
                 TripTrackingSheet(
@@ -127,8 +130,21 @@ fun TripTrackingScreen(
 
 @Composable
 private fun LoadingSheet(isLoading: Boolean) {
-    Box(modifier = Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) {
-        if (isLoading) CircularProgressIndicator() else Text("Loading trip details...")
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(160.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        if (isLoading) {
+            CircularProgressIndicator()
+        } else {
+            Text(
+                text = "Loading trip details...",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
     }
 }
 
@@ -140,48 +156,106 @@ private fun TripTrackingSheet(
     destinationLabel: String,
     status: String,
 ) {
-    Column(modifier = Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Box(
-                modifier = Modifier.size(50.dp).background(MaterialTheme.colorScheme.primaryContainer, CircleShape),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(Heroicons.Outline.User, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimaryContainer)
-            }
-            Spacer(modifier = Modifier.width(12.dp))
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(start = 16.dp, top = 8.dp, end = 16.dp, bottom = 14.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text(riderName, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                Text(vehicleLabel, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    text = statusLabel(status),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    Icon(
+                        Heroicons.Outline.User,
+                        contentDescription = null,
+                        modifier = Modifier.size(14.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Text(
+                        text = riderName,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontWeight = FontWeight.Medium,
+                    )
+                }
             }
             IconButton(
                 onClick = {},
-                modifier = Modifier.clip(CircleShape).background(MaterialTheme.colorScheme.secondaryContainer),
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.secondaryContainer),
             ) {
-                Icon(Heroicons.Outline.Phone, contentDescription = "Call", tint = MaterialTheme.colorScheme.onSecondaryContainer)
+                Icon(
+                    Heroicons.Outline.Phone,
+                    contentDescription = "Call",
+                    modifier = Modifier.size(18.dp),
+                    tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                )
             }
         }
-        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-        TripPointRow("Pickup", pickupLabel, MaterialTheme.colorScheme.primary)
-        TripPointRow("Destination", destinationLabel, Color(0xFFEF4444))
         Text(
-            text = "Status: ${status.replace("_", " ").uppercase()}",
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.primary,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.background(MaterialTheme.colorScheme.primaryContainer, RoundedCornerShape(4.dp)).padding(horizontal = 8.dp, vertical = 4.dp),
+            text = vehicleLabel,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        Button(onClick = {}, modifier = Modifier.fillMaxWidth()) { Text("Cancel Booking") }
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+        TripPointRow("Pickup", pickupLabel, MaterialTheme.colorScheme.primary)
+        TripPointRow("Destination", destinationLabel, MaterialTheme.colorScheme.error)
+        Text(
+            text = status.replace("_", " ").uppercase(),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.primary,
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier
+                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.10f), RoundedCornerShape(999.dp))
+                .padding(horizontal = 10.dp, vertical = 5.dp),
+        )
+        AppPrimaryButton(
+            text = "Cancel booking",
+            onClick = {},
+            modifier = Modifier.fillMaxWidth(),
+        )
     }
 }
 
 @Composable
 private fun TripPointRow(label: String, value: String, iconColor: Color) {
-    Row(verticalAlignment = Alignment.Top) {
-        Icon(Heroicons.Outline.MapPin, contentDescription = null, modifier = Modifier.size(20.dp), tint = iconColor)
-        Spacer(modifier = Modifier.width(12.dp))
-        Column {
-            Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text(value, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
+    Row(
+        verticalAlignment = Alignment.Top,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Icon(
+            Heroicons.Outline.MapPin,
+            contentDescription = null,
+            modifier = Modifier.size(18.dp),
+            tint = iconColor,
+        )
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Text(
+                text = value,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
         }
     }
 }
