@@ -6,6 +6,7 @@ import androidx.compose.animation.core.spring
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -44,6 +45,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import asktransport_cmp.shared.generated.resources.Res
 import asktransport_cmp.shared.generated.resources.map_pin_black
+import asktransport_cmp.shared.generated.resources.map_pin_red
 import com.composables.icons.heroicons.Heroicons
 import com.composables.icons.heroicons.outline.MagnifyingGlass
 import com.composables.icons.heroicons.outline.MapPin
@@ -73,6 +75,7 @@ fun LocationSearchScreen(
     var cameraCenter by remember { mutableStateOf(MapPoint(selectedPoint.latitude, selectedPoint.longitude)) }
     val mapCameraDefaults = remember { MapCameraDefaults(zoom = 15.5, pitch = 30.0) }
     val selectedLabel = state.tappedLocationLabel ?: "Move or search to pick a location"
+    val mapPin = if (isSystemInDarkTheme()) Res.drawable.map_pin_red else Res.drawable.map_pin_black
     val pinLift by animateDpAsState(
         targetValue = if (state.isMapMoving) (-12).dp else 0.dp,
         animationSpec = if (state.isMapMoving) {
@@ -97,7 +100,7 @@ fun LocationSearchScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.White)
+            .background(MaterialTheme.colorScheme.background)
             .padding(contentPadding),
     ) {
         Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -109,20 +112,29 @@ fun LocationSearchScreen(
                 placeholder = { Text("Search location") },
                 singleLine = true,
                 shape = RoundedCornerShape(14.dp),
-                textStyle = MaterialTheme.typography.bodyMedium,
+                textStyle = MaterialTheme.typography.bodyMedium.copy(
+                    color = MaterialTheme.colorScheme.onSurface,
+                ),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = Color(0xFFF7F8FA),
-                    unfocusedContainerColor = Color(0xFFF7F8FA),
+                    focusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
                     focusedBorderColor = Color.Transparent,
                     unfocusedBorderColor = Color.Transparent,
                     cursorColor = MaterialTheme.colorScheme.primary,
+                    focusedLeadingIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    unfocusedLeadingIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    focusedPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    unfocusedPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                    unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
                 ),
             )
             if (state.suggestions.isNotEmpty()) {
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(14.dp),
-                    color = Color(0xFFF7F8FA),
+                    color = MaterialTheme.colorScheme.surfaceContainer,
+                    contentColor = MaterialTheme.colorScheme.onSurface,
                 ) {
                     LazyColumn(modifier = Modifier.fillMaxWidth().height(120.dp).padding(horizontal = 12.dp)) {
                         items(state.suggestions) { suggestion ->
@@ -133,6 +145,7 @@ fun LocationSearchScreen(
                                     .clickable { viewModel.onSuggestionSelected(suggestion) }
                                     .padding(vertical = 10.dp),
                                 style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurface,
                             )
                         }
                     }
@@ -154,7 +167,7 @@ fun LocationSearchScreen(
                 },
             )
             Image(
-                painter = painterResource(Res.drawable.map_pin_black),
+                painter = painterResource(mapPin),
                 contentDescription = "Selected location",
                 modifier = Modifier
                     .align(Alignment.Center)
@@ -167,7 +180,7 @@ fun LocationSearchScreen(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(Color.White)
+                .background(MaterialTheme.colorScheme.background)
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
@@ -188,13 +201,14 @@ fun LocationSearchScreen(
                     selectedLabel,
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onBackground,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f),
                 )
             }
             Spacer(Modifier.height(4.dp))
-            HorizontalDivider(color = Color(0xFFE7E9EF))
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
             Spacer(Modifier.height(4.dp))
             AppPrimaryButton(
                 text = selectActionText,
