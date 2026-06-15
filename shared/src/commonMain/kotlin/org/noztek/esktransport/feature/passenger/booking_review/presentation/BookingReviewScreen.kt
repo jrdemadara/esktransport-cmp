@@ -129,6 +129,8 @@ fun BookingReviewScreen(
         scaffoldState = scaffoldState,
         containerColor = Color.Transparent,
         sheetContainerColor = MaterialTheme.colorScheme.surface,
+        sheetContentColor = MaterialTheme.colorScheme.onSurface,
+        sheetShape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
         sheetPeekHeight = 252.dp,
         sheetContent = {
             when {
@@ -237,7 +239,7 @@ private fun SearchingSheet(
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold,
                         color = onSurfaceColor,
-                        letterSpacing = (-0.3).sp // Apple-style tight tracking
+                        letterSpacing = 0.sp,
                     )
                     Text(
                         text = "Request sent. Matching nearby online drivers.",
@@ -426,18 +428,29 @@ private fun ReviewSheet(
             .padding(top = 0.dp, start = 16.dp, end = 16.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
+        val destinationColor = MaterialTheme.colorScheme.error
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column {
-                Text("Review ride", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                Text("Confirm the details before proceeding.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    text = "Review ride",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Text(
+                    text = "Confirm the details before proceeding.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
             Surface(
                 shape = RoundedCornerShape(999.dp),
                 color = MaterialTheme.colorScheme.primary.copy(alpha = 0.10f),
+                contentColor = MaterialTheme.colorScheme.primary,
             ) {
                 Text(
                     vehicleLabel,
@@ -449,7 +462,7 @@ private fun ReviewSheet(
             }
         }
         TripPointRow("Pickup", pickupLocation, MaterialTheme.colorScheme.primary)
-        TripPointRow("Destination", destinationLocation, Color(0xFFEF4444))
+        TripPointRow("Destination", destinationLocation, destinationColor)
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -486,7 +499,13 @@ private fun TripPointRow(label: String, value: String, iconColor: Color) {
         Icon(Heroicons.Outline.MapPin, contentDescription = null, modifier = Modifier.size(22.dp), tint = iconColor)
         Column(modifier = Modifier.weight(1f)) {
             Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text(value, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, maxLines = 2)
+            Text(
+                text = value,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 2,
+            )
         }
     }
 }
@@ -500,7 +519,8 @@ private fun RideMetaPill(
     Surface(
         modifier = modifier,
         shape = RoundedCornerShape(14.dp),
-        color = Color(0xFFF7F8FA),
+        color = MaterialTheme.colorScheme.surfaceContainer,
+        contentColor = MaterialTheme.colorScheme.onSurface,
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 9.dp),
@@ -508,7 +528,12 @@ private fun RideMetaPill(
             horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             icon()
-            Text(label, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
+            Text(
+                text = label,
+                style = MaterialTheme.typography.bodySmall,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
         }
     }
 }
