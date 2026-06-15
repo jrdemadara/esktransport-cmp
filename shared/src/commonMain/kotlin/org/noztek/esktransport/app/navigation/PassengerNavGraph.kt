@@ -220,7 +220,7 @@ private fun PassengerShell(onLogout: () -> Unit) {
             if (showChrome) {
                 NavigationBar(
                     windowInsets = WindowInsets(0),
-                    containerColor = Color(0xFFF7F7F9),
+                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
                     contentColor = MaterialTheme.colorScheme.onSurface,
                     tonalElevation = 0.dp,
                 ) {
@@ -396,8 +396,17 @@ private fun PassengerShell(onLogout: () -> Unit) {
 private fun PassengerBackTopBar(title: String, onBack: () -> Unit) {
     TopAppBar(
         windowInsets = WindowInsets(0),
-        colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White),
-        title = { Text(title) },
+        colors = TopAppBarDefaults.topAppBarColors(
+            containerColor = MaterialTheme.colorScheme.background,
+            titleContentColor = MaterialTheme.colorScheme.onBackground,
+            navigationIconContentColor = MaterialTheme.colorScheme.onBackground,
+        ),
+        title = {
+            Text(
+                text = title,
+                color = MaterialTheme.colorScheme.onBackground,
+            )
+        },
         navigationIcon = {
             IconButton(onClick = onBack) {
                 Icon(Heroicons.Outline.ArrowLeft, contentDescription = "Back")
@@ -411,7 +420,11 @@ private fun PassengerBackTopBar(title: String, onBack: () -> Unit) {
 private fun PassengerHomeTopBar(onProfileClick: () -> Unit) {
     CenterAlignedTopAppBar(
         windowInsets = WindowInsets(0),
-        colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White),
+        colors = TopAppBarDefaults.topAppBarColors(
+            containerColor = MaterialTheme.colorScheme.background,
+            actionIconContentColor = MaterialTheme.colorScheme.onBackground,
+            navigationIconContentColor = MaterialTheme.colorScheme.onBackground,
+        ),
         title = {},
         navigationIcon = { AppLogoBadge() },
         actions = {
@@ -424,14 +437,24 @@ private fun PassengerHomeTopBar(onProfileClick: () -> Unit) {
                                 .align(Alignment.TopEnd)
                                 .size(9.dp)
                                 .background(Color(0xFFE53935), CircleShape)
-                                .border(1.dp, Color.White, CircleShape),
+                                .border(1.dp, MaterialTheme.colorScheme.background, CircleShape),
                         )
                     }
                 }
                 IconButton(onClick = onProfileClick) {
-                    Surface(modifier = Modifier.size(28.dp), shape = CircleShape, color = MaterialTheme.colorScheme.primaryContainer) {
+                    Surface(
+                        modifier = Modifier.size(28.dp),
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.primaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    ) {
                         Box(contentAlignment = Alignment.Center) {
-                            Icon(Heroicons.Outline.User, contentDescription = "Profile", modifier = Modifier.size(18.dp))
+                            Icon(
+                                Heroicons.Outline.User,
+                                contentDescription = "Profile",
+                                modifier = Modifier.size(18.dp),
+                                tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                            )
                         }
                     }
                 }

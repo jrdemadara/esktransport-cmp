@@ -31,7 +31,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -46,7 +45,6 @@ import com.composables.icons.heroicons.Heroicons
 import com.composables.icons.heroicons.outline.MapPin
 import com.composables.icons.heroicons.outline.PaperAirplane
 import com.composables.icons.heroicons.outline.MagnifyingGlass
-import com.composables.icons.heroicons.outline.BuildingStorefront
 import asktransport_cmp.shared.generated.resources.Res
 import asktransport_cmp.shared.generated.resources.home_big_truck
 import asktransport_cmp.shared.generated.resources.home_car
@@ -66,7 +64,7 @@ fun PassengerHomeScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.White)
+            .background(MaterialTheme.colorScheme.background)
             .padding(contentPadding)
             .padding(horizontal = 16.dp)
             .padding(top = topPadding, bottom = 12.dp),
@@ -86,8 +84,17 @@ fun PassengerHomeScreen(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text("Suggestions", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-            Text("See all", style = MaterialTheme.typography.titleSmall)
+            Text(
+                text = "Suggestions",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onBackground,
+            )
+            Text(
+                text = "See all",
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.primary,
+            )
         }
         Spacer(modifier = Modifier.height(10.dp))
 
@@ -109,7 +116,8 @@ private fun PlaceSuggestionsRow() {
         rowItems(placeSuggestions) { place ->
             Surface(
                 shape = RoundedCornerShape(6.dp),
-                color = Color(0xFFF6F7F9),
+                color = MaterialTheme.colorScheme.surfaceContainerLow,
+                contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
                 tonalElevation = 0.dp,
             ) {
                 Row(
@@ -117,8 +125,17 @@ private fun PlaceSuggestionsRow() {
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    Icon(place.icon, contentDescription = place.name, modifier = Modifier.size(16.dp))
-                    Text(place.name, style = MaterialTheme.typography.bodyMedium)
+                    Icon(
+                        place.icon,
+                        contentDescription = place.name,
+                        modifier = Modifier.size(16.dp),
+                        tint = MaterialTheme.colorScheme.primary,
+                    )
+                    Text(
+                        text = place.name,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
             }
         }
@@ -129,7 +146,8 @@ private fun PlaceSuggestionsRow() {
 private fun SearchRow(onWhereToClick: () -> Unit) {
     Surface(
         shape = RoundedCornerShape(30.dp),
-        color = Color(0xFFF3F4F6),
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        contentColor = MaterialTheme.colorScheme.onSurface,
         modifier = Modifier.fillMaxWidth(),
         onClick = onWhereToClick,
     ) {
@@ -137,19 +155,41 @@ private fun SearchRow(onWhereToClick: () -> Unit) {
             modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Icon(Heroicons.Outline.MagnifyingGlass, contentDescription = null)
+            Icon(
+                Heroicons.Outline.MagnifyingGlass,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
             Spacer(modifier = Modifier.width(10.dp))
-            Text("Where to?", style = MaterialTheme.typography.headlineSmall, modifier = Modifier.weight(1f))
+            Text(
+                text = "Where to?",
+                style = MaterialTheme.typography.headlineSmall,
+                modifier = Modifier.weight(1f),
+                color = MaterialTheme.colorScheme.onSurface,
+            )
             Box(modifier = Modifier.height(26.dp).width(1.dp).background(MaterialTheme.colorScheme.outlineVariant))
             Spacer(modifier = Modifier.width(10.dp))
-            Surface(shape = RoundedCornerShape(16.dp), color = Color.White) {
+            Surface(
+                shape = RoundedCornerShape(16.dp),
+                color = MaterialTheme.colorScheme.surfaceContainerLowest,
+                contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+            ) {
                 Row(
                     modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
-                    Icon(Heroicons.Outline.CalendarDays, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Text("Later", style = MaterialTheme.typography.titleMedium)
+                    Icon(
+                        Heroicons.Outline.CalendarDays,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp),
+                        tint = MaterialTheme.colorScheme.primary,
+                    )
+                    Text(
+                        text = "Later",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
             }
         }
@@ -160,23 +200,47 @@ private fun SearchRow(onWhereToClick: () -> Unit) {
 private fun AddressCard(title: String, subtitle: String, icon: androidx.compose.ui.graphics.vector.ImageVector) {
     Card(
         shape = RoundedCornerShape(8.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface,
+            contentColor = MaterialTheme.colorScheme.onSurface,
+        ),
         modifier = Modifier.fillMaxWidth(),
-        border = BorderStroke(0.5.dp, Color(0xFFE7E9EF)),
+        border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant),
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            Surface(color = Color(0xFFF4F6FA), shape = RoundedCornerShape(10.dp), modifier = Modifier.size(34.dp)) {
+            Surface(
+                color = MaterialTheme.colorScheme.primaryContainer,
+                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                shape = RoundedCornerShape(10.dp),
+                modifier = Modifier.size(34.dp),
+            ) {
                 Box(contentAlignment = Alignment.Center) {
-                    Icon(icon, contentDescription = null, modifier = Modifier.size(17.dp))
+                    Icon(
+                        icon,
+                        contentDescription = null,
+                        modifier = Modifier.size(17.dp),
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                    )
                 }
             }
             Column {
-                Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Medium)
-                Text(subtitle, style = MaterialTheme.typography.bodyMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
             }
         }
     }
@@ -187,7 +251,10 @@ private fun SuggestionCard(item: SuggestionItem, onClick: () -> Unit) {
     Card(
         onClick = onClick,
         shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFFF7F8FA)),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainer,
+            contentColor = MaterialTheme.colorScheme.onSurface,
+        ),
     ) {
         Column(
             modifier = Modifier.fillMaxWidth().heightIn(min = 86.dp).padding(8.dp),
@@ -201,7 +268,13 @@ private fun SuggestionCard(item: SuggestionItem, onClick: () -> Unit) {
                 modifier = Modifier.size(42.dp),
             )
             Spacer(modifier = Modifier.height(8.dp))
-            Text(item.label, style = MaterialTheme.typography.bodyMedium, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            Text(
+                text = item.label,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
         }
     }
 }
