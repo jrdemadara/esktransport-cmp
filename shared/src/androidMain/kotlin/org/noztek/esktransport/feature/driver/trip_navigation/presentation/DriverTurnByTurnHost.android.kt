@@ -404,17 +404,17 @@ private class AndroidDriverTurnByTurnHost(
         val origin = if (pickupConfirmed) {
             pickupPoint
         } else {
-            routePoints.firstOrNull()
-                ?.takeUnless { it.isSamePointAs(pickupPoint) }
-                ?: navigationLocationProvider.lastLocation?.let { location ->
-                    MapPoint(latitude = location.latitude, longitude = location.longitude)
-                }
-                ?: seedDeviceLocationPuck()
-                ?: pickupPoint
+            navigationLocationProvider.lastLocation?.let { location ->
+                MapPoint(latitude = location.latitude, longitude = location.longitude)
+            } ?: seedDeviceLocationPuck()
         }
         val target = if (pickupConfirmed) destinationPoint else pickupPoint
-        waitingForLivePickupOrigin = !pickupConfirmed && origin.isSamePointAs(target)
-        if (waitingForLivePickupOrigin) requestFreshDeviceLocationForPickup()
+        waitingForLivePickupOrigin = !pickupConfirmed && origin == null
+        if (waitingForLivePickupOrigin) {
+            requestFreshDeviceLocationForPickup()
+            return
+        }
+        if (origin == null) return
         if (origin.isSamePointAs(target)) return
         requestRoute(origin = origin.toPoint(), target = target.toPoint())
     }

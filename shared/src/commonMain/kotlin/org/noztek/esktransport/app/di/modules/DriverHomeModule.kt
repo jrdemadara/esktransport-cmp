@@ -32,6 +32,7 @@ val driverHomeModule = module {
             setDriverAvailabilityUseCase = get(),
             acceptDriverHomeOfferUseCase = get(),
             expireDriverHomeOfferUseCase = get(),
+            getDriverActiveBookingUseCase = get(),
             realtimeCoordinator = get(),
             ioDispatcher = get(named(IO_DISPATCHER_QUALIFIER)),
         )

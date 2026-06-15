@@ -113,14 +113,17 @@ fun DriverHomeScreen(
     var lastAvailability by remember { mutableStateOf(homeState.isAvailable) }
 
     LaunchedEffect(viewModel) {
-        viewModel.startRealtime()
-        viewModel.refreshAvailability()
-        viewModel.uiEvents.collect { event ->
-            when (event) {
-                is DriverHomeUiEvent.ShowSnackbar -> snackbarHostState.showSnackbar(event.message)
-                is DriverHomeUiEvent.NavigateToTrip -> onNavigateToTrip(event.bookingPublicId)
+        launch {
+            viewModel.uiEvents.collect { event ->
+                when (event) {
+                    is DriverHomeUiEvent.ShowSnackbar -> snackbarHostState.showSnackbar(event.message)
+                    is DriverHomeUiEvent.NavigateToTrip -> onNavigateToTrip(event.bookingPublicId)
+                }
             }
         }
+        viewModel.startRealtime()
+        viewModel.refreshAvailability()
+        viewModel.restoreActiveBooking()
     }
 
     DisposableEffect(viewModel) {

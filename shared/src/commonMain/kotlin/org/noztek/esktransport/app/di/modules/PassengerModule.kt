@@ -33,6 +33,7 @@ import org.noztek.esktransport.feature.passenger.trip_tracking.data.remote.TripT
 import org.noztek.esktransport.feature.passenger.trip_tracking.domain.repository.TripTrackingRepository
 import org.noztek.esktransport.feature.passenger.trip_tracking.domain.usecase.TripTrackingUseCase
 import org.noztek.esktransport.feature.passenger.trip_tracking.presentation.TripTrackingViewModel
+import org.noztek.esktransport.feature.passenger.session.presentation.PassengerSessionViewModel
 
 val passengerModule = module {
     single<LocationRepository> { LocationRepositoryImpl(currentLocationProvider = get()) }
@@ -87,6 +88,13 @@ val passengerModule = module {
         TripTrackingViewModel(
             tripTrackingUseCase = get(),
             mapboxDirectionsClient = get(),
+            ioDispatcher = get(named(IO_DISPATCHER_QUALIFIER)),
+        )
+    }
+
+    factory {
+        PassengerSessionViewModel(
+            getPassengerActiveBookingUseCase = get(),
             ioDispatcher = get(named(IO_DISPATCHER_QUALIFIER)),
         )
     }

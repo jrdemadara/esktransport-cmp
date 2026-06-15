@@ -12,6 +12,8 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.noztek.esktransport.core.realtime.driver.DriverBookingOfferRealtime
+import org.noztek.esktransport.feature.common.active_booking.domain.model.ActiveBookingStatus
+import org.noztek.esktransport.feature.common.active_booking.domain.usecase.GetDriverActiveBookingUseCase
 import org.noztek.esktransport.feature.driver.home.domain.usecase.AcceptDriverHomeOfferUseCase
 import org.noztek.esktransport.feature.driver.home.domain.usecase.ExpireDriverHomeOfferUseCase
 import org.noztek.esktransport.feature.driver.home.domain.usecase.GetDriverAvailabilityUseCase
@@ -37,6 +39,7 @@ class DriverHomeViewModel(
     private val setDriverAvailabilityUseCase: SetDriverAvailabilityUseCase,
     private val acceptDriverHomeOfferUseCase: AcceptDriverHomeOfferUseCase,
     private val expireDriverHomeOfferUseCase: ExpireDriverHomeOfferUseCase,
+    private val getDriverActiveBookingUseCase: GetDriverActiveBookingUseCase,
     private val realtimeCoordinator: DriverBookingOfferRealtime,
     private val ioDispatcher: CoroutineDispatcher,
 ) : ViewModel() {
@@ -99,6 +102,38 @@ class DriverHomeViewModel(
                 _uiState.update { state -> state.copy(statusMessage = message) }
                 _uiEvents.tryEmit(DriverHomeUiEvent.ShowSnackbar(message))
                 println("DriverHome availability sync error: $message")
+            }
+        }
+    }
+
+    fun restoreActiveBooking() {
+        viewModelScope.launch {
+            val result = withContext(ioDispatcher) { getDriverActiveBookingUseCase() }
+            result.onSuccess { activeBooking ->
+                when (activeBooking?.status) {
+                    ActiveBookingStatus.OFFERED -> {
+                        _uiState.update {
+                            it.copy(
+                                currentOffer = DriverHomeBookingOfferUiModel(
+                                    bookingPublicId = activeBooking.bookingPublicId,
+                                    passengerName = activeBooking.passenger?.name ?: DefaultPassengerName,
+                                    pickupLabel = activeBooking.pickup?.label ?: "Pickup",
+                                    destinationLabel = activeBooking.destination?.label ?: "Destination",
+                                    fareLabel = activeBooking.finalFare?.let(::formatFare) ?: "N/A",
+                                ),
+                                isAcceptingOffer = false,
+                            )
+                        }
+                    }
+                    ActiveBookingStatus.ACCEPTED,
+                    ActiveBookingStatus.ARRIVING_PICKUP,
+                    ActiveBookingStatus.IN_PROGRESS -> {
+                        _uiEvents.tryEmit(DriverHomeUiEvent.NavigateToTrip(activeBooking.bookingPublicId))
+                    }
+                    else -> Unit
+                }
+            }.onFailure { error ->
+                println("DriverHome active booking restore error: ${error.message}")
             }
         }
     }

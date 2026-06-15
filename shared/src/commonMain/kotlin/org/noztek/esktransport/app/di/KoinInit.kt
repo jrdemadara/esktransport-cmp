@@ -3,6 +3,7 @@ package org.noztek.esktransport.app.di
 import org.koin.core.KoinApplication
 import org.koin.core.context.startKoin
 import org.koin.core.module.Module
+import org.noztek.esktransport.app.di.modules.activeBookingModule
 import org.noztek.esktransport.app.di.modules.coreModule
 import org.noztek.esktransport.app.di.modules.driverHomeModule
 import org.noztek.esktransport.app.di.modules.driverTripNavigationModule
@@ -28,6 +29,7 @@ private val appModules = listOf(
     forgotPasswordModule,
     resetPasswordModule,
     logoutModule,
+    activeBookingModule,
     driverHomeModule,
     driverTripNavigationModule,
     passengerModule,

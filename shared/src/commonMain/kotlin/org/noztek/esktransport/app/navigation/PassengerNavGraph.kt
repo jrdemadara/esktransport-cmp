@@ -74,6 +74,7 @@ import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 import org.noztek.esktransport.core.platform.isIosPlatform
 import org.noztek.esktransport.core.realtime.passenger.PassengerRealtimeCoordinator
+import org.noztek.esktransport.feature.passenger.booking_status.presentation.PassengerBookingStatusScreen
 import org.noztek.esktransport.feature.passenger.booking_review.domain.model.BookingReviewInput
 import org.noztek.esktransport.feature.passenger.booking_review.presentation.BookingReviewScreen
 import org.noztek.esktransport.feature.passenger.booking_review.presentation.BookingReviewUiEvent
@@ -85,6 +86,8 @@ import org.noztek.esktransport.feature.passenger.location_search.presentation.Se
 import org.noztek.esktransport.feature.passenger.ride_planner.presentation.RidePlannerScreen
 import org.noztek.esktransport.feature.passenger.ride_planner.presentation.RidePlannerUiEvent
 import org.noztek.esktransport.feature.passenger.ride_planner.presentation.RidePlannerViewModel
+import org.noztek.esktransport.feature.passenger.session.presentation.PassengerSessionUiEvent
+import org.noztek.esktransport.feature.passenger.session.presentation.PassengerSessionViewModel
 import org.noztek.esktransport.feature.passenger.trip_tracking.presentation.TripTrackingScreen
 
 private const val ROUTE_HOME = "home"
@@ -99,6 +102,7 @@ private const val ROUTE_KUDI = "kudi"
 private const val ROUTE_ACTIVITY = "activity"
 private const val ROUTE_PROFILE = "profile"
 private const val ROUTE_TRIP_TRACKING = "trip-tracking"
+private const val ROUTE_BOOKING_STATUS = "booking-status"
 
 fun NavGraphBuilder.passengerNavGraph(navController: NavHostController) {
     navigation(startDestination = PassengerRoute.HOME, route = RootRoute.PASSENGER) {
@@ -114,6 +118,7 @@ private fun PassengerShell(onLogout: () -> Unit) {
     val navController = rememberNavController()
     val ridePlannerViewModel: RidePlannerViewModel = koinViewModel()
     val bookingReviewViewModel: BookingReviewViewModel = koinViewModel()
+    val passengerSessionViewModel: PassengerSessionViewModel = koinViewModel()
     val passengerRealtimeCoordinator: PassengerRealtimeCoordinator = koinInject()
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -126,6 +131,7 @@ private fun PassengerShell(onLogout: () -> Unit) {
         currentRoute == ROUTE_RIDE_PLANNER_WITH_VEHICLE
     val showChrome = !isRidePlannerRoute &&
         currentRoute != ROUTE_BOOKING_REVIEW &&
+        currentRoute?.startsWith(ROUTE_BOOKING_STATUS) != true &&
         currentRoute?.startsWith(ROUTE_TRIP_TRACKING) != true &&
         currentRoute?.startsWith("location-search/") != true
 
@@ -161,6 +167,28 @@ private fun PassengerShell(onLogout: () -> Unit) {
         }
     }
 
+    LaunchedEffect(passengerSessionViewModel) {
+        launch {
+            passengerSessionViewModel.uiEvents.collectLatest { event ->
+                when (event) {
+                    is PassengerSessionUiEvent.NavigateToBookingStatus -> {
+                        navController.navigate("$ROUTE_BOOKING_STATUS/${event.bookingPublicId}") {
+                            popUpTo(ROUTE_HOME) { inclusive = false }
+                            launchSingleTop = true
+                        }
+                    }
+                    is PassengerSessionUiEvent.NavigateToTripTracking -> {
+                        navController.navigate("$ROUTE_TRIP_TRACKING/${event.bookingPublicId}") {
+                            popUpTo(ROUTE_HOME) { inclusive = false }
+                            launchSingleTop = true
+                        }
+                    }
+                }
+            }
+        }
+        passengerSessionViewModel.restoreActiveBooking()
+    }
+
     Scaffold(
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         contentWindowInsets = if (isIosPlatform()) {
@@ -172,6 +200,7 @@ private fun PassengerShell(onLogout: () -> Unit) {
             when {
                 isRidePlannerRoute -> PassengerBackTopBar("Plan your trip") { navController.popBackStack() }
                 currentRoute == ROUTE_BOOKING_REVIEW -> PassengerBackTopBar("Review Booking") { navController.popBackStack() }
+                currentRoute?.startsWith(ROUTE_BOOKING_STATUS) == true -> PassengerBackTopBar("Booking Status") { navController.popBackStack() }
                 currentRoute?.startsWith(ROUTE_TRIP_TRACKING) == true -> PassengerBackTopBar("Trip Tracking") { navController.popBackStack() }
                 currentRoute?.startsWith("location-search/") == true -> {
                     PassengerBackTopBar(if (locationMode == "pickup") "Search Pickup" else "Search Destination") {
@@ -338,6 +367,15 @@ private fun PassengerShell(onLogout: () -> Unit) {
                         navController.popBackStack()
                     }
                 }
+            }
+            composable(
+                route = "$ROUTE_BOOKING_STATUS/{bookingId}",
+                arguments = listOf(navArgument("bookingId") { type = NavType.StringType }),
+            ) { backStackEntry ->
+                PassengerBookingStatusScreen(
+                    bookingPublicId = backStackEntry.arguments?.read { getStringOrNull("bookingId") }.orEmpty(),
+                    contentPadding = innerPadding,
+                )
             }
             composable(
                 route = "$ROUTE_TRIP_TRACKING/{bookingId}",
