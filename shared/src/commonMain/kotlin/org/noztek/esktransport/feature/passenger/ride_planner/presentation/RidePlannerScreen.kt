@@ -58,7 +58,7 @@ fun RidePlannerScreen(
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.White)
+            .background(MaterialTheme.colorScheme.background)
             .padding(contentPadding)
             .padding(horizontal = 16.dp),
     ) {
@@ -97,7 +97,8 @@ private fun PassengerCountCard(
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        color = Color(0xFFF7F8FA),
+        color = MaterialTheme.colorScheme.surfaceContainer,
+        contentColor = MaterialTheme.colorScheme.onSurface,
     ) {
         Row(
             modifier = Modifier
@@ -111,6 +112,7 @@ private fun PassengerCountCard(
                     text = "Passengers",
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface,
                 )
                 Text(
                     text = "We’ll match enough seats.",
@@ -131,6 +133,7 @@ private fun PassengerCountCard(
                     text = passengerCount.toString(),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.width(22.dp),
                     textAlign = TextAlign.Center,
                 )
@@ -152,7 +155,16 @@ private fun PassengerStepperButton(
 ) {
     Surface(
         shape = RoundedCornerShape(999.dp),
-        color = if (enabled) Color.White else Color(0xFFECEEF2),
+        color = if (enabled) {
+            MaterialTheme.colorScheme.surfaceContainerLowest
+        } else {
+            MaterialTheme.colorScheme.surfaceContainerHigh
+        },
+        contentColor = if (enabled) {
+            MaterialTheme.colorScheme.onSurface
+        } else {
+            MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+        },
     ) {
         IconButton(
             onClick = onClick,
