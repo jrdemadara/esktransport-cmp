@@ -179,12 +179,6 @@ class DriverOnboardingViewModel(
         }
     }
 
-    fun showPickerNotReady(type: DriverOnboardingDocumentType) {
-        _uiState.update {
-            it.copy(errorMessage = "File picker for ${type.displayName.lowercase()} is not connected yet.")
-        }
-    }
-
     fun clearMessages() {
         _uiState.update { it.copy(errorMessage = null, successMessage = null) }
     }

@@ -48,7 +48,6 @@ import androidx.compose.ui.unit.dp
 import com.composables.icons.heroicons.Heroicons
 import com.composables.icons.heroicons.outline.ArrowLeft
 import org.koin.compose.viewmodel.koinViewModel
-import org.noztek.esktransport.core.platform.rememberPlatformFilePicker
 import org.noztek.esktransport.core.ui.composables.common.AppInputField
 import org.noztek.esktransport.core.ui.composables.common.AppPrimaryButton
 import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverOnboardingDocumentType
@@ -63,16 +62,23 @@ fun DriverOnboardingScreen(
 ) {
     val state by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
-    var pendingUploadType by remember { mutableStateOf<DriverOnboardingDocumentType?>(null) }
-    val filePicker = rememberPlatformFilePicker { file ->
-        val type = pendingUploadType ?: return@rememberPlatformFilePicker
-        viewModel.uploadDocument(
+    var captureType by remember { mutableStateOf<DriverOnboardingDocumentType?>(null) }
+
+    captureType?.let { type ->
+        DriverDocumentCaptureScreen(
             type = type,
-            fileName = file.fileName,
-            mimeType = file.mimeType,
-            bytes = file.bytes,
+            onCaptured = { capture ->
+                viewModel.uploadDocument(
+                    type = type,
+                    fileName = capture.fileName,
+                    mimeType = capture.mimeType,
+                    bytes = capture.bytes,
+                )
+                captureType = null
+            },
+            onClose = { captureType = null },
         )
-        pendingUploadType = null
+        return
     }
 
     LaunchedEffect(state.errorMessage) {
@@ -101,14 +107,7 @@ fun DriverOnboardingScreen(
         onYearChange = viewModel::updateYear,
         onPassengerCapacityChange = viewModel::updatePassengerCapacity,
         onSaveVehicle = viewModel::saveVehicle,
-        onUploadClick = { type ->
-            if (filePicker.isSupported) {
-                pendingUploadType = type
-                filePicker.launch(arrayOf("image/*", "application/pdf"))
-            } else {
-                viewModel.showPickerNotReady(type)
-            }
-        },
+        onCaptureClick = { type -> captureType = type },
         onSubmit = viewModel::submitForReview,
         snackbarHostState = snackbarHostState,
         modifier = modifier,
@@ -129,7 +128,7 @@ private fun DriverOnboardingContent(
     onYearChange: (String) -> Unit,
     onPassengerCapacityChange: (String) -> Unit,
     onSaveVehicle: () -> Unit,
-    onUploadClick: (DriverOnboardingDocumentType) -> Unit,
+    onCaptureClick: (DriverOnboardingDocumentType) -> Unit,
     onSubmit: () -> Unit,
     snackbarHostState: SnackbarHostState,
     modifier: Modifier = Modifier,
@@ -183,7 +182,7 @@ private fun DriverOnboardingContent(
                 state = state,
                 onLicenseNoChange = onLicenseNoChange,
                 onLicenseExpiryChange = onLicenseExpiryChange,
-                onUploadClick = onUploadClick,
+                onCaptureClick = onCaptureClick,
             )
             VehicleSection(
                 state = state,
@@ -195,7 +194,7 @@ private fun DriverOnboardingContent(
                 onPassengerCapacityChange = onPassengerCapacityChange,
                 onSaveVehicle = onSaveVehicle,
             )
-            DocumentsSection(state = state, onUploadClick = onUploadClick)
+            DocumentsSection(state = state, onCaptureClick = onCaptureClick)
             AppPrimaryButton(
                 text = if (state.isSubmitting) "Submitting..." else "Submit for review",
                 onClick = onSubmit,
@@ -260,7 +259,7 @@ private fun IdentitySection(
     state: DriverOnboardingUiState,
     onLicenseNoChange: (String) -> Unit,
     onLicenseExpiryChange: (String) -> Unit,
-    onUploadClick: (DriverOnboardingDocumentType) -> Unit,
+    onCaptureClick: (DriverOnboardingDocumentType) -> Unit,
 ) {
     SectionSurface(title = "Identity") {
         AppInputField(
@@ -280,20 +279,20 @@ private fun IdentitySection(
             title = "License front",
             type = DriverOnboardingDocumentType.LicenseFront,
             state = state,
-            onUploadClick = onUploadClick,
+            onCaptureClick = onCaptureClick,
             modifier = Modifier.padding(top = 12.dp),
         )
         UploadRow(
             title = "License back",
             type = DriverOnboardingDocumentType.LicenseBack,
             state = state,
-            onUploadClick = onUploadClick,
+            onCaptureClick = onCaptureClick,
         )
         UploadRow(
             title = "Selfie for matching",
             type = DriverOnboardingDocumentType.Selfie,
             state = state,
-            onUploadClick = onUploadClick,
+            onCaptureClick = onCaptureClick,
         )
     }
 }
@@ -371,14 +370,14 @@ private fun VehicleSection(
 @Composable
 private fun DocumentsSection(
     state: DriverOnboardingUiState,
-    onUploadClick: (DriverOnboardingDocumentType) -> Unit,
+    onCaptureClick: (DriverOnboardingDocumentType) -> Unit,
 ) {
     SectionSurface(title = "Vehicle documents") {
         UploadRow(
             title = "Vehicle registration",
             type = DriverOnboardingDocumentType.VehicleRegistration,
             state = state,
-            onUploadClick = onUploadClick,
+            onCaptureClick = onCaptureClick,
         )
     }
 }
@@ -439,7 +438,7 @@ private fun UploadRow(
     title: String,
     type: DriverOnboardingDocumentType,
     state: DriverOnboardingUiState,
-    onUploadClick: (DriverOnboardingDocumentType) -> Unit,
+    onCaptureClick: (DriverOnboardingDocumentType) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val requirement = state.status?.requirements?.firstOrNull { it.type == type }
@@ -457,10 +456,10 @@ private fun UploadRow(
             )
         }
         OutlinedButton(
-            onClick = { onUploadClick(type) },
+            onClick = { onCaptureClick(type) },
             enabled = state.uploadingType == null,
         ) {
-            Text(if (state.uploadingType == type) "Uploading" else "Upload")
+            Text(if (state.uploadingType == type) "Uploading" else "Capture")
         }
     }
 }
