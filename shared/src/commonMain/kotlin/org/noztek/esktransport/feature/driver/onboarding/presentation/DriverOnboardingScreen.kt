@@ -451,7 +451,7 @@ private fun UploadRow(
         Column(modifier = Modifier.weight(1f)) {
             Text(title, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
             Text(
-                requirement?.status?.label().orEmpty().ifBlank { "Missing" },
+                requirement?.status?.label().orEmpty().ifBlank { "Not uploaded" },
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -512,7 +512,7 @@ private fun StatusPill(status: DriverRequirementStatus) {
 
 private fun DriverRequirementStatus.label(): String {
     return when (this) {
-        DriverRequirementStatus.Missing -> "Missing"
+        DriverRequirementStatus.Missing -> "Finish setup"
         DriverRequirementStatus.Uploaded -> "Uploaded"
         DriverRequirementStatus.PendingReview -> "Review"
         DriverRequirementStatus.Approved -> "Approved"

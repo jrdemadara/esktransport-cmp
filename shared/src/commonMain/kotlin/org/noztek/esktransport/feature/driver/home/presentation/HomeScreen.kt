@@ -2,21 +2,26 @@ package org.noztek.esktransport.feature.driver.home.presentation
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -26,20 +31,28 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import asktransport_cmp.shared.generated.resources.Res
 import asktransport_cmp.shared.generated.resources.home_car
 import asktransport_cmp.shared.generated.resources.home_scooter
 import asktransport_cmp.shared.generated.resources.home_tricycle
+import com.composables.icons.heroicons.Heroicons
+import com.composables.icons.heroicons.outline.ExclamationTriangle
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
 import org.koin.compose.viewmodel.koinViewModel
+import org.noztek.esktransport.core.ui.composables.common.AppPrimaryButton
 import org.noztek.esktransport.core.ui.composables.driver.DriverBottomBar
 import org.noztek.esktransport.core.ui.composables.driver.DriverBottomBarRoute
 import org.noztek.esktransport.core.ui.composables.driver.DriverTopBar
+import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverOnboardingDocumentType
+import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverOnboardingState
 import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverOnboardingStatus
+import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverVehicleInfo
 import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverRequirementStatus
 
 enum class DriverHomeVehicleType {
@@ -52,6 +65,8 @@ enum class DriverHomeVehicleType {
 fun HomeScreen(
     todaysEarning: String = "PHP 0.00",
     totalTrips: Int = 0,
+    onlineTime: String = "0h 00m",
+    ratingLabel: String = "New",
     vehicleType: DriverHomeVehicleType = DriverHomeVehicleType.Motorcycle,
     onNotificationClick: () -> Unit = {},
     onProfileClick: () -> Unit = {},
@@ -82,13 +97,23 @@ fun HomeScreen(
                 .fillMaxSize()
                 .background(MaterialTheme.colorScheme.background)
                 .padding(innerPadding)
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 16.dp, vertical = 10.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             EarningsSummaryCard(
                 todaysEarning = todaysEarning,
                 totalTrips = totalTrips,
                 vehicleType = vehicleType,
+                status = uiState.onboardingStatus,
+            )
+            TodayStatsPanel(
+                totalTrips = totalTrips,
+                onlineTime = onlineTime,
+                ratingLabel = ratingLabel,
+            )
+            VehicleSummaryPanel(
+                vehicle = uiState.onboardingStatus?.vehicle,
             )
             DriverSetupCard(
                 isLoading = uiState.isLoadingSetup,
@@ -102,51 +127,109 @@ fun HomeScreen(
 }
 
 @Composable
+private fun DriverStatePill(
+    isLoading: Boolean,
+    status: DriverOnboardingStatus?,
+) {
+    val label = when {
+        isLoading -> "Syncing"
+        status?.canGo == true -> "Ready"
+        status?.status == DriverOnboardingState.PendingReview -> "Review"
+        status?.status == DriverOnboardingState.Rejected -> "Action needed"
+        else -> "Finish setup"
+    }
+    val containerColor = when {
+        status?.canGo == true -> MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+        status?.status == DriverOnboardingState.Rejected -> MaterialTheme.colorScheme.errorContainer
+        else -> MaterialTheme.colorScheme.secondaryContainer
+    }
+    val contentColor = when {
+        status?.canGo == true -> MaterialTheme.colorScheme.primary
+        status?.status == DriverOnboardingState.Rejected -> MaterialTheme.colorScheme.onErrorContainer
+        else -> MaterialTheme.colorScheme.onSecondaryContainer
+    }
+
+    Surface(
+        shape = RoundedCornerShape(999.dp),
+        color = containerColor,
+        contentColor = contentColor,
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 11.dp, vertical = 7.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            if (isLoading) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(12.dp),
+                    strokeWidth = 1.5.dp,
+                    color = contentColor,
+                )
+            }
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 1,
+            )
+        }
+    }
+}
+
+@Composable
 private fun EarningsSummaryCard(
     todaysEarning: String,
     totalTrips: Int,
     vehicleType: DriverHomeVehicleType,
+    status: DriverOnboardingStatus?,
     modifier: Modifier = Modifier,
 ) {
     Surface(
         modifier = modifier
             .fillMaxWidth()
-            .heightIn(min = 148.dp),
+            .height(142.dp),
         shape = RoundedCornerShape(8.dp),
-        color = MaterialTheme.colorScheme.primaryContainer,
-        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+        color = MaterialTheme.colorScheme.surfaceContainer,
+        contentColor = MaterialTheme.colorScheme.onSurface,
         tonalElevation = 0.dp,
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(start = 18.dp, top = 18.dp, end = 10.dp, bottom = 16.dp),
+                .padding(start = 16.dp, top = 16.dp, end = 8.dp, bottom = 14.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(
                 modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(7.dp),
             ) {
                 Text(
                     text = "Today's Earning",
                     style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.72f),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Text(
                     text = todaysEarning,
                     style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
                 Text(
-                    text = "$totalTrips total trips",
+                    text = if (status?.canGo == true) {
+                        "$totalTrips completed trips"
+                    } else {
+                        "Setup required before going online"
+                    },
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.62f),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 2,
                 )
             }
 
             Box(
-                modifier = Modifier.size(width = 132.dp, height = 104.dp),
+                modifier = Modifier.size(width = 124.dp, height = 98.dp),
                 contentAlignment = Alignment.Center,
             ) {
                 Image(
@@ -165,7 +248,165 @@ private val DriverHomeVehicleType.illustration: DrawableResource
         DriverHomeVehicleType.Motorcycle -> Res.drawable.home_scooter
         DriverHomeVehicleType.Tricycle -> Res.drawable.home_tricycle
         DriverHomeVehicleType.Car -> Res.drawable.home_car
+}
+
+@Composable
+private fun TodayStatsPanel(
+    totalTrips: Int,
+    onlineTime: String,
+    ratingLabel: String,
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(14.dp),
+        color = MaterialTheme.colorScheme.surfaceContainer,
+        contentColor = MaterialTheme.colorScheme.onSurface,
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            DashboardStat(
+                label = "Trips",
+                value = totalTrips.toString(),
+                valueColor = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.weight(1f),
+            )
+            StatSeparator()
+            DashboardStat(
+                label = "Online",
+                value = onlineTime,
+                valueColor = MaterialTheme.colorScheme.secondary,
+                modifier = Modifier.weight(1f),
+            )
+            StatSeparator()
+            DashboardStat(
+                label = "Rating",
+                value = ratingLabel,
+                valueColor = MaterialTheme.colorScheme.tertiary,
+                modifier = Modifier.weight(1f),
+            )
+        }
     }
+}
+
+@Composable
+private fun DashboardStat(
+    label: String,
+    value: String,
+    valueColor: Color,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(3.dp),
+    ) {
+        Text(
+            text = value,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = valueColor,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1,
+        )
+    }
+}
+
+@Composable
+private fun StatSeparator() {
+    Box(
+        modifier = Modifier
+            .size(width = 1.dp, height = 34.dp)
+            .background(MaterialTheme.colorScheme.outlineVariant),
+    )
+}
+
+@Composable
+private fun VehicleSummaryPanel(
+    vehicle: DriverVehicleInfo?,
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(8.dp),
+        color = MaterialTheme.colorScheme.surface,
+        contentColor = MaterialTheme.colorScheme.onSurface,
+    ) {
+        Column(
+            modifier = Modifier.padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                ) {
+                    Text(
+                        text = "Vehicle",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Text(
+                        text = vehicle?.displayName().orEmpty().ifBlank { "No vehicle added" },
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+                VehicleStatusPill(vehicle = vehicle)
+            }
+
+            Text(
+                text = vehicle?.detailLine().orEmpty().ifBlank { "Add the vehicle details used for passenger service." },
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 2,
+            )
+        }
+    }
+}
+
+@Composable
+private fun VehicleStatusPill(vehicle: DriverVehicleInfo?) {
+    val label = when {
+        vehicle?.status.equals("active", ignoreCase = true) -> "Active"
+        vehicle?.exists == true -> "Registered"
+        else -> "Finish setup"
+    }
+    val isReady = vehicle?.exists == true
+    Surface(
+        shape = RoundedCornerShape(999.dp),
+        color = if (isReady) {
+            MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+        } else {
+            MaterialTheme.colorScheme.surfaceVariant
+        },
+        contentColor = if (isReady) {
+            MaterialTheme.colorScheme.primary
+        } else {
+            MaterialTheme.colorScheme.onSurfaceVariant
+        },
+    ) {
+        Text(
+            text = label,
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.SemiBold,
+            maxLines = 1,
+        )
+    }
+}
 
 @Composable
 private fun DriverSetupCard(
@@ -184,7 +425,7 @@ private fun DriverSetupCard(
         contentColor = MaterialTheme.colorScheme.onSurface,
     ) {
         Column(
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier.padding(14.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Row(
@@ -192,17 +433,24 @@ private fun DriverSetupCard(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "Complete your setup",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                    )
-                    Text(
-                        text = "Verify your identity and vehicle before going online.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+                Row(
+                    modifier = Modifier.weight(1f),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalAlignment = Alignment.Top,
+                ) {
+                    SetupUrgencyIcon()
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = setupTitle(status),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                        Text(
+                            text = setupDescription(status),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                 }
                 if (isLoading) {
                     CircularProgressIndicator(modifier = Modifier.size(22.dp), strokeWidth = 2.dp)
@@ -217,31 +465,99 @@ private fun DriverSetupCard(
                 )
             }
 
-            val requirements = status?.requirements.orEmpty().take(4)
-            requirements.forEachIndexed { index, requirement ->
-                SetupRequirementRow(
-                    label = requirement.label,
-                    status = requirement.status,
-                )
-                if (index < requirements.lastIndex) {
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                }
-            }
+            val identityStatus = status.identityVerificationStatus()
+            val vehicleRegistrationStatus = status.requirementStatus(DriverOnboardingDocumentType.VehicleRegistration)
+            SetupRequirementRow(
+                label = "Driver License",
+                detail = "License card and selfie",
+                status = identityStatus,
+            )
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            SetupRequirementRow(
+                label = "Vehicle Registration",
+                detail = "Vehicle registration document",
+                status = vehicleRegistrationStatus,
+            )
 
-            Button(
+            AppPrimaryButton(
+                text = if (errorMessage != null && status == null) "Retry" else "Finish setup",
                 onClick = if (errorMessage != null && status == null) onRetryClick else onSetupClick,
                 modifier = Modifier.fillMaxWidth(),
                 enabled = !isLoading,
-            ) {
-                Text(if (errorMessage != null && status == null) "Retry" else "Continue setup")
-            }
+            )
         }
+    }
+}
+
+@Composable
+private fun SetupUrgencyIcon() {
+    Surface(
+        modifier = Modifier.size(34.dp),
+        shape = RoundedCornerShape(999.dp),
+        color = MaterialTheme.colorScheme.errorContainer,
+        contentColor = MaterialTheme.colorScheme.onErrorContainer,
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Icon(
+                imageVector = Heroicons.Outline.ExclamationTriangle,
+                contentDescription = null,
+                modifier = Modifier.size(19.dp),
+            )
+        }
+    }
+}
+
+private fun setupTitle(status: DriverOnboardingStatus?): String {
+    return when (status?.status) {
+        DriverOnboardingState.PendingReview -> "Setup under review"
+        DriverOnboardingState.Rejected -> "Fix setup details"
+        DriverOnboardingState.Blocked -> "Setup blocked"
+        else -> "Finish setup"
+    }
+}
+
+private fun setupDescription(status: DriverOnboardingStatus?): String {
+    return when (status?.status) {
+        DriverOnboardingState.PendingReview -> "We are reviewing your driver and vehicle documents."
+        DriverOnboardingState.Rejected -> status.blockingReasons.firstOrNull()
+            ?: "Update the requested details before going online."
+        DriverOnboardingState.Blocked -> status.blockingReasons.firstOrNull()
+            ?: "Your account needs review before going online."
+        else -> "Driver license and vehicle registration are required before GO."
+    }
+}
+
+private fun DriverOnboardingStatus?.identityVerificationStatus(): DriverRequirementStatus {
+    if (this == null) return DriverRequirementStatus.Missing
+
+    val statuses = listOf(
+        requirementStatus(DriverOnboardingDocumentType.LicenseFront),
+        requirementStatus(DriverOnboardingDocumentType.LicenseBack),
+        requirementStatus(DriverOnboardingDocumentType.Selfie),
+    )
+
+    return statuses.groupedStatus()
+}
+
+private fun DriverOnboardingStatus?.requirementStatus(type: DriverOnboardingDocumentType): DriverRequirementStatus {
+    return this?.requirements?.firstOrNull { it.type == type }?.status ?: DriverRequirementStatus.Missing
+}
+
+private fun List<DriverRequirementStatus>.groupedStatus(): DriverRequirementStatus {
+    return when {
+        all { it == DriverRequirementStatus.Approved } -> DriverRequirementStatus.Approved
+        any { it == DriverRequirementStatus.Rejected } -> DriverRequirementStatus.Rejected
+        any { it == DriverRequirementStatus.Expired } -> DriverRequirementStatus.Expired
+        any { it == DriverRequirementStatus.Missing } -> DriverRequirementStatus.Missing
+        any { it == DriverRequirementStatus.PendingReview } -> DriverRequirementStatus.PendingReview
+        else -> DriverRequirementStatus.Uploaded
     }
 }
 
 @Composable
 private fun SetupRequirementRow(
     label: String,
+    detail: String,
     status: DriverRequirementStatus,
 ) {
     Row(
@@ -249,22 +565,88 @@ private fun SetupRequirementRow(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(label, style = MaterialTheme.typography.bodyMedium)
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(2.dp),
+        ) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Text(
+                text = detail,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        Spacer(modifier = Modifier.width(10.dp))
+        RequirementStatusPill(status = status)
+    }
+}
+
+@Composable
+private fun RequirementStatusPill(status: DriverRequirementStatus) {
+    Surface(
+        shape = RoundedCornerShape(999.dp),
+        color = status.containerColor(),
+        contentColor = status.contentColor(),
+    ) {
         Text(
-            text = when (status) {
-                DriverRequirementStatus.Missing -> "Missing"
-                DriverRequirementStatus.Uploaded -> "Uploaded"
-                DriverRequirementStatus.PendingReview -> "Review"
-                DriverRequirementStatus.Approved -> "Approved"
-                DriverRequirementStatus.Rejected -> "Rejected"
-                DriverRequirementStatus.Expired -> "Expired"
-            },
+            text = status.label(),
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
             style = MaterialTheme.typography.labelSmall,
-            color = if (status == DriverRequirementStatus.Approved) {
-                MaterialTheme.colorScheme.primary
-            } else {
-                MaterialTheme.colorScheme.onSurfaceVariant
-            },
+            fontWeight = FontWeight.SemiBold,
+            maxLines = 1,
         )
     }
+}
+
+@Composable
+private fun DriverRequirementStatus.containerColor(): Color {
+    return when (this) {
+        DriverRequirementStatus.Approved -> MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+        DriverRequirementStatus.Rejected,
+        DriverRequirementStatus.Expired -> MaterialTheme.colorScheme.errorContainer
+        DriverRequirementStatus.PendingReview,
+        DriverRequirementStatus.Uploaded -> MaterialTheme.colorScheme.secondaryContainer
+        DriverRequirementStatus.Missing -> MaterialTheme.colorScheme.surfaceVariant
+    }
+}
+
+@Composable
+private fun DriverRequirementStatus.contentColor(): Color {
+    return when (this) {
+        DriverRequirementStatus.Approved -> MaterialTheme.colorScheme.primary
+        DriverRequirementStatus.Rejected,
+        DriverRequirementStatus.Expired -> MaterialTheme.colorScheme.onErrorContainer
+        DriverRequirementStatus.PendingReview,
+        DriverRequirementStatus.Uploaded -> MaterialTheme.colorScheme.onSecondaryContainer
+        DriverRequirementStatus.Missing -> MaterialTheme.colorScheme.onSurfaceVariant
+    }
+}
+
+private fun DriverRequirementStatus.label(): String {
+    return when (this) {
+        DriverRequirementStatus.Missing -> "Finish setup"
+        DriverRequirementStatus.Uploaded -> "Uploaded"
+        DriverRequirementStatus.PendingReview -> "Review"
+        DriverRequirementStatus.Approved -> "Approved"
+        DriverRequirementStatus.Rejected -> "Rejected"
+        DriverRequirementStatus.Expired -> "Expired"
+    }
+}
+
+private fun DriverVehicleInfo.displayName(): String {
+    return listOfNotNull(make, model)
+        .joinToString(" ")
+        .ifBlank { vehicleTypeCode.orEmpty().replaceFirstChar { it.uppercase() } }
+}
+
+private fun DriverVehicleInfo.detailLine(): String {
+    val plateText = plate?.takeIf { it.isNotBlank() }?.let { "Plate $it" }
+    val yearText = year?.toString()
+    val capacityText = passengerCapacity?.let { "$it seats" }
+    return listOfNotNull(plateText, yearText, capacityText).joinToString(" / ")
 }
