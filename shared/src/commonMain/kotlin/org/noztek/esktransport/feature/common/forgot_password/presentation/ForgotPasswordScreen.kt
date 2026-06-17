@@ -35,12 +35,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import asktransport_cmp.shared.generated.resources.Res
-import asktransport_cmp.shared.generated.resources.compose_multiplatform
 import asktransport_cmp.shared.generated.resources.forgot_password
 import asktransport_cmp.shared.generated.resources.logo
 import org.jetbrains.compose.resources.painterResource
 import org.koin.compose.viewmodel.koinViewModel
-import org.noztek.esktransport.core.ui.composables.AppInputField
+import org.noztek.esktransport.core.ui.composables.common.AppInputField
 
 @Composable
 fun ForgotPasswordScreen(
@@ -183,7 +182,7 @@ private fun ForgotPasswordLogo(modifier: Modifier = Modifier) {
     ) {
         Image(
             painter = painterResource(Res.drawable.logo),
-            contentDescription = "EskTransport logo",
+            contentDescription = "EskTransport",
             modifier = Modifier.height(34.dp),
         )
         Text(

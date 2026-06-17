@@ -40,7 +40,7 @@ import com.composables.icons.heroicons.outline.Map
 import com.composables.icons.heroicons.outline.MapPin
 import com.composables.icons.heroicons.outline.Plus
 import org.koin.compose.viewmodel.koinViewModel
-import org.noztek.esktransport.core.ui.composables.AppPrimaryButton
+import org.noztek.esktransport.core.ui.composables.common.AppPrimaryButton
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

@@ -36,13 +36,12 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import asktransport_cmp.shared.generated.resources.Res
-import asktransport_cmp.shared.generated.resources.compose_multiplatform
 import asktransport_cmp.shared.generated.resources.logo
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.painterResource
 import org.koin.compose.viewmodel.koinViewModel
-import org.noztek.esktransport.core.ui.composables.AppInputField
-import org.noztek.esktransport.core.ui.composables.AppLegalFooter
+import org.noztek.esktransport.core.ui.composables.common.AppInputField
+import org.noztek.esktransport.core.ui.composables.common.AppLegalFooter
 
 @Composable
 fun LoginScreen(
@@ -230,7 +229,7 @@ private fun LoginLogo(modifier: Modifier = Modifier) {
     ) {
         Image(
             painter = painterResource(Res.drawable.logo),
-            contentDescription = "EskTransport logo",
+            contentDescription = "EskTransport",
             modifier = Modifier.height(34.dp),
         )
         Text(

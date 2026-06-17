@@ -56,7 +56,7 @@ import org.noztek.esktransport.core.map.MapCameraDefaults
 import org.noztek.esktransport.core.map.MapPoint
 import org.noztek.esktransport.core.map.MapboxConfig
 import org.noztek.esktransport.core.map.PlatformMapView
-import org.noztek.esktransport.core.ui.composables.AppPrimaryButton
+import org.noztek.esktransport.core.ui.composables.common.AppPrimaryButton
 import org.noztek.esktransport.feature.passenger.location_search.domain.model.GeoPoint
 
 @OptIn(ExperimentalMaterial3Api::class)

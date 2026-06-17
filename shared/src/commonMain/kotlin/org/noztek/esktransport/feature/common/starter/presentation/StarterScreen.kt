@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
@@ -37,8 +38,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
@@ -46,7 +47,6 @@ import androidx.compose.ui.unit.sp
 import asktransport_cmp.shared.generated.resources.Res
 import asktransport_cmp.shared.generated.resources.big_truck
 import asktransport_cmp.shared.generated.resources.car
-import asktransport_cmp.shared.generated.resources.compose_multiplatform
 import asktransport_cmp.shared.generated.resources.logo
 import asktransport_cmp.shared.generated.resources.medium_truck
 import asktransport_cmp.shared.generated.resources.scooter
@@ -171,6 +171,7 @@ private fun StarterTopBar(modifier: Modifier = Modifier) {
         modifier = modifier
             .fillMaxWidth()
             .background(Color.White)
+            .statusBarsPadding()
             .padding(horizontal = 22.dp, vertical = 18.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -187,7 +188,7 @@ private fun StarterLogo(modifier: Modifier = Modifier) {
     ) {
         Image(
             painter = painterResource(Res.drawable.logo),
-            contentDescription = "EskTransport logo",
+            contentDescription = "EskTransport `logo-nobg`",
             modifier = Modifier.size(28.dp),
         )
         Text(

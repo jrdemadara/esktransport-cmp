@@ -32,13 +32,12 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import asktransport_cmp.shared.generated.resources.Res
-import asktransport_cmp.shared.generated.resources.compose_multiplatform
 import asktransport_cmp.shared.generated.resources.logo
 import asktransport_cmp.shared.generated.resources.reset_password
 import org.jetbrains.compose.resources.painterResource
 import org.koin.compose.viewmodel.koinViewModel
-import org.noztek.esktransport.core.ui.composables.AppInputField
-import org.noztek.esktransport.core.ui.composables.AppPrimaryButton
+import org.noztek.esktransport.core.ui.composables.common.AppInputField
+import org.noztek.esktransport.core.ui.composables.common.AppPrimaryButton
 
 @Composable
 fun ResetPasswordScreen(
@@ -173,7 +172,7 @@ private fun ResetPasswordLogo(modifier: Modifier = Modifier) {
     ) {
         Image(
             painter = painterResource(Res.drawable.logo),
-            contentDescription = "EskTransport logo",
+            contentDescription = "EskTransport `logo-nobg`",
             modifier = Modifier.height(34.dp),
         )
         Text(

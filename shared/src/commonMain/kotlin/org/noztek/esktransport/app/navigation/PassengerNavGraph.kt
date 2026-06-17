@@ -41,7 +41,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraphBuilder
@@ -56,7 +55,6 @@ import androidx.navigation.navArgument
 import androidx.navigation.navigation
 import androidx.savedstate.read
 import asktransport_cmp.shared.generated.resources.Res
-import asktransport_cmp.shared.generated.resources.compose_multiplatform
 import asktransport_cmp.shared.generated.resources.logo
 import com.composables.icons.heroicons.outline.ArrowLeft
 import com.composables.icons.heroicons.outline.Bell
@@ -64,7 +62,6 @@ import com.composables.icons.heroicons.outline.Sparkles
 import com.composables.icons.heroicons.outline.SquaresPlus
 import com.composables.icons.heroicons.outline.Home
 import com.composables.icons.heroicons.Heroicons
-import com.composables.icons.heroicons.outline.MapPin
 import com.composables.icons.heroicons.outline.User
 import com.composables.icons.heroicons.outline.RectangleStack
 import kotlinx.coroutines.flow.collectLatest

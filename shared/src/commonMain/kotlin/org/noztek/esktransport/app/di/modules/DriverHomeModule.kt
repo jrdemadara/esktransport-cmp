@@ -2,23 +2,38 @@ package org.noztek.esktransport.app.di.modules
 
 import org.koin.core.qualifier.named
 import org.koin.dsl.module
-import org.noztek.esktransport.feature.driver.home.data.impl.DriverHomeRepositoryImpl
-import org.noztek.esktransport.feature.driver.home.data.remote.DriverHomeApi
-import org.noztek.esktransport.feature.driver.home.domain.repository.DriverHomeRepository
-import org.noztek.esktransport.feature.driver.home.domain.lifecycle.DriverAvailabilityLifecycleCoordinator
-import org.noztek.esktransport.feature.driver.home.domain.usecase.AcceptDriverHomeOfferUseCase
-import org.noztek.esktransport.feature.driver.home.domain.usecase.ExpireDriverHomeOfferUseCase
-import org.noztek.esktransport.feature.driver.home.domain.usecase.GetDriverAvailabilityUseCase
-import org.noztek.esktransport.feature.driver.home.domain.usecase.SetDriverAvailabilityUseCase
-import org.noztek.esktransport.feature.driver.home.presentation.DriverHomeViewModel
+import org.noztek.esktransport.feature.driver.go.data.impl.GoRepositoryImpl
+import org.noztek.esktransport.feature.driver.go.data.remote.GoApi
+import org.noztek.esktransport.feature.driver.go.domain.repository.GoRepository
+import org.noztek.esktransport.feature.driver.go.domain.lifecycle.DriverAvailabilityLifecycleCoordinator
+import org.noztek.esktransport.feature.driver.go.domain.usecase.AcceptOfferUseCase
+import org.noztek.esktransport.feature.driver.go.domain.usecase.ExpireOfferUseCase
+import org.noztek.esktransport.feature.driver.go.domain.usecase.GetDriverAvailabilityUseCase
+import org.noztek.esktransport.feature.driver.go.domain.usecase.SetDriverAvailabilityUseCase
+import org.noztek.esktransport.feature.driver.go.presentation.GoViewModel
+import org.noztek.esktransport.feature.driver.home.presentation.HomeViewModel
+import org.noztek.esktransport.feature.driver.onboarding.data.impl.DriverOnboardingRepositoryImpl
+import org.noztek.esktransport.feature.driver.onboarding.data.remote.DriverOnboardingApi
+import org.noztek.esktransport.feature.driver.onboarding.domain.repository.DriverOnboardingRepository
+import org.noztek.esktransport.feature.driver.onboarding.domain.usecase.GetDriverOnboardingStatusUseCase
+import org.noztek.esktransport.feature.driver.onboarding.domain.usecase.SaveDriverVehicleSetupUseCase
+import org.noztek.esktransport.feature.driver.onboarding.domain.usecase.SubmitDriverOnboardingUseCase
+import org.noztek.esktransport.feature.driver.onboarding.domain.usecase.UploadDriverOnboardingDocumentUseCase
+import org.noztek.esktransport.feature.driver.onboarding.presentation.DriverOnboardingViewModel
 
 val driverHomeModule = module {
-    single { DriverHomeApi(client = get(), baseUrl = get(named(API_BASE_URL_QUALIFIER))) }
-    single<DriverHomeRepository> { DriverHomeRepositoryImpl(api = get()) }
+    single { GoApi(client = get(), baseUrl = get(named(API_BASE_URL_QUALIFIER))) }
+    single<GoRepository> { GoRepositoryImpl(api = get()) }
+    single { DriverOnboardingApi(client = get(), baseUrl = get(named(API_BASE_URL_QUALIFIER))) }
+    single<DriverOnboardingRepository> { DriverOnboardingRepositoryImpl(api = get()) }
     single { GetDriverAvailabilityUseCase(repository = get()) }
     single { SetDriverAvailabilityUseCase(repository = get()) }
-    single { AcceptDriverHomeOfferUseCase(api = get()) }
-    single { ExpireDriverHomeOfferUseCase(api = get()) }
+    single { GetDriverOnboardingStatusUseCase(repository = get()) }
+    single { SaveDriverVehicleSetupUseCase(repository = get()) }
+    single { UploadDriverOnboardingDocumentUseCase(repository = get()) }
+    single { SubmitDriverOnboardingUseCase(repository = get()) }
+    single { AcceptOfferUseCase(api = get()) }
+    single { ExpireOfferUseCase(api = get()) }
     single {
         DriverAvailabilityLifecycleCoordinator(
             sessionManager = get(),
@@ -27,12 +42,27 @@ val driverHomeModule = module {
         )
     }
     factory {
-        DriverHomeViewModel(
+        HomeViewModel(
+            getDriverOnboardingStatusUseCase = get(),
+            ioDispatcher = get(named(IO_DISPATCHER_QUALIFIER)),
+        )
+    }
+    factory {
+        DriverOnboardingViewModel(
+            getDriverOnboardingStatusUseCase = get(),
+            saveDriverVehicleSetupUseCase = get(),
+            uploadDriverOnboardingDocumentUseCase = get(),
+            submitDriverOnboardingUseCase = get(),
+            ioDispatcher = get(named(IO_DISPATCHER_QUALIFIER)),
+        )
+    }
+    factory {
+        GoViewModel(
             getDriverAvailabilityUseCase = get(),
             setDriverAvailabilityUseCase = get(),
-            acceptDriverHomeOfferUseCase = get(),
-            expireDriverHomeOfferUseCase = get(),
-            getDriverActiveBookingUseCase = get(),
+            acceptOfferUseCase = get(),
+            expireOfferUseCase = get(),
+            getActiveBookingUseCase = get(),
             realtimeCoordinator = get(),
             ioDispatcher = get(named(IO_DISPATCHER_QUALIFIER)),
         )

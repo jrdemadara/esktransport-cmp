@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -21,8 +20,8 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -37,13 +36,12 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import asktransport_cmp.shared.generated.resources.Res
-import asktransport_cmp.shared.generated.resources.compose_multiplatform
 import asktransport_cmp.shared.generated.resources.logo
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.painterResource
-import org.noztek.esktransport.core.ui.composables.AppInputField
-import org.noztek.esktransport.core.ui.composables.AppLegalFooter
 import org.koin.compose.viewmodel.koinViewModel
+import org.noztek.esktransport.core.ui.composables.common.AppInputField
+import org.noztek.esktransport.core.ui.composables.common.AppLegalFooter
 import org.noztek.esktransport.feature.common.register.domain.model.RegisterRole
 
 @Composable
@@ -258,7 +256,7 @@ private fun RegisterLogo(modifier: Modifier = Modifier) {
     ) {
         Image(
             painter = painterResource(Res.drawable.logo),
-            contentDescription = "EskTransport logo",
+            contentDescription = "EskTransport `logo-nobg`",
             modifier = Modifier.height(34.dp),
         )
         Text(

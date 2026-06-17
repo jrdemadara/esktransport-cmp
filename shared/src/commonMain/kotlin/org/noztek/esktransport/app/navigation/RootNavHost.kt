@@ -26,7 +26,7 @@ import org.noztek.esktransport.core.session.domain.SessionUser
 import org.noztek.esktransport.core.session.domain.usecase.MarkStarterSeenUseCase
 import org.noztek.esktransport.core.session.domain.usecase.ObserveCurrentSessionUseCase
 import org.noztek.esktransport.feature.common.map_preview.presentation.MapPreviewScreen
-import org.noztek.esktransport.feature.driver.home.domain.lifecycle.DriverAvailabilityLifecycleCoordinator
+import org.noztek.esktransport.feature.driver.go.domain.lifecycle.DriverAvailabilityLifecycleCoordinator
 
 @Composable
 fun RootNavHost(
