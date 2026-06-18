@@ -43,6 +43,7 @@ kotlin {
             implementation(libs.androidx.camera.core)
             implementation(libs.androidx.camera.lifecycle)
             implementation(libs.androidx.camera.view)
+            implementation(libs.androidx.exifinterface)
             implementation(libs.compose.ui.text.google.fonts)
             implementation(libs.androidx.constraintlayout)
             implementation(libs.koin.android)

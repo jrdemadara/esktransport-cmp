@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Matrix
 import android.graphics.PointF
 import android.net.Uri
 import android.os.Handler
@@ -21,6 +22,7 @@ import androidx.camera.core.ImageProxy
 import androidx.camera.core.Preview as CameraPreview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
+import androidx.exifinterface.media.ExifInterface
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -441,7 +443,7 @@ private fun captureDocument(
                     return
                 }
 
-                val bytes = file.readCompressedJpegBytes()
+                val bytes = file.readCroppedCompressedJpegBytes(type = type)
                 file.delete()
                 mainExecutor.execute {
                     onCaptured(
@@ -482,13 +484,23 @@ private fun validateCapturedSelfie(
 
     faceDetector.process(inputImage)
         .addOnSuccessListener { faces ->
+            val face = faces.maxByOrNull { it.boundingBox.width() * it.boundingBox.height() }
             val isValid = assessSelfieFace(
                 faces = faces,
                 frameWidth = inputImage.width,
                 frameHeight = inputImage.height,
                 applyPreviewAlignmentCorrection = false,
             ).isGood
-            val bytes = if (isValid) file.readCompressedJpegBytes() else null
+            val bytes = if (isValid) {
+                file.readCroppedCompressedJpegBytes(
+                    type = DriverOnboardingDocumentType.Selfie,
+                    faceBounds = face?.boundingBox,
+                    sourceWidth = inputImage.width,
+                    sourceHeight = inputImage.height,
+                )
+            } else {
+                null
+            }
             file.delete()
             mainExecutor.execute {
                 if (bytes != null) {
@@ -504,7 +516,12 @@ private fun validateCapturedSelfie(
         }
 }
 
-private fun File.readCompressedJpegBytes(): ByteArray {
+private fun File.readCroppedCompressedJpegBytes(
+    type: DriverOnboardingDocumentType,
+    faceBounds: android.graphics.Rect? = null,
+    sourceWidth: Int? = null,
+    sourceHeight: Int? = null,
+): ByteArray {
     val bounds = BitmapFactory.Options().apply {
         inJustDecodeBounds = true
     }
@@ -519,12 +536,126 @@ private fun File.readCompressedJpegBytes(): ByteArray {
     val options = BitmapFactory.Options().apply {
         inSampleSize = sampleSize
     }
-    val bitmap = BitmapFactory.decodeFile(absolutePath, options) ?: return readBytes()
+    val decodedBitmap = BitmapFactory.decodeFile(absolutePath, options) ?: return readBytes()
+    val bitmap = decodedBitmap.rotateByExif(absolutePath)
+    if (bitmap !== decodedBitmap) {
+        decodedBitmap.recycle()
+    }
+    val croppedBitmap = bitmap.cropForCapture(
+        type = type,
+        faceBounds = faceBounds,
+        sourceWidth = sourceWidth,
+        sourceHeight = sourceHeight,
+    )
     return ByteArrayOutputStream().use { output ->
-        bitmap.compress(Bitmap.CompressFormat.JPEG, 78, output)
+        croppedBitmap.compress(Bitmap.CompressFormat.JPEG, 82, output)
+        if (croppedBitmap !== bitmap) {
+            croppedBitmap.recycle()
+        }
         bitmap.recycle()
         output.toByteArray()
     }
+}
+
+private fun Bitmap.cropForCapture(
+    type: DriverOnboardingDocumentType,
+    faceBounds: android.graphics.Rect?,
+    sourceWidth: Int?,
+    sourceHeight: Int?,
+): Bitmap {
+    val cropRect = if (type == DriverOnboardingDocumentType.Selfie && faceBounds != null) {
+        selfieCropRect(
+            faceBounds = faceBounds,
+            sourceWidth = sourceWidth ?: width,
+            sourceHeight = sourceHeight ?: height,
+            bitmapWidth = width,
+            bitmapHeight = height,
+        )
+    } else {
+        guideCropRect(type = type, bitmapWidth = width, bitmapHeight = height)
+    }.clampToBitmap(width, height)
+
+    if (cropRect.width() <= 0 || cropRect.height() <= 0) return this
+    return Bitmap.createBitmap(this, cropRect.left, cropRect.top, cropRect.width(), cropRect.height())
+}
+
+private fun guideCropRect(
+    type: DriverOnboardingDocumentType,
+    bitmapWidth: Int,
+    bitmapHeight: Int,
+): android.graphics.Rect {
+    val guideBounds = guideBoundsFor(
+        type = type,
+        frameWidth = bitmapWidth.toFloat(),
+        frameHeight = bitmapHeight.toFloat(),
+    )
+    val paddingX = -guideBounds.size.width * 0.18f
+    val paddingY = -guideBounds.size.height * 0.17f
+    return android.graphics.Rect(
+        (guideBounds.topLeft.x - paddingX).toInt(),
+        (guideBounds.topLeft.y - paddingY).toInt(),
+        (guideBounds.topLeft.x + guideBounds.size.width + paddingX).toInt(),
+        (guideBounds.topLeft.y + guideBounds.size.height + paddingY).toInt(),
+    )
+}
+
+private fun Bitmap.rotateByExif(filePath: String): Bitmap {
+    val rotationDegrees = runCatching {
+        when (ExifInterface(filePath).getAttributeInt(
+            ExifInterface.TAG_ORIENTATION,
+            ExifInterface.ORIENTATION_NORMAL,
+        )) {
+            ExifInterface.ORIENTATION_ROTATE_90 -> 90f
+            ExifInterface.ORIENTATION_ROTATE_180 -> 180f
+            ExifInterface.ORIENTATION_ROTATE_270 -> 270f
+            else -> 0f
+        }
+    }.getOrDefault(0f)
+
+    if (rotationDegrees == 0f) return this
+
+    val matrix = Matrix().apply {
+        postRotate(rotationDegrees)
+    }
+    return Bitmap.createBitmap(this, 0, 0, width, height, matrix, true)
+}
+
+private fun selfieCropRect(
+    faceBounds: android.graphics.Rect,
+    sourceWidth: Int,
+    sourceHeight: Int,
+    bitmapWidth: Int,
+    bitmapHeight: Int,
+): android.graphics.Rect {
+    val scaleX = bitmapWidth.toFloat() / sourceWidth.toFloat().coerceAtLeast(1f)
+    val scaleY = bitmapHeight.toFloat() / sourceHeight.toFloat().coerceAtLeast(1f)
+    val left = faceBounds.left * scaleX
+    val top = faceBounds.top * scaleY
+    val right = faceBounds.right * scaleX
+    val bottom = faceBounds.bottom * scaleY
+    val faceWidth = right - left
+    val faceHeight = bottom - top
+    val centerX = (left + right) / 2f
+    val centerY = (top + bottom) / 2f
+    val cropWidth = maxOf(faceWidth * 1.46f, bitmapWidth * 0.36f)
+    val cropHeight = maxOf(faceHeight * 1.34f, cropWidth * 1.14f)
+    return android.graphics.Rect(
+        (centerX - cropWidth / 2f).toInt(),
+        (centerY - cropHeight * 0.48f).toInt(),
+        (centerX + cropWidth / 2f).toInt(),
+        (centerY + cropHeight * 0.52f).toInt(),
+    )
+}
+
+private fun android.graphics.Rect.clampToBitmap(
+    bitmapWidth: Int,
+    bitmapHeight: Int,
+): android.graphics.Rect {
+    val left = left.coerceIn(0, bitmapWidth - 1)
+    val top = top.coerceIn(0, bitmapHeight - 1)
+    val right = right.coerceIn(left + 1, bitmapWidth)
+    val bottom = bottom.coerceIn(top + 1, bitmapHeight)
+    return android.graphics.Rect(left, top, right, bottom)
 }
 
 private data class CaptureAssessment(
