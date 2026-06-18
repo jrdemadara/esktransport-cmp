@@ -19,4 +19,27 @@ data class DriverOnboardingUiState(
     val model: String = "",
     val year: String = "",
     val passengerCapacity: String = "",
+    val capturedPreviews: Map<DriverOnboardingDocumentType, CapturedDocumentPreview> = emptyMap(),
 )
+
+data class CapturedDocumentPreview(
+    val fileName: String,
+    val mimeType: String,
+    val bytes: ByteArray,
+) {
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is CapturedDocumentPreview) return false
+
+        return fileName == other.fileName &&
+            mimeType == other.mimeType &&
+            bytes.contentEquals(other.bytes)
+    }
+
+    override fun hashCode(): Int {
+        var result = fileName.hashCode()
+        result = 31 * result + mimeType.hashCode()
+        result = 31 * result + bytes.contentHashCode()
+        return result
+    }
+}

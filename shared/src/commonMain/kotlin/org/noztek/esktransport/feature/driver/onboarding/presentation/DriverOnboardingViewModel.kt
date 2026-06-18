@@ -128,7 +128,20 @@ class DriverOnboardingViewModel(
     ) {
         val state = _uiState.value
         viewModelScope.launch {
-            _uiState.update { it.copy(uploadingType = type, errorMessage = null, successMessage = null) }
+            _uiState.update {
+                it.copy(
+                    uploadingType = type,
+                    errorMessage = null,
+                    successMessage = null,
+                    capturedPreviews = it.capturedPreviews + (
+                        type to CapturedDocumentPreview(
+                            fileName = fileName,
+                            mimeType = mimeType,
+                            bytes = bytes,
+                        )
+                        ),
+                )
+            }
             val result = withContext(ioDispatcher) {
                 uploadDriverOnboardingDocumentUseCase(
                     DriverOnboardingDocumentUpload(
