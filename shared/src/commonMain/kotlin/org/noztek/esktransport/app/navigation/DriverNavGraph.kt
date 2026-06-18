@@ -8,6 +8,8 @@ import androidx.savedstate.read
 import org.koin.compose.koinInject
 import org.noztek.esktransport.core.map.MapboxConfig
 import org.noztek.esktransport.feature.driver.home.presentation.HomeScreen
+import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverOnboardingStatus
+import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverRequirementStatus
 import org.noztek.esktransport.feature.driver.onboarding.presentation.DriverIdentityVerificationScreen
 import org.noztek.esktransport.feature.driver.onboarding.presentation.DriverOnboardingScreen
 import org.noztek.esktransport.feature.driver.onboarding.presentation.DriverVehicleRegistrationScreen
@@ -22,8 +24,8 @@ fun NavGraphBuilder.driverNavGraph(navController: NavHostController) {
     navigation(startDestination = DriverRoute.HOME, route = RootRoute.DRIVER) {
         composable(DriverRoute.HOME) {
             HomeScreen(
-                onSetupClick = {
-                    navController.navigate(ROUTE_DRIVER_IDENTITY_VERIFICATION) {
+                onSetupClick = { status ->
+                    navController.navigate(status.nextSetupRoute()) {
                         launchSingleTop = true
                     }
                 },
@@ -33,9 +35,7 @@ fun NavGraphBuilder.driverNavGraph(navController: NavHostController) {
             DriverIdentityVerificationScreen(
                 onBack = { navController.popBackStack() },
                 onContinue = {
-                    navController.navigate(ROUTE_DRIVER_VEHICLE_REGISTRATION) {
-                        launchSingleTop = true
-                    }
+                    navController.popBackStack(DriverRoute.HOME, inclusive = false)
                 },
             )
         }
@@ -61,4 +61,21 @@ fun NavGraphBuilder.driverNavGraph(navController: NavHostController) {
             )
         }
     }
+}
+
+private fun DriverOnboardingStatus?.nextSetupRoute(): String {
+    if (this == null) return ROUTE_DRIVER_IDENTITY_VERIFICATION
+
+    return when {
+        stepStatuses.identityVerification.needsDriverAction() -> ROUTE_DRIVER_IDENTITY_VERIFICATION
+        stepStatuses.vehicleRegistration.needsDriverAction() -> ROUTE_DRIVER_VEHICLE_REGISTRATION
+        stepStatuses.serviceRadius.needsDriverAction() -> ROUTE_DRIVER_ONBOARDING
+        else -> ROUTE_DRIVER_ONBOARDING
+    }
+}
+
+private fun DriverRequirementStatus.needsDriverAction(): Boolean {
+    return this == DriverRequirementStatus.Missing ||
+        this == DriverRequirementStatus.Rejected ||
+        this == DriverRequirementStatus.Expired
 }

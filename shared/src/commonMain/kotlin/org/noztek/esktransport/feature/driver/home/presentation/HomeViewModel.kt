@@ -29,9 +29,16 @@ class HomeViewModel(
         refreshOnboardingStatus()
     }
 
-    fun refreshOnboardingStatus() {
+    fun refreshOnboardingStatus(showLoading: Boolean = true) {
+        if (!showLoading && _uiState.value.isLoadingSetup) return
+
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoadingSetup = true, errorMessage = null) }
+            _uiState.update {
+                it.copy(
+                    isLoadingSetup = showLoading,
+                    errorMessage = null,
+                )
+            }
             val result = withContext(ioDispatcher) { getDriverOnboardingStatusUseCase() }
             result.fold(
                 onSuccess = { status ->

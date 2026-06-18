@@ -27,6 +27,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -37,6 +38,9 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import asktransport_cmp.shared.generated.resources.Res
 import asktransport_cmp.shared.generated.resources.home_car
 import asktransport_cmp.shared.generated.resources.home_scooter
@@ -73,10 +77,21 @@ fun HomeScreen(
     onNotificationClick: () -> Unit = {},
     onProfileClick: () -> Unit = {},
     onBottomBarNavigate: (String) -> Unit = {},
-    onSetupClick: () -> Unit = {},
+    onSetupClick: (DriverOnboardingStatus?) -> Unit = {},
     viewModel: HomeViewModel = koinViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val lifecycleOwner = LocalLifecycleOwner.current
+
+    DisposableEffect(lifecycleOwner, viewModel) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                viewModel.refreshOnboardingStatus(showLoading = false)
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
 
     Scaffold(
         topBar = {
@@ -121,7 +136,7 @@ fun HomeScreen(
                 isLoading = uiState.isLoadingSetup,
                 status = uiState.onboardingStatus,
                 errorMessage = uiState.errorMessage,
-                onSetupClick = onSetupClick,
+                onSetupClick = { onSetupClick(uiState.onboardingStatus) },
                 onRetryClick = viewModel::refreshOnboardingStatus,
             )
         }
