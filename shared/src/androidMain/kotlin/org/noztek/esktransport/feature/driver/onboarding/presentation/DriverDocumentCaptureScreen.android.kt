@@ -2,6 +2,8 @@ package org.noztek.esktransport.feature.driver.onboarding.presentation
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.os.Handler
 import android.os.Looper
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -58,6 +60,7 @@ import com.composables.icons.heroicons.Heroicons
 import com.composables.icons.heroicons.outline.ArrowLeft
 import org.noztek.esktransport.core.ui.composables.common.AppPrimaryButton
 import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverOnboardingDocumentType
+import java.io.ByteArrayOutputStream
 import java.io.File
 import java.util.concurrent.Executor
 import java.util.concurrent.Executors
@@ -358,7 +361,7 @@ private fun captureDocument(
         executor,
         object : ImageCapture.OnImageSavedCallback {
             override fun onImageSaved(outputFileResults: ImageCapture.OutputFileResults) {
-                val bytes = file.readBytes()
+                val bytes = file.readCompressedJpegBytes()
                 file.delete()
                 mainExecutor.execute {
                     onCaptured(
@@ -377,6 +380,29 @@ private fun captureDocument(
             }
         },
     )
+}
+
+private fun File.readCompressedJpegBytes(): ByteArray {
+    val bounds = BitmapFactory.Options().apply {
+        inJustDecodeBounds = true
+    }
+    BitmapFactory.decodeFile(absolutePath, bounds)
+
+    val maxDimension = 1600
+    var sampleSize = 1
+    while ((bounds.outWidth / sampleSize) > maxDimension || (bounds.outHeight / sampleSize) > maxDimension) {
+        sampleSize *= 2
+    }
+
+    val options = BitmapFactory.Options().apply {
+        inSampleSize = sampleSize
+    }
+    val bitmap = BitmapFactory.decodeFile(absolutePath, options) ?: return readBytes()
+    return ByteArrayOutputStream().use { output ->
+        bitmap.compress(Bitmap.CompressFormat.JPEG, 78, output)
+        bitmap.recycle()
+        output.toByteArray()
+    }
 }
 
 private data class CaptureAssessment(

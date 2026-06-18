@@ -1,5 +1,12 @@
 package org.noztek.esktransport.feature.driver.onboarding.data.impl
 
+import io.ktor.client.plugins.ResponseException
+import io.ktor.client.statement.bodyAsText
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import org.noztek.esktransport.core.network.ApiErrorParser
 import org.noztek.esktransport.feature.driver.onboarding.data.remote.DriverOnboardingApi
 import org.noztek.esktransport.feature.driver.onboarding.data.remote.dto.DriverVehicleSetupRequestDto
@@ -43,7 +50,7 @@ class DriverOnboardingRepositoryImpl(
         return try {
             Result.success(api.uploadDocument(upload).data.toDomain())
         } catch (throwable: Throwable) {
-            val message = ApiErrorParser.parse(throwable, "Failed to upload document.")
+            val message = parseUploadError(throwable)
             Result.failure(IllegalStateException(message))
         }
     }
@@ -56,4 +63,30 @@ class DriverOnboardingRepositoryImpl(
             Result.failure(IllegalStateException(message))
         }
     }
+}
+
+private suspend fun parseUploadError(throwable: Throwable): String {
+    if (throwable is ResponseException) {
+        val body = runCatching { throwable.response.bodyAsText() }.getOrNull()
+        val parsed = body?.firstLaravelValidationMessage()
+        if (!parsed.isNullOrBlank()) return parsed
+    }
+
+    return ApiErrorParser.parse(throwable, "Failed to upload document.")
+}
+
+private fun String.firstLaravelValidationMessage(): String? {
+    val root = runCatching { Json.parseToJsonElement(this).jsonObject }.getOrNull() ?: return null
+    val errors = root["errors"] as? JsonObject
+    val firstFieldError = errors
+        ?.values
+        ?.firstOrNull()
+        ?.let { value ->
+            when (value) {
+                is JsonArray -> value.firstOrNull()?.jsonPrimitive?.content
+                else -> value.jsonPrimitive.content
+            }
+        }
+
+    return firstFieldError ?: root["message"]?.jsonPrimitive?.content
 }

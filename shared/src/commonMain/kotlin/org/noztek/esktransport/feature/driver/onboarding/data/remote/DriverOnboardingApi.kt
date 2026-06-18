@@ -7,7 +7,6 @@ import io.ktor.client.request.forms.submitFormWithBinaryData
 import io.ktor.client.request.get
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
-import io.ktor.http.ContentDisposition
 import io.ktor.http.ContentType
 import io.ktor.http.Headers
 import io.ktor.http.HttpHeaders
@@ -46,10 +45,7 @@ class DriverOnboardingApi(
                     headers = Headers.build {
                         append(
                             HttpHeaders.ContentDisposition,
-                            ContentDisposition.File
-                                .withParameter(ContentDisposition.Parameters.Name, "document")
-                                .withParameter(ContentDisposition.Parameters.FileName, upload.fileName)
-                                .toString(),
+                            "form-data; name=\"document\"; filename=\"${upload.fileName}\"",
                         )
                         append(HttpHeaders.ContentType, upload.mimeType)
                     },
