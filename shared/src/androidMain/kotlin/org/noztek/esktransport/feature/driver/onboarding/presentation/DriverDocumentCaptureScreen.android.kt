@@ -76,7 +76,6 @@ actual fun DriverDocumentCaptureScreen(
     var hasCameraPermission by remember {
         mutableStateOf(context.checkSelfPermission(Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED)
     }
-    var imageCapture by remember { mutableStateOf<ImageCapture?>(null) }
     var cameraProvider by remember { mutableStateOf<ProcessCameraProvider?>(null) }
     var isCapturing by remember { mutableStateOf(false) }
     var assessment by remember { mutableStateOf(CaptureAssessment(isGood = false, message = type.initialPrompt(), progress = 0f)) }
@@ -153,7 +152,6 @@ actual fun DriverDocumentCaptureScreen(
                 val selector = CameraSelector.Builder().requireLensFacing(lensFacing).build()
                 provider.unbindAll()
                 provider.bindToLifecycle(lifecycleOwner, selector, preview, capture, analysis)
-                imageCapture = capture
             },
             mainExecutor,
         )
@@ -193,27 +191,6 @@ actual fun DriverDocumentCaptureScreen(
             CaptureBottomPanel(
                 assessment = assessment,
                 isCapturing = isCapturing,
-                onManualCapture = {
-                    val capture = imageCapture ?: return@CaptureBottomPanel
-                    isCapturing = true
-                    captureDocument(
-                        type = type,
-                        contextCacheDir = context.cacheDir,
-                        imageCapture = capture,
-                        executor = cameraExecutor,
-                        mainExecutor = mainExecutor,
-                        onCaptured = onCaptured,
-                        onError = {
-                            isCapturing = false
-                            stableSinceMs = null
-                            assessment = CaptureAssessment(
-                                isGood = false,
-                                message = "Capture failed. Try again.",
-                                progress = 0f,
-                            )
-                        },
-                    )
-                },
                 modifier = Modifier.align(Alignment.BottomCenter),
             )
         }
@@ -322,7 +299,6 @@ private fun CaptureGuideOverlay(
 private fun CaptureBottomPanel(
     assessment: CaptureAssessment,
     isCapturing: Boolean,
-    onManualCapture: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Surface(
@@ -348,19 +324,18 @@ private fun CaptureBottomPanel(
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                AppPrimaryButton(
-                    text = if (isCapturing) "Capturing..." else "Capture now",
-                    onClick = onManualCapture,
-                    enabled = !isCapturing,
-                    modifier = Modifier.weight(1f),
-                )
-                if (isCapturing) {
+            if (isCapturing) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
                     CircularProgressIndicator()
+                    Text(
+                        text = "Capturing...",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
             }
         }
@@ -443,13 +418,105 @@ private fun ImageProxy.assessForCapture(type: DriverOnboardingDocumentType): Cap
 
     val brightness = if (brightnessCount == 0) 0 else brightnessTotal / brightnessCount
     val sharpness = if (edgeCount == 0) 0 else edgeTotal / edgeCount
+    val hasDocumentEdges = type == DriverOnboardingDocumentType.Selfie ||
+        detectDocumentEdges(
+            frameWidth = width,
+            frameHeight = height,
+            yAt = ::yAt,
+        )
 
     return when {
         brightness < 55 -> CaptureAssessment(false, "Move to a brighter area.", 0f)
         brightness > 220 -> CaptureAssessment(false, "Reduce glare on the ${type.shortLabel()}.", 0f)
         sharpness < 7 -> CaptureAssessment(false, "Hold steady and keep the ${type.shortLabel()} sharp.", 0f)
+        !hasDocumentEdges -> CaptureAssessment(false, "Place all ${type.shortLabel()} edges inside the guide.", 0f)
         else -> CaptureAssessment(true, "Good. Hold steady for auto capture.", 0f)
     }
+}
+
+private fun detectDocumentEdges(
+    frameWidth: Int,
+    frameHeight: Int,
+    yAt: (Int, Int) -> Int,
+): Boolean {
+    val left = frameWidth / 8
+    val right = frameWidth - left
+    val top = frameHeight / 5
+    val bottom = frameHeight - top
+    val scanStep = maxOf(4, minOf(frameWidth, frameHeight) / 96)
+    val lineStep = scanStep * 3
+
+    if (right - left < 96 || bottom - top < 72) return false
+
+    fun verticalScore(x: Int): Int {
+        var total = 0
+        var count = 0
+        var y = top
+        while (y < bottom) {
+            total += kotlin.math.abs(yAt(x + scanStep, y) - yAt(x - scanStep, y))
+            count += 1
+            y += lineStep
+        }
+        return if (count == 0) 0 else total / count
+    }
+
+    fun horizontalScore(y: Int): Int {
+        var total = 0
+        var count = 0
+        var x = left
+        while (x < right) {
+            total += kotlin.math.abs(yAt(x, y + scanStep) - yAt(x, y - scanStep))
+            count += 1
+            x += lineStep
+        }
+        return if (count == 0) 0 else total / count
+    }
+
+    val midX = (left + right) / 2
+    val midY = (top + bottom) / 2
+    var leftPeak = 0
+    var rightPeak = 0
+    var verticalTotal = 0
+    var verticalCount = 0
+    var x = left + scanStep
+    while (x < right - scanStep) {
+        val score = verticalScore(x)
+        verticalTotal += score
+        verticalCount += 1
+        if (x < midX) {
+            leftPeak = maxOf(leftPeak, score)
+        } else {
+            rightPeak = maxOf(rightPeak, score)
+        }
+        x += scanStep
+    }
+
+    var topPeak = 0
+    var bottomPeak = 0
+    var horizontalTotal = 0
+    var horizontalCount = 0
+    var y = top + scanStep
+    while (y < bottom - scanStep) {
+        val score = horizontalScore(y)
+        horizontalTotal += score
+        horizontalCount += 1
+        if (y < midY) {
+            topPeak = maxOf(topPeak, score)
+        } else {
+            bottomPeak = maxOf(bottomPeak, score)
+        }
+        y += scanStep
+    }
+
+    val verticalAverage = if (verticalCount == 0) 0 else verticalTotal / verticalCount
+    val horizontalAverage = if (horizontalCount == 0) 0 else horizontalTotal / horizontalCount
+    val verticalThreshold = maxOf(18, verticalAverage * 2)
+    val horizontalThreshold = maxOf(18, horizontalAverage * 2)
+
+    return leftPeak >= verticalThreshold &&
+        rightPeak >= verticalThreshold &&
+        topPeak >= horizontalThreshold &&
+        bottomPeak >= horizontalThreshold
 }
 
 private fun DriverOnboardingDocumentType.captureTitle(): String {
