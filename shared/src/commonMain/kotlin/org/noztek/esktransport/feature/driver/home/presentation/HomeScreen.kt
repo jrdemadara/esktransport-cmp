@@ -2,6 +2,7 @@ package org.noztek.esktransport.feature.driver.home.presentation
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -20,7 +21,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -31,6 +31,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
@@ -41,6 +42,7 @@ import asktransport_cmp.shared.generated.resources.home_car
 import asktransport_cmp.shared.generated.resources.home_scooter
 import asktransport_cmp.shared.generated.resources.home_tricycle
 import com.composables.icons.heroicons.Heroicons
+import com.composables.icons.heroicons.outline.ChevronRight
 import com.composables.icons.heroicons.outline.ExclamationTriangle
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
@@ -112,9 +114,9 @@ fun HomeScreen(
                 onlineTime = onlineTime,
                 ratingLabel = ratingLabel,
             )
-            VehicleSummaryPanel(
-                vehicle = uiState.onboardingStatus?.vehicle,
-            )
+            uiState.onboardingStatus?.vehicle?.let { vehicle ->
+                VehicleSummaryPanel(vehicle = vehicle)
+            }
             DriverSetupCard(
                 isLoading = uiState.isLoadingSetup,
                 status = uiState.onboardingStatus,
@@ -467,23 +469,40 @@ private fun DriverSetupCard(
 
             val identityStatus = status.identityVerificationStatus()
             val vehicleRegistrationStatus = status.requirementStatus(DriverOnboardingDocumentType.VehicleRegistration)
-            SetupRequirementRow(
-                label = "Driver License",
-                detail = "License card and selfie",
-                status = identityStatus,
-            )
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-            SetupRequirementRow(
-                label = "Vehicle Registration",
-                detail = "Vehicle registration document",
-                status = vehicleRegistrationStatus,
+            SetupStepper(
+                steps = listOf(
+                    SetupProgressStep(
+                        label = "Account registration",
+                        status = DriverRequirementStatus.Approved,
+                    ),
+                    SetupProgressStep(
+                        label = "Identity verification",
+                        status = identityStatus,
+                    ),
+                    SetupProgressStep(
+                        label = "Vehicle registration",
+                        status = vehicleRegistrationStatus,
+                    ),
+                    SetupProgressStep(
+                        label = "Service radius",
+                        status = DriverRequirementStatus.Missing,
+                    ),
+                ),
             )
 
             AppPrimaryButton(
-                text = if (errorMessage != null && status == null) "Retry" else "Finish setup",
+                text = if (errorMessage != null && status == null) "Retry" else "Finish Setup",
                 onClick = if (errorMessage != null && status == null) onRetryClick else onSetupClick,
-                modifier = Modifier.fillMaxWidth(),
                 enabled = !isLoading,
+                height = 44.dp,
+                contentPadding = PaddingValues(horizontal = 16.dp),
+                trailingIcon = {
+                    Icon(
+                        imageVector = Heroicons.Outline.ChevronRight,
+                        contentDescription = null,
+                        modifier = Modifier.size(15.dp),
+                    )
+                },
             )
         }
     }
@@ -554,87 +573,105 @@ private fun List<DriverRequirementStatus>.groupedStatus(): DriverRequirementStat
     }
 }
 
+private data class SetupProgressStep(
+    val label: String,
+    val status: DriverRequirementStatus,
+)
+
 @Composable
-private fun SetupRequirementRow(
-    label: String,
-    detail: String,
-    status: DriverRequirementStatus,
+private fun SetupStepper(
+    steps: List<SetupProgressStep>,
 ) {
-    Row(
+    Column(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
+        verticalArrangement = Arrangement.spacedBy(7.dp),
     ) {
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(2.dp),
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-            Text(
-                text = detail,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            steps.forEach { step ->
+                SetupStepperSegment(
+                    step = step,
+                    modifier = Modifier.weight(1f),
+                )
+            }
         }
-        Spacer(modifier = Modifier.width(10.dp))
-        RequirementStatusPill(status = status)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            steps.forEach { step ->
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(1.dp),
+                ) {
+                    Text(
+                        text = step.shortLabel,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Text(
+                        text = step.status.stepperStatusLabel(),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
+        }
     }
 }
 
 @Composable
-private fun RequirementStatusPill(status: DriverRequirementStatus) {
-    Surface(
-        shape = RoundedCornerShape(999.dp),
-        color = status.containerColor(),
-        contentColor = status.contentColor(),
-    ) {
-        Text(
-            text = status.label(),
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-            style = MaterialTheme.typography.labelSmall,
-            fontWeight = FontWeight.SemiBold,
-            maxLines = 1,
-        )
-    }
+private fun SetupStepperSegment(
+    step: SetupProgressStep,
+    modifier: Modifier = Modifier,
+) {
+    val shape = RoundedCornerShape(999.dp)
+    Box(
+        modifier = modifier
+            .height(5.dp)
+            .clip(shape)
+            .background(step.status.stepperColor()),
+    )
 }
 
-@Composable
-private fun DriverRequirementStatus.containerColor(): Color {
+private fun DriverRequirementStatus.stepperStatusLabel(): String {
     return when (this) {
-        DriverRequirementStatus.Approved -> MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
-        DriverRequirementStatus.Rejected,
-        DriverRequirementStatus.Expired -> MaterialTheme.colorScheme.errorContainer
-        DriverRequirementStatus.PendingReview,
-        DriverRequirementStatus.Uploaded -> MaterialTheme.colorScheme.secondaryContainer
-        DriverRequirementStatus.Missing -> MaterialTheme.colorScheme.surfaceVariant
-    }
-}
-
-@Composable
-private fun DriverRequirementStatus.contentColor(): Color {
-    return when (this) {
-        DriverRequirementStatus.Approved -> MaterialTheme.colorScheme.primary
-        DriverRequirementStatus.Rejected,
-        DriverRequirementStatus.Expired -> MaterialTheme.colorScheme.onErrorContainer
-        DriverRequirementStatus.PendingReview,
-        DriverRequirementStatus.Uploaded -> MaterialTheme.colorScheme.onSecondaryContainer
-        DriverRequirementStatus.Missing -> MaterialTheme.colorScheme.onSurfaceVariant
-    }
-}
-
-private fun DriverRequirementStatus.label(): String {
-    return when (this) {
-        DriverRequirementStatus.Missing -> "Finish setup"
-        DriverRequirementStatus.Uploaded -> "Uploaded"
-        DriverRequirementStatus.PendingReview -> "Review"
-        DriverRequirementStatus.Approved -> "Approved"
-        DriverRequirementStatus.Rejected -> "Rejected"
+        DriverRequirementStatus.Missing -> "Required"
+        DriverRequirementStatus.Uploaded,
+        DriverRequirementStatus.PendingReview -> "Under Review"
+        DriverRequirementStatus.Approved -> "Done"
+        DriverRequirementStatus.Rejected -> "Fix"
         DriverRequirementStatus.Expired -> "Expired"
+    }
+}
+
+private val SetupProgressStep.shortLabel: String
+    get() = when (label) {
+        "Account registration" -> "Account"
+        "Identity verification" -> "Identity"
+        "Vehicle registration" -> "Vehicle"
+        "Service radius" -> "Radius"
+        else -> label
+    }
+
+@Composable
+private fun DriverRequirementStatus.stepperColor(): Color {
+    val primary = MaterialTheme.colorScheme.primary
+    val reviewYellow = Color(0xFFF9A825)
+    return when (this) {
+        DriverRequirementStatus.Approved -> primary.copy(alpha = 0.72f)
+        DriverRequirementStatus.PendingReview,
+        DriverRequirementStatus.Uploaded -> reviewYellow.copy(alpha = 0.76f)
+        DriverRequirementStatus.Rejected,
+        DriverRequirementStatus.Expired -> primary.copy(alpha = 0.34f)
+        DriverRequirementStatus.Missing -> primary.copy(alpha = 0.16f)
     }
 }
 
