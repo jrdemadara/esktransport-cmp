@@ -19,6 +19,7 @@ import org.noztek.esktransport.feature.driver.onboarding.domain.usecase.GetDrive
 import org.noztek.esktransport.feature.driver.onboarding.domain.usecase.SaveDriverVehicleSetupUseCase
 import org.noztek.esktransport.feature.driver.onboarding.domain.usecase.SubmitDriverIdentityVerificationUseCase
 import org.noztek.esktransport.feature.driver.onboarding.domain.usecase.SubmitDriverOnboardingUseCase
+import org.noztek.esktransport.feature.driver.onboarding.domain.usecase.SubmitDriverVehicleRegistrationUseCase
 import org.noztek.esktransport.feature.driver.onboarding.domain.usecase.UploadDriverOnboardingDocumentUseCase
 import org.noztek.esktransport.feature.driver.onboarding.presentation.DriverOnboardingViewModel
 
@@ -32,6 +33,7 @@ val driverHomeModule = module {
     single { GetDriverOnboardingStatusUseCase(repository = get()) }
     single { SaveDriverVehicleSetupUseCase(repository = get()) }
     single { SubmitDriverIdentityVerificationUseCase(repository = get()) }
+    single { SubmitDriverVehicleRegistrationUseCase(repository = get()) }
     single { UploadDriverOnboardingDocumentUseCase(repository = get()) }
     single { SubmitDriverOnboardingUseCase(repository = get()) }
     single { AcceptOfferUseCase(api = get()) }
@@ -54,6 +56,7 @@ val driverHomeModule = module {
             getDriverOnboardingStatusUseCase = get(),
             saveDriverVehicleSetupUseCase = get(),
             submitDriverIdentityVerificationUseCase = get(),
+            submitDriverVehicleRegistrationUseCase = get(),
             uploadDriverOnboardingDocumentUseCase = get(),
             submitDriverOnboardingUseCase = get(),
             ioDispatcher = get(named(IO_DISPATCHER_QUALIFIER)),

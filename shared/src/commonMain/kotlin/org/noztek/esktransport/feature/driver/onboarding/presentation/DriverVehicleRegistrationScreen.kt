@@ -22,6 +22,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -57,7 +58,7 @@ import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverOnbo
 import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverRequirementStatus
 
 @Composable
-fun DriverIdentityVerificationScreen(
+fun DriverVehicleRegistrationScreen(
     onBack: () -> Unit,
     onContinue: () -> Unit,
     modifier: Modifier = Modifier,
@@ -65,21 +66,21 @@ fun DriverIdentityVerificationScreen(
 ) {
     val state by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
-    var captureType by remember { mutableStateOf<DriverOnboardingDocumentType?>(null) }
+    var captureRegistration by remember { mutableStateOf(false) }
 
-    captureType?.let { type ->
+    if (captureRegistration) {
         DriverDocumentCaptureScreen(
-            type = type,
+            type = DriverOnboardingDocumentType.VehicleRegistration,
             onCaptured = { capture ->
                 viewModel.captureDocumentPreview(
-                    type = type,
+                    type = DriverOnboardingDocumentType.VehicleRegistration,
                     fileName = capture.fileName,
                     mimeType = capture.mimeType,
                     bytes = capture.bytes,
                 )
-                captureType = null
+                captureRegistration = false
             },
-            onClose = { captureType = null },
+            onClose = { captureRegistration = false },
         )
         return
     }
@@ -98,13 +99,17 @@ fun DriverIdentityVerificationScreen(
         }
     }
 
-    DriverIdentityVerificationContent(
+    DriverVehicleRegistrationContent(
         state = state,
         onBack = onBack,
-        onLicenseNoChange = viewModel::updateLicenseNo,
-        onLicenseExpiryChange = viewModel::updateLicenseExpiry,
-        onCaptureClick = { type -> captureType = type },
-        onContinue = { viewModel.submitIdentityVerification(onSuccess = onContinue) },
+        onVehicleTypeChange = viewModel::updateVehicleType,
+        onPlateChange = viewModel::updatePlate,
+        onMakeChange = viewModel::updateMake,
+        onModelChange = viewModel::updateModel,
+        onYearChange = viewModel::updateYear,
+        onPassengerCapacityChange = viewModel::updatePassengerCapacity,
+        onCaptureClick = { captureRegistration = true },
+        onContinue = { viewModel.submitVehicleRegistration(onSuccess = onContinue) },
         snackbarHostState = snackbarHostState,
         modifier = modifier,
     )
@@ -112,12 +117,16 @@ fun DriverIdentityVerificationScreen(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun DriverIdentityVerificationContent(
+private fun DriverVehicleRegistrationContent(
     state: DriverOnboardingUiState,
     onBack: () -> Unit,
-    onLicenseNoChange: (String) -> Unit,
-    onLicenseExpiryChange: (String) -> Unit,
-    onCaptureClick: (DriverOnboardingDocumentType) -> Unit,
+    onVehicleTypeChange: (String) -> Unit,
+    onPlateChange: (String) -> Unit,
+    onMakeChange: (String) -> Unit,
+    onModelChange: (String) -> Unit,
+    onYearChange: (String) -> Unit,
+    onPassengerCapacityChange: (String) -> Unit,
+    onCaptureClick: () -> Unit,
     onContinue: () -> Unit,
     snackbarHostState: SnackbarHostState,
     modifier: Modifier = Modifier,
@@ -135,7 +144,7 @@ private fun DriverIdentityVerificationContent(
                     titleContentColor = MaterialTheme.colorScheme.onBackground,
                     navigationIconContentColor = MaterialTheme.colorScheme.onBackground,
                 ),
-                title = { Text("Identity Verification") },
+                title = { Text("Vehicle Registration") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Heroicons.Outline.ArrowLeft, contentDescription = "Back")
@@ -165,28 +174,39 @@ private fun DriverIdentityVerificationContent(
                 .padding(horizontal = 16.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            IdentityStepHeader()
-            IdentityLicenseSection(
+            VehicleRegistrationHeader()
+            VehicleDetailsSection(
                 state = state,
-                onLicenseNoChange = onLicenseNoChange,
-                onLicenseExpiryChange = onLicenseExpiryChange,
+                onVehicleTypeChange = onVehicleTypeChange,
+                onPlateChange = onPlateChange,
+                onMakeChange = onMakeChange,
+                onModelChange = onModelChange,
+                onYearChange = onYearChange,
+                onPassengerCapacityChange = onPassengerCapacityChange,
             )
-            IdentityDocumentsSection(
+            VehicleRegistrationDocumentSection(
                 state = state,
                 onCaptureClick = onCaptureClick,
             )
             AppPrimaryButton(
-                text = if (state.isSubmittingIdentity) "Submitting..." else "Continue",
+                text = if (state.isSubmittingVehicleRegistration) "Submitting..." else "Continue",
                 onClick = onContinue,
-                enabled = state.uploadingType == null && !state.isSubmittingIdentity,
+                enabled = !state.isSubmittingVehicleRegistration,
                 modifier = Modifier.padding(top = 4.dp, bottom = 18.dp),
+                trailingIcon = {
+                    Icon(
+                        imageVector = Heroicons.Outline.ChevronRight,
+                        contentDescription = null,
+                        modifier = Modifier.size(15.dp),
+                    )
+                },
             )
         }
     }
 }
 
 @Composable
-private fun IdentityStepHeader() {
+private fun VehicleRegistrationHeader() {
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(10.dp),
@@ -198,17 +218,17 @@ private fun IdentityStepHeader() {
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             Text(
-                text = "Step 2 of 4",
+                text = "Step 3 of 4",
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.76f),
             )
             Text(
-                text = "Verify your driver license",
+                text = "Register your service vehicle",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
             )
             Text(
-                text = "Capture the front, back, and a selfie so we can match your identity.",
+                text = "Add the vehicle details and capture the registration document used for passenger service.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.76f),
             )
@@ -217,57 +237,109 @@ private fun IdentityStepHeader() {
 }
 
 @Composable
-private fun IdentityLicenseSection(
+private fun VehicleDetailsSection(
     state: DriverOnboardingUiState,
-    onLicenseNoChange: (String) -> Unit,
-    onLicenseExpiryChange: (String) -> Unit,
+    onVehicleTypeChange: (String) -> Unit,
+    onPlateChange: (String) -> Unit,
+    onMakeChange: (String) -> Unit,
+    onModelChange: (String) -> Unit,
+    onYearChange: (String) -> Unit,
+    onPassengerCapacityChange: (String) -> Unit,
 ) {
-    IdentitySectionSurface(title = "License details") {
+    VehicleSectionSurface(title = "Vehicle details") {
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            VehicleTypeChip("motorcycle", "Moto", state.vehicleTypeCode, onVehicleTypeChange)
+            VehicleTypeChip("tricycle", "Trike", state.vehicleTypeCode, onVehicleTypeChange)
+            VehicleTypeChip("car", "Car", state.vehicleTypeCode, onVehicleTypeChange)
+        }
         AppInputField(
-            value = state.licenseNo,
-            onValueChange = onLicenseNoChange,
-            label = "License number",
+            value = state.plate,
+            onValueChange = onPlateChange,
+            label = "Plate number",
             modifier = Modifier.fillMaxWidth(),
         )
-        AppInputField(
-            value = state.licenseExpiry,
-            onValueChange = onLicenseExpiryChange,
-            label = "License expiry (YYYY-MM-DD)",
+        Row(
             modifier = Modifier.fillMaxWidth(),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-        )
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            AppInputField(
+                value = state.make,
+                onValueChange = onMakeChange,
+                label = "Make",
+                modifier = Modifier.weight(1f),
+            )
+            AppInputField(
+                value = state.model,
+                onValueChange = onModelChange,
+                label = "Model",
+                modifier = Modifier.weight(1f),
+            )
+        }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            AppInputField(
+                value = state.year,
+                onValueChange = onYearChange,
+                label = "Year",
+                modifier = Modifier.weight(1f),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            )
+            AppInputField(
+                value = state.passengerCapacity,
+                onValueChange = onPassengerCapacityChange,
+                label = "Seats",
+                modifier = Modifier.weight(1f),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            )
+        }
     }
 }
 
 @Composable
-private fun IdentityDocumentsSection(
+private fun VehicleRegistrationDocumentSection(
     state: DriverOnboardingUiState,
-    onCaptureClick: (DriverOnboardingDocumentType) -> Unit,
+    onCaptureClick: () -> Unit,
 ) {
-    IdentitySectionSurface(title = "Required captures") {
-        IdentityUploadRow(
-            title = "License front",
-            type = DriverOnboardingDocumentType.LicenseFront,
-            state = state,
-            onCaptureClick = onCaptureClick,
-        )
-        IdentityUploadRow(
-            title = "License back",
-            type = DriverOnboardingDocumentType.LicenseBack,
-            state = state,
-            onCaptureClick = onCaptureClick,
-        )
-        IdentityUploadRow(
-            title = "Selfie",
-            type = DriverOnboardingDocumentType.Selfie,
-            state = state,
-            onCaptureClick = onCaptureClick,
-        )
+    val type = DriverOnboardingDocumentType.VehicleRegistration
+    val requirement = state.status?.requirements?.firstOrNull { it.type == type }
+    val preview = state.capturedPreviews[type]
+
+    VehicleSectionSurface(title = "Registration document") {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "Vehicle registration",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Medium,
+                )
+                Text(
+                    text = if (preview != null) "Ready to submit" else requirement?.status?.vehicleStatusLabel() ?: "Required",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            OutlinedButton(
+                onClick = onCaptureClick,
+                enabled = !state.isSubmittingVehicleRegistration,
+                contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp),
+            ) {
+                Text("Capture")
+            }
+        }
+        if (preview != null) {
+            VehicleRegistrationPreviewCard(preview = preview)
+        }
     }
 }
 
 @Composable
-private fun IdentitySectionSurface(
+private fun VehicleSectionSurface(
     title: String,
     content: @Composable ColumnScope.() -> Unit,
 ) {
@@ -292,53 +364,7 @@ private fun IdentitySectionSurface(
 }
 
 @Composable
-private fun IdentityUploadRow(
-    title: String,
-    type: DriverOnboardingDocumentType,
-    state: DriverOnboardingUiState,
-    onCaptureClick: (DriverOnboardingDocumentType) -> Unit,
-) {
-    val requirement = state.status?.requirements?.firstOrNull { it.type == type }
-    val preview = state.capturedPreviews[type]
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween,
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Medium,
-                )
-                Text(
-                    text = if (preview != null) "Ready to submit" else requirement?.status?.identityStatusLabel() ?: "Required",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            OutlinedButton(
-                onClick = { onCaptureClick(type) },
-                enabled = state.uploadingType == null,
-                contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp),
-            ) {
-                Text(if (state.uploadingType == type) "Uploading" else "Capture")
-            }
-        }
-        if (preview != null) {
-            IdentityPreviewCard(title = title, type = type, preview = preview)
-        }
-    }
-}
-
-@Composable
-private fun IdentityPreviewCard(
-    title: String,
-    type: DriverOnboardingDocumentType,
+private fun VehicleRegistrationPreviewCard(
     preview: CapturedDocumentPreview,
 ) {
     val shape = RoundedCornerShape(8.dp)
@@ -356,7 +382,7 @@ private fun IdentityPreviewCard(
             Box(
                 modifier = Modifier
                     .height(82.dp)
-                    .aspectRatio(if (type == DriverOnboardingDocumentType.Selfie) 0.82f else 1.58f)
+                    .aspectRatio(1.58f)
                     .clip(shape)
                     .border(1.dp, MaterialTheme.colorScheme.outlineVariant, shape)
                     .background(MaterialTheme.colorScheme.surfaceVariant),
@@ -364,7 +390,7 @@ private fun IdentityPreviewCard(
             ) {
                 CapturedDocumentPreviewImage(
                     bytes = preview.bytes,
-                    contentDescription = "$title preview",
+                    contentDescription = "Vehicle registration preview",
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Fit,
                 )
@@ -379,7 +405,7 @@ private fun IdentityPreviewCard(
                     fontWeight = FontWeight.SemiBold,
                 )
                 Text(
-                    text = "Retake if the image is unclear.",
+                    text = "Retake if the document is unclear.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -388,7 +414,21 @@ private fun IdentityPreviewCard(
     }
 }
 
-private fun DriverRequirementStatus.identityStatusLabel(): String {
+@Composable
+private fun VehicleTypeChip(
+    value: String,
+    label: String,
+    selectedValue: String,
+    onSelect: (String) -> Unit,
+) {
+    FilterChip(
+        selected = selectedValue == value,
+        onClick = { onSelect(value) },
+        label = { Text(label) },
+    )
+}
+
+private fun DriverRequirementStatus.vehicleStatusLabel(): String {
     return when (this) {
         DriverRequirementStatus.Missing -> "Required"
         DriverRequirementStatus.Uploaded,

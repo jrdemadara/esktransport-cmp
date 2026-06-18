@@ -10,11 +10,13 @@ import org.noztek.esktransport.core.map.MapboxConfig
 import org.noztek.esktransport.feature.driver.home.presentation.HomeScreen
 import org.noztek.esktransport.feature.driver.onboarding.presentation.DriverIdentityVerificationScreen
 import org.noztek.esktransport.feature.driver.onboarding.presentation.DriverOnboardingScreen
+import org.noztek.esktransport.feature.driver.onboarding.presentation.DriverVehicleRegistrationScreen
 import org.noztek.esktransport.feature.driver.trip_navigation.presentation.TripNavigationScreen
 
 private const val ROUTE_DRIVER_TRIP_TRACKING = "driver-trip-tracking"
 private const val ROUTE_DRIVER_ONBOARDING = "driver-onboarding"
 private const val ROUTE_DRIVER_IDENTITY_VERIFICATION = "driver-onboarding/identity"
+private const val ROUTE_DRIVER_VEHICLE_REGISTRATION = "driver-onboarding/vehicle-registration"
 
 fun NavGraphBuilder.driverNavGraph(navController: NavHostController) {
     navigation(startDestination = DriverRoute.HOME, route = RootRoute.DRIVER) {
@@ -30,7 +32,19 @@ fun NavGraphBuilder.driverNavGraph(navController: NavHostController) {
         composable(ROUTE_DRIVER_IDENTITY_VERIFICATION) {
             DriverIdentityVerificationScreen(
                 onBack = { navController.popBackStack() },
-                onContinue = { navController.popBackStack() },
+                onContinue = {
+                    navController.navigate(ROUTE_DRIVER_VEHICLE_REGISTRATION) {
+                        launchSingleTop = true
+                    }
+                },
+            )
+        }
+        composable(ROUTE_DRIVER_VEHICLE_REGISTRATION) {
+            DriverVehicleRegistrationScreen(
+                onBack = { navController.popBackStack() },
+                onContinue = {
+                    navController.popBackStack(DriverRoute.HOME, inclusive = false)
+                },
             )
         }
         composable(ROUTE_DRIVER_ONBOARDING) {

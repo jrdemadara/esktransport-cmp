@@ -13,17 +13,20 @@ import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverOnbo
 import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverOnboardingDocumentUpload
 import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverOnboardingStatus
 import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverIdentityVerificationPayload
+import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverVehicleRegistrationPayload
 import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverVehicleSetupPayload
 import org.noztek.esktransport.feature.driver.onboarding.domain.usecase.GetDriverOnboardingStatusUseCase
 import org.noztek.esktransport.feature.driver.onboarding.domain.usecase.SaveDriverVehicleSetupUseCase
 import org.noztek.esktransport.feature.driver.onboarding.domain.usecase.SubmitDriverIdentityVerificationUseCase
 import org.noztek.esktransport.feature.driver.onboarding.domain.usecase.SubmitDriverOnboardingUseCase
+import org.noztek.esktransport.feature.driver.onboarding.domain.usecase.SubmitDriverVehicleRegistrationUseCase
 import org.noztek.esktransport.feature.driver.onboarding.domain.usecase.UploadDriverOnboardingDocumentUseCase
 
 class DriverOnboardingViewModel(
     private val getDriverOnboardingStatusUseCase: GetDriverOnboardingStatusUseCase,
     private val saveDriverVehicleSetupUseCase: SaveDriverVehicleSetupUseCase,
     private val submitDriverIdentityVerificationUseCase: SubmitDriverIdentityVerificationUseCase,
+    private val submitDriverVehicleRegistrationUseCase: SubmitDriverVehicleRegistrationUseCase,
     private val uploadDriverOnboardingDocumentUseCase: UploadDriverOnboardingDocumentUseCase,
     private val submitDriverOnboardingUseCase: SubmitDriverOnboardingUseCase,
     private val ioDispatcher: CoroutineDispatcher,
@@ -197,6 +200,56 @@ class DriverOnboardingViewModel(
                         it.copy(
                             isSavingVehicle = false,
                             errorMessage = throwable.message ?: "Unable to save vehicle.",
+                        )
+                    }
+                },
+            )
+        }
+    }
+
+    fun submitVehicleRegistration(onSuccess: () -> Unit) {
+        val state = _uiState.value
+        val registrationPreview = state.capturedPreviews[DriverOnboardingDocumentType.VehicleRegistration]
+
+        when {
+            state.plate.isBlank() -> {
+                _uiState.update { it.copy(errorMessage = "Plate number is required.") }
+                return
+            }
+            registrationPreview == null -> {
+                _uiState.update { it.copy(errorMessage = "Vehicle registration capture is required.") }
+                return
+            }
+        }
+
+        viewModelScope.launch {
+            _uiState.update { it.copy(isSubmittingVehicleRegistration = true, errorMessage = null, successMessage = null) }
+            val result = withContext(ioDispatcher) {
+                submitDriverVehicleRegistrationUseCase(
+                    DriverVehicleRegistrationPayload(
+                        vehicle = DriverVehicleSetupPayload(
+                            vehicleTypeCode = state.vehicleTypeCode,
+                            plate = state.plate.trim(),
+                            make = state.make.trim().ifBlank { null },
+                            model = state.model.trim().ifBlank { null },
+                            year = state.year.toIntOrNull(),
+                            passengerCapacity = state.passengerCapacity.toIntOrNull(),
+                        ),
+                        registrationDocument = registrationPreview.toUpload(DriverOnboardingDocumentType.VehicleRegistration),
+                    ),
+                )
+            }
+            result.fold(
+                onSuccess = { status ->
+                    applyStatus(status, successMessage = "Vehicle registration submitted for review.")
+                    _uiState.update { it.copy(isSubmittingVehicleRegistration = false) }
+                    onSuccess()
+                },
+                onFailure = { throwable ->
+                    _uiState.update {
+                        it.copy(
+                            isSubmittingVehicleRegistration = false,
+                            errorMessage = throwable.message ?: "Unable to submit vehicle registration.",
                         )
                     }
                 },

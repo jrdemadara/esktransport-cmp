@@ -59,6 +59,11 @@ data class DriverVehicleSetupPayload(
     val passengerCapacity: Int?,
 )
 
+data class DriverVehicleRegistrationPayload(
+    val vehicle: DriverVehicleSetupPayload,
+    val registrationDocument: DriverOnboardingDocumentUpload,
+)
+
 data class DriverOnboardingDocumentUpload(
     val type: DriverOnboardingDocumentType,
     val fileName: String,

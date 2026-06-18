@@ -7,6 +7,7 @@ data class DriverOnboardingUiState(
     val isLoading: Boolean = true,
     val isSavingVehicle: Boolean = false,
     val isSubmittingIdentity: Boolean = false,
+    val isSubmittingVehicleRegistration: Boolean = false,
     val isSubmitting: Boolean = false,
     val uploadingType: DriverOnboardingDocumentType? = null,
     val status: DriverOnboardingStatus? = null,
