@@ -25,6 +25,7 @@ pusherAndroid = "2.4.4"
 jetbrainsNavigation = "2.9.2"
 mapboxMaps = "11.24.3"
 mapboxNavigationCore = "3.24.3"
+mlkitFaceDetection = "16.1.7"
 
 [libraries]
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
@@ -76,6 +77,7 @@ mapbox-navigationcore-ui-maps = { module = "com.mapbox.navigationcore:ui-maps-nd
 mapbox-navigationcore-voice = { module = "com.mapbox.navigationcore:voice-ndk27", version.ref = "mapboxNavigationCore" }
 mapbox-navigationcore-tripdata = { module = "com.mapbox.navigationcore:tripdata-ndk27", version.ref = "mapboxNavigationCore" }
 mapbox-navigationcore-ui-components = { module = "com.mapbox.navigationcore:ui-components-ndk27", version.ref = "mapboxNavigationCore" }
+mlkit-face-detection = { module = "com.google.mlkit:face-detection", version.ref = "mlkitFaceDetection" }
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }

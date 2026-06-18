@@ -55,6 +55,7 @@ kotlin {
             implementation(libs.mapbox.navigationcore.tripdata)
             implementation(libs.mapbox.navigationcore.android)
             implementation(libs.mapbox.navigationcore.ui.components)
+            implementation(libs.mlkit.face.detection)
 
         }
         commonMain.dependencies {
