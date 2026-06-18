@@ -8,21 +8,29 @@ import androidx.savedstate.read
 import org.koin.compose.koinInject
 import org.noztek.esktransport.core.map.MapboxConfig
 import org.noztek.esktransport.feature.driver.home.presentation.HomeScreen
+import org.noztek.esktransport.feature.driver.onboarding.presentation.DriverIdentityVerificationScreen
 import org.noztek.esktransport.feature.driver.onboarding.presentation.DriverOnboardingScreen
 import org.noztek.esktransport.feature.driver.trip_navigation.presentation.TripNavigationScreen
 
 private const val ROUTE_DRIVER_TRIP_TRACKING = "driver-trip-tracking"
 private const val ROUTE_DRIVER_ONBOARDING = "driver-onboarding"
+private const val ROUTE_DRIVER_IDENTITY_VERIFICATION = "driver-onboarding/identity"
 
 fun NavGraphBuilder.driverNavGraph(navController: NavHostController) {
     navigation(startDestination = DriverRoute.HOME, route = RootRoute.DRIVER) {
         composable(DriverRoute.HOME) {
             HomeScreen(
                 onSetupClick = {
-                    navController.navigate(ROUTE_DRIVER_ONBOARDING) {
+                    navController.navigate(ROUTE_DRIVER_IDENTITY_VERIFICATION) {
                         launchSingleTop = true
                     }
                 },
+            )
+        }
+        composable(ROUTE_DRIVER_IDENTITY_VERIFICATION) {
+            DriverIdentityVerificationScreen(
+                onBack = { navController.popBackStack() },
+                onContinue = { navController.popBackStack() },
             )
         }
         composable(ROUTE_DRIVER_ONBOARDING) {

@@ -114,7 +114,7 @@ fun HomeScreen(
                 onlineTime = onlineTime,
                 ratingLabel = ratingLabel,
             )
-            uiState.onboardingStatus?.vehicle?.let { vehicle ->
+            uiState.onboardingStatus?.vehicle?.takeIf { it.exists }?.let { vehicle ->
                 VehicleSummaryPanel(vehicle = vehicle)
             }
             DriverSetupCard(
@@ -537,12 +537,12 @@ private fun setupTitle(status: DriverOnboardingStatus?): String {
 
 private fun setupDescription(status: DriverOnboardingStatus?): String {
     return when (status?.status) {
-        DriverOnboardingState.PendingReview -> "We are reviewing your driver and vehicle documents."
+        DriverOnboardingState.PendingReview -> "Your submitted setup is under review."
         DriverOnboardingState.Rejected -> status.blockingReasons.firstOrNull()
-            ?: "Update the requested details before going online."
+            ?: "Update the requested setup step before going online."
         DriverOnboardingState.Blocked -> status.blockingReasons.firstOrNull()
             ?: "Your account needs review before going online."
-        else -> "Driver license and vehicle registration are required before GO."
+        else -> "Complete the required setup steps before going online."
     }
 }
 
