@@ -435,24 +435,17 @@ private fun DriverSetupCard(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
-                Row(
-                    modifier = Modifier.weight(1f),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    verticalAlignment = Alignment.Top,
-                ) {
-                    SetupUrgencyIcon()
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = setupTitle(status),
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold,
-                        )
-                        Text(
-                            text = setupDescription(status),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = setupTitle(status),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    Text(
+                        text = setupDescription(status),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
                 if (isLoading) {
                     CircularProgressIndicator(modifier = Modifier.size(22.dp), strokeWidth = 2.dp)
@@ -467,13 +460,16 @@ private fun DriverSetupCard(
                 )
             }
 
-            val identityStatus = status.identityVerificationStatus()
-            val vehicleRegistrationStatus = status.requirementStatus(DriverOnboardingDocumentType.VehicleRegistration)
+            val stepStatuses = status?.stepStatuses
+            val identityStatus = stepStatuses?.identityVerification ?: status.identityVerificationStatus()
+            val vehicleRegistrationStatus = stepStatuses?.vehicleRegistration
+                ?: status.requirementStatus(DriverOnboardingDocumentType.VehicleRegistration)
+            val serviceRadiusStatus = stepStatuses?.serviceRadius ?: DriverRequirementStatus.Missing
             SetupStepper(
                 steps = listOf(
                     SetupProgressStep(
                         label = "Account registration",
-                        status = DriverRequirementStatus.Approved,
+                        status = stepStatuses?.accountRegistration ?: DriverRequirementStatus.Approved,
                     ),
                     SetupProgressStep(
                         label = "Identity verification",
@@ -485,7 +481,7 @@ private fun DriverSetupCard(
                     ),
                     SetupProgressStep(
                         label = "Service radius",
-                        status = DriverRequirementStatus.Missing,
+                        status = serviceRadiusStatus,
                     ),
                 ),
             )
@@ -503,24 +499,6 @@ private fun DriverSetupCard(
                         modifier = Modifier.size(15.dp),
                     )
                 },
-            )
-        }
-    }
-}
-
-@Composable
-private fun SetupUrgencyIcon() {
-    Surface(
-        modifier = Modifier.size(34.dp),
-        shape = RoundedCornerShape(999.dp),
-        color = MaterialTheme.colorScheme.errorContainer,
-        contentColor = MaterialTheme.colorScheme.onErrorContainer,
-    ) {
-        Box(contentAlignment = Alignment.Center) {
-            Icon(
-                imageVector = Heroicons.Outline.ExclamationTriangle,
-                contentDescription = null,
-                modifier = Modifier.size(19.dp),
             )
         }
     }

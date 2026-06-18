@@ -71,7 +71,7 @@ fun DriverIdentityVerificationScreen(
         DriverDocumentCaptureScreen(
             type = type,
             onCaptured = { capture ->
-                viewModel.uploadDocument(
+                viewModel.captureDocumentPreview(
                     type = type,
                     fileName = capture.fileName,
                     mimeType = capture.mimeType,
@@ -104,7 +104,7 @@ fun DriverIdentityVerificationScreen(
         onLicenseNoChange = viewModel::updateLicenseNo,
         onLicenseExpiryChange = viewModel::updateLicenseExpiry,
         onCaptureClick = { type -> captureType = type },
-        onContinue = onContinue,
+        onContinue = { viewModel.submitIdentityVerification(onSuccess = onContinue) },
         snackbarHostState = snackbarHostState,
         modifier = modifier,
     )
@@ -176,9 +176,9 @@ private fun DriverIdentityVerificationContent(
                 onCaptureClick = onCaptureClick,
             )
             AppPrimaryButton(
-                text = "Continue",
+                text = if (state.isSubmittingIdentity) "Submitting..." else "Continue",
                 onClick = onContinue,
-                enabled = state.uploadingType == null,
+                enabled = state.uploadingType == null && !state.isSubmittingIdentity,
                 modifier = Modifier.padding(top = 4.dp, bottom = 18.dp),
                 trailingIcon = {
                     Icon(
@@ -323,7 +323,7 @@ private fun IdentityUploadRow(
                     fontWeight = FontWeight.Medium,
                 )
                 Text(
-                    text = requirement?.status?.identityStatusLabel() ?: "Required",
+                    text = if (preview != null) "Ready to submit" else requirement?.status?.identityStatusLabel() ?: "Required",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

@@ -6,6 +6,7 @@ data class DriverOnboardingStatus(
     val status: DriverOnboardingState,
     val canGo: Boolean,
     val blockingReasons: List<String>,
+    val stepStatuses: DriverStepStatuses,
     val license: DriverLicenseInfo,
     val vehicle: DriverVehicleInfo,
     val requirements: List<DriverOnboardingRequirement>,
@@ -14,6 +15,16 @@ data class DriverOnboardingStatus(
 data class DriverLicenseInfo(
     val licenseNo: String?,
     val licenseExpiry: String?,
+    val identityVerificationStatus: DriverRequirementStatus,
+    val identityRejectionReason: String?,
+    val identityReviewedAt: String?,
+)
+
+data class DriverStepStatuses(
+    val accountRegistration: DriverRequirementStatus,
+    val identityVerification: DriverRequirementStatus,
+    val vehicleRegistration: DriverRequirementStatus,
+    val serviceRadius: DriverRequirementStatus,
 )
 
 data class DriverVehicleInfo(
@@ -81,6 +92,14 @@ data class DriverOnboardingDocumentUpload(
         return result
     }
 }
+
+data class DriverIdentityVerificationPayload(
+    val licenseNo: String,
+    val licenseExpiry: String,
+    val licenseFront: DriverOnboardingDocumentUpload,
+    val licenseBack: DriverOnboardingDocumentUpload,
+    val selfie: DriverOnboardingDocumentUpload,
+)
 
 enum class DriverOnboardingState {
     Incomplete,

@@ -10,6 +10,7 @@ import kotlinx.serialization.json.jsonPrimitive
 import org.noztek.esktransport.core.network.ApiErrorParser
 import org.noztek.esktransport.feature.driver.onboarding.data.remote.DriverOnboardingApi
 import org.noztek.esktransport.feature.driver.onboarding.data.remote.dto.DriverVehicleSetupRequestDto
+import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverIdentityVerificationPayload
 import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverOnboardingDocumentUpload
 import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverOnboardingStatus
 import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverVehicleSetupPayload
@@ -23,6 +24,15 @@ class DriverOnboardingRepositoryImpl(
             Result.success(api.getStatus().data.toDomain())
         } catch (throwable: Throwable) {
             val message = ApiErrorParser.parse(throwable, "Failed to load driver setup.")
+            Result.failure(IllegalStateException(message))
+        }
+    }
+
+    override suspend fun submitIdentityVerification(payload: DriverIdentityVerificationPayload): Result<DriverOnboardingStatus> {
+        return try {
+            Result.success(api.submitIdentityVerification(payload).data.toDomain())
+        } catch (throwable: Throwable) {
+            val message = parseUploadError(throwable, "Failed to submit identity verification.")
             Result.failure(IllegalStateException(message))
         }
     }
@@ -50,7 +60,7 @@ class DriverOnboardingRepositoryImpl(
         return try {
             Result.success(api.uploadDocument(upload).data.toDomain())
         } catch (throwable: Throwable) {
-            val message = parseUploadError(throwable)
+            val message = parseUploadError(throwable, "Failed to upload document.")
             Result.failure(IllegalStateException(message))
         }
     }
@@ -65,14 +75,14 @@ class DriverOnboardingRepositoryImpl(
     }
 }
 
-private suspend fun parseUploadError(throwable: Throwable): String {
+private suspend fun parseUploadError(throwable: Throwable, fallback: String): String {
     if (throwable is ResponseException) {
         val body = runCatching { throwable.response.bodyAsText() }.getOrNull()
         val parsed = body?.firstLaravelValidationMessage()
         if (!parsed.isNullOrBlank()) return parsed
     }
 
-    return ApiErrorParser.parse(throwable, "Failed to upload document.")
+    return ApiErrorParser.parse(throwable, fallback)
 }
 
 private fun String.firstLaravelValidationMessage(): String? {

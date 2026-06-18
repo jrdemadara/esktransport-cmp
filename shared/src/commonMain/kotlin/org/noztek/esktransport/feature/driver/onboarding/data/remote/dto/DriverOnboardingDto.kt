@@ -25,6 +25,8 @@ data class DriverOnboardingDataDto(
     val canGo: Boolean,
     @SerialName("blocking_reasons")
     val blockingReasons: List<String> = emptyList(),
+    @SerialName("step_statuses")
+    val stepStatuses: DriverStepStatusesDto = DriverStepStatusesDto(),
     val license: DriverLicenseDto,
     val vehicle: DriverVehicleDto,
     val requirements: List<DriverOnboardingRequirementDto> = emptyList(),
@@ -36,6 +38,24 @@ data class DriverLicenseDto(
     val licenseNo: String? = null,
     @SerialName("license_expiry")
     val licenseExpiry: String? = null,
+    @SerialName("identity_verification_status")
+    val identityVerificationStatus: String = "missing",
+    @SerialName("identity_rejection_reason")
+    val identityRejectionReason: String? = null,
+    @SerialName("identity_reviewed_at")
+    val identityReviewedAt: String? = null,
+)
+
+@Serializable
+data class DriverStepStatusesDto(
+    @SerialName("account_registration")
+    val accountRegistration: String = "approved",
+    @SerialName("identity_verification")
+    val identityVerification: String = "missing",
+    @SerialName("vehicle_registration")
+    val vehicleRegistration: String = "missing",
+    @SerialName("service_radius")
+    val serviceRadius: String = "missing",
 )
 
 @Serializable

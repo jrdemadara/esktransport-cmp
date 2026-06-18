@@ -6,6 +6,7 @@ import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverOnbo
 data class DriverOnboardingUiState(
     val isLoading: Boolean = true,
     val isSavingVehicle: Boolean = false,
+    val isSubmittingIdentity: Boolean = false,
     val isSubmitting: Boolean = false,
     val uploadingType: DriverOnboardingDocumentType? = null,
     val status: DriverOnboardingStatus? = null,

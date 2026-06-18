@@ -12,15 +12,18 @@ import kotlinx.coroutines.withContext
 import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverOnboardingDocumentType
 import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverOnboardingDocumentUpload
 import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverOnboardingStatus
+import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverIdentityVerificationPayload
 import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverVehicleSetupPayload
 import org.noztek.esktransport.feature.driver.onboarding.domain.usecase.GetDriverOnboardingStatusUseCase
 import org.noztek.esktransport.feature.driver.onboarding.domain.usecase.SaveDriverVehicleSetupUseCase
+import org.noztek.esktransport.feature.driver.onboarding.domain.usecase.SubmitDriverIdentityVerificationUseCase
 import org.noztek.esktransport.feature.driver.onboarding.domain.usecase.SubmitDriverOnboardingUseCase
 import org.noztek.esktransport.feature.driver.onboarding.domain.usecase.UploadDriverOnboardingDocumentUseCase
 
 class DriverOnboardingViewModel(
     private val getDriverOnboardingStatusUseCase: GetDriverOnboardingStatusUseCase,
     private val saveDriverVehicleSetupUseCase: SaveDriverVehicleSetupUseCase,
+    private val submitDriverIdentityVerificationUseCase: SubmitDriverIdentityVerificationUseCase,
     private val uploadDriverOnboardingDocumentUseCase: UploadDriverOnboardingDocumentUseCase,
     private val submitDriverOnboardingUseCase: SubmitDriverOnboardingUseCase,
     private val ioDispatcher: CoroutineDispatcher,
@@ -80,6 +83,87 @@ class DriverOnboardingViewModel(
 
     fun updatePassengerCapacity(value: String) {
         _uiState.update { it.copy(passengerCapacity = value.filter(Char::isDigit).take(2)) }
+    }
+
+    fun captureDocumentPreview(
+        type: DriverOnboardingDocumentType,
+        fileName: String,
+        mimeType: String,
+        bytes: ByteArray,
+    ) {
+        _uiState.update {
+            it.copy(
+                capturedPreviews = it.capturedPreviews + (
+                    type to CapturedDocumentPreview(
+                        fileName = fileName,
+                        mimeType = mimeType,
+                        bytes = bytes,
+                    )
+                    ),
+            )
+        }
+    }
+
+    fun submitIdentityVerification(onSuccess: () -> Unit) {
+        val state = _uiState.value
+        val licenseNo = state.licenseNo.trim()
+        val licenseExpiry = state.licenseExpiry.trim()
+        val licenseFront = state.capturedPreviews[DriverOnboardingDocumentType.LicenseFront]
+        val licenseBack = state.capturedPreviews[DriverOnboardingDocumentType.LicenseBack]
+        val selfie = state.capturedPreviews[DriverOnboardingDocumentType.Selfie]
+
+        when {
+            licenseNo.isBlank() -> {
+                _uiState.update { it.copy(errorMessage = "License number is required.") }
+                return
+            }
+            licenseExpiry.isBlank() -> {
+                _uiState.update { it.copy(errorMessage = "License expiry is required.") }
+                return
+            }
+            licenseFront == null -> {
+                _uiState.update { it.copy(errorMessage = "License front capture is required.") }
+                return
+            }
+            licenseBack == null -> {
+                _uiState.update { it.copy(errorMessage = "License back capture is required.") }
+                return
+            }
+            selfie == null -> {
+                _uiState.update { it.copy(errorMessage = "Selfie capture is required.") }
+                return
+            }
+        }
+
+        viewModelScope.launch {
+            _uiState.update { it.copy(isSubmittingIdentity = true, errorMessage = null, successMessage = null) }
+            val result = withContext(ioDispatcher) {
+                submitDriverIdentityVerificationUseCase(
+                    DriverIdentityVerificationPayload(
+                        licenseNo = licenseNo,
+                        licenseExpiry = licenseExpiry,
+                        licenseFront = licenseFront.toUpload(DriverOnboardingDocumentType.LicenseFront),
+                        licenseBack = licenseBack.toUpload(DriverOnboardingDocumentType.LicenseBack),
+                        selfie = selfie.toUpload(DriverOnboardingDocumentType.Selfie),
+                    ),
+                )
+            }
+            result.fold(
+                onSuccess = { status ->
+                    applyStatus(status, successMessage = "Identity verification submitted for review.")
+                    _uiState.update { it.copy(isSubmittingIdentity = false) }
+                    onSuccess()
+                },
+                onFailure = { throwable ->
+                    _uiState.update {
+                        it.copy(
+                            isSubmittingIdentity = false,
+                            errorMessage = throwable.message ?: "Unable to submit identity verification.",
+                        )
+                    }
+                },
+            )
+        }
     }
 
     fun saveVehicle() {
@@ -217,4 +301,13 @@ class DriverOnboardingViewModel(
             )
         }
     }
+}
+
+private fun CapturedDocumentPreview.toUpload(type: DriverOnboardingDocumentType): DriverOnboardingDocumentUpload {
+    return DriverOnboardingDocumentUpload(
+        type = type,
+        fileName = fileName,
+        mimeType = mimeType,
+        bytes = bytes,
+    )
 }

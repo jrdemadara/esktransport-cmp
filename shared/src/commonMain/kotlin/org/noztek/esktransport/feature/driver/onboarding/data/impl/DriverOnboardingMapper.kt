@@ -4,6 +4,7 @@ import org.noztek.esktransport.feature.driver.onboarding.data.remote.dto.DriverO
 import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverLicenseInfo
 import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverOnboardingRequirement
 import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverOnboardingStatus
+import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverStepStatuses
 import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverVehicleInfo
 import org.noztek.esktransport.feature.driver.onboarding.domain.model.toDriverOnboardingDocumentType
 import org.noztek.esktransport.feature.driver.onboarding.domain.model.toDriverOnboardingState
@@ -16,9 +17,18 @@ internal fun DriverOnboardingDataDto.toDomain(): DriverOnboardingStatus {
         status = status.toDriverOnboardingState(),
         canGo = canGo,
         blockingReasons = blockingReasons,
+        stepStatuses = DriverStepStatuses(
+            accountRegistration = stepStatuses.accountRegistration.toDriverRequirementStatus(),
+            identityVerification = stepStatuses.identityVerification.toDriverRequirementStatus(),
+            vehicleRegistration = stepStatuses.vehicleRegistration.toDriverRequirementStatus(),
+            serviceRadius = stepStatuses.serviceRadius.toDriverRequirementStatus(),
+        ),
         license = DriverLicenseInfo(
             licenseNo = license.licenseNo,
             licenseExpiry = license.licenseExpiry,
+            identityVerificationStatus = license.identityVerificationStatus.toDriverRequirementStatus(),
+            identityRejectionReason = license.identityRejectionReason,
+            identityReviewedAt = license.identityReviewedAt,
         ),
         vehicle = DriverVehicleInfo(
             exists = vehicle.exists,
