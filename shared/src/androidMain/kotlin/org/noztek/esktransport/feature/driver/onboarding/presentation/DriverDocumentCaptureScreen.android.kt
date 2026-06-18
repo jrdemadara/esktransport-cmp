@@ -226,6 +226,7 @@ actual fun DriverDocumentCaptureScreen(
             )
             CaptureTopBar(title = type.captureTitle(), onClose = onClose)
             CaptureBottomPanel(
+                type = type,
                 assessment = assessment,
                 isCapturing = isCapturing,
                 modifier = Modifier.align(Alignment.BottomCenter),
@@ -337,6 +338,7 @@ private fun CaptureGuideOverlay(
 
 @Composable
 private fun CaptureBottomPanel(
+    type: DriverOnboardingDocumentType,
     assessment: CaptureAssessment,
     isCapturing: Boolean,
     modifier: Modifier = Modifier,
@@ -370,7 +372,7 @@ private fun CaptureBottomPanel(
                     modifier = Modifier.weight(1f),
                 )
             }
-            if (assessment.isGood) {
+            if (assessment.isGood && type == DriverOnboardingDocumentType.Selfie) {
                 LinearProgressIndicator(
                     progress = { assessment.progress },
                     modifier = Modifier.fillMaxWidth(),
