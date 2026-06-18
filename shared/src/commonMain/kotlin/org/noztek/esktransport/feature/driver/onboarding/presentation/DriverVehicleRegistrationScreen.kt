@@ -66,21 +66,21 @@ fun DriverVehicleRegistrationScreen(
 ) {
     val state by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
-    var captureRegistration by remember { mutableStateOf(false) }
+    var captureType by remember { mutableStateOf<DriverOnboardingDocumentType?>(null) }
 
-    if (captureRegistration) {
+    captureType?.let { type ->
         DriverDocumentCaptureScreen(
-            type = DriverOnboardingDocumentType.VehicleRegistration,
+            type = type,
             onCaptured = { capture ->
                 viewModel.captureDocumentPreview(
-                    type = DriverOnboardingDocumentType.VehicleRegistration,
+                    type = type,
                     fileName = capture.fileName,
                     mimeType = capture.mimeType,
                     bytes = capture.bytes,
                 )
-                captureRegistration = false
+                captureType = null
             },
-            onClose = { captureRegistration = false },
+            onClose = { captureType = null },
         )
         return
     }
@@ -108,7 +108,7 @@ fun DriverVehicleRegistrationScreen(
         onModelChange = viewModel::updateModel,
         onYearChange = viewModel::updateYear,
         onPassengerCapacityChange = viewModel::updatePassengerCapacity,
-        onCaptureClick = { captureRegistration = true },
+        onCaptureClick = { type -> captureType = type },
         onContinue = { viewModel.submitVehicleRegistration(onSuccess = onContinue) },
         snackbarHostState = snackbarHostState,
         modifier = modifier,
@@ -126,7 +126,7 @@ private fun DriverVehicleRegistrationContent(
     onModelChange: (String) -> Unit,
     onYearChange: (String) -> Unit,
     onPassengerCapacityChange: (String) -> Unit,
-    onCaptureClick: () -> Unit,
+    onCaptureClick: (DriverOnboardingDocumentType) -> Unit,
     onContinue: () -> Unit,
     snackbarHostState: SnackbarHostState,
     modifier: Modifier = Modifier,
@@ -228,7 +228,7 @@ private fun VehicleRegistrationHeader() {
                 fontWeight = FontWeight.SemiBold,
             )
             Text(
-                text = "Add the vehicle details and capture the registration document used for passenger service.",
+                text = "Add the vehicle details, registration document, and a clear photo of the service vehicle.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.76f),
             )
@@ -300,13 +300,41 @@ private fun VehicleDetailsSection(
 @Composable
 private fun VehicleRegistrationDocumentSection(
     state: DriverOnboardingUiState,
-    onCaptureClick: () -> Unit,
+    onCaptureClick: (DriverOnboardingDocumentType) -> Unit,
 ) {
-    val type = DriverOnboardingDocumentType.VehicleRegistration
+    VehicleSectionSurface(title = "Required captures") {
+        VehicleCaptureRow(
+            title = "Vehicle registration",
+            helperText = "Retake if the document is unclear.",
+            type = DriverOnboardingDocumentType.VehicleRegistration,
+            state = state,
+            onCaptureClick = onCaptureClick,
+        )
+        VehicleCaptureRow(
+            title = "Vehicle photo",
+            helperText = "Capture the vehicle clearly from the outside.",
+            type = DriverOnboardingDocumentType.VehiclePhoto,
+            state = state,
+            onCaptureClick = onCaptureClick,
+        )
+    }
+}
+
+@Composable
+private fun VehicleCaptureRow(
+    title: String,
+    helperText: String,
+    type: DriverOnboardingDocumentType,
+    state: DriverOnboardingUiState,
+    onCaptureClick: (DriverOnboardingDocumentType) -> Unit,
+) {
     val requirement = state.status?.requirements?.firstOrNull { it.type == type }
     val preview = state.capturedPreviews[type]
 
-    VehicleSectionSurface(title = "Registration document") {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
@@ -314,7 +342,7 @@ private fun VehicleRegistrationDocumentSection(
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "Vehicle registration",
+                    text = title,
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Medium,
                 )
@@ -325,7 +353,7 @@ private fun VehicleRegistrationDocumentSection(
                 )
             }
             OutlinedButton(
-                onClick = onCaptureClick,
+                onClick = { onCaptureClick(type) },
                 enabled = !state.isSubmittingVehicleRegistration,
                 contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp),
             ) {
@@ -333,7 +361,11 @@ private fun VehicleRegistrationDocumentSection(
             }
         }
         if (preview != null) {
-            VehicleRegistrationPreviewCard(preview = preview)
+            VehicleRegistrationPreviewCard(
+                preview = preview,
+                helperText = helperText,
+                contentDescription = "$title preview",
+            )
         }
     }
 }
@@ -366,6 +398,8 @@ private fun VehicleSectionSurface(
 @Composable
 private fun VehicleRegistrationPreviewCard(
     preview: CapturedDocumentPreview,
+    helperText: String,
+    contentDescription: String,
 ) {
     val shape = RoundedCornerShape(8.dp)
     Surface(
@@ -390,7 +424,7 @@ private fun VehicleRegistrationPreviewCard(
             ) {
                 CapturedDocumentPreviewImage(
                     bytes = preview.bytes,
-                    contentDescription = "Vehicle registration preview",
+                    contentDescription = contentDescription,
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Fit,
                 )
@@ -405,7 +439,7 @@ private fun VehicleRegistrationPreviewCard(
                     fontWeight = FontWeight.SemiBold,
                 )
                 Text(
-                    text = "Retake if the document is unclear.",
+                    text = helperText,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

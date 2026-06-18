@@ -793,7 +793,9 @@ private fun ImageProxy.assessFrameQuality(type: DriverOnboardingDocumentType): C
 
     val brightness = if (brightnessCount == 0) 0 else brightnessTotal / brightnessCount
     val sharpness = if (edgeCount == 0) 0 else edgeTotal / edgeCount
-    val hasDocumentEdges = if (type == DriverOnboardingDocumentType.Selfie) {
+    val hasDocumentEdges = if (type == DriverOnboardingDocumentType.Selfie ||
+        type == DriverOnboardingDocumentType.VehiclePhoto
+    ) {
         true
     } else {
         detectDocumentEdges(
@@ -1029,6 +1031,7 @@ private fun DriverOnboardingDocumentType.captureTitle(): String {
         DriverOnboardingDocumentType.LicenseBack -> "Capture license back"
         DriverOnboardingDocumentType.Selfie -> "Capture selfie"
         DriverOnboardingDocumentType.VehicleRegistration -> "Capture vehicle registration"
+        DriverOnboardingDocumentType.VehiclePhoto -> "Capture vehicle photo"
     }
 }
 
@@ -1046,6 +1049,7 @@ private fun DriverOnboardingDocumentType.shortLabel(): String {
         DriverOnboardingDocumentType.LicenseBack -> "card"
         DriverOnboardingDocumentType.Selfie -> "selfie"
         DriverOnboardingDocumentType.VehicleRegistration -> "document"
+        DriverOnboardingDocumentType.VehiclePhoto -> "vehicle"
     }
 }
 

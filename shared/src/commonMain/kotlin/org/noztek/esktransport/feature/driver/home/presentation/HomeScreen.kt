@@ -478,7 +478,7 @@ private fun DriverSetupCard(
             val stepStatuses = status?.stepStatuses
             val identityStatus = stepStatuses?.identityVerification ?: status.identityVerificationStatus()
             val vehicleRegistrationStatus = stepStatuses?.vehicleRegistration
-                ?: status.requirementStatus(DriverOnboardingDocumentType.VehicleRegistration)
+                ?: status.vehicleRegistrationStatus()
             val serviceRadiusStatus = stepStatuses?.serviceRadius ?: DriverRequirementStatus.Missing
             SetupStepper(
                 steps = listOf(
@@ -546,6 +546,17 @@ private fun DriverOnboardingStatus?.identityVerificationStatus(): DriverRequirem
         requirementStatus(DriverOnboardingDocumentType.LicenseFront),
         requirementStatus(DriverOnboardingDocumentType.LicenseBack),
         requirementStatus(DriverOnboardingDocumentType.Selfie),
+    )
+
+    return statuses.groupedStatus()
+}
+
+private fun DriverOnboardingStatus?.vehicleRegistrationStatus(): DriverRequirementStatus {
+    if (this == null) return DriverRequirementStatus.Missing
+
+    val statuses = listOf(
+        requirementStatus(DriverOnboardingDocumentType.VehicleRegistration),
+        requirementStatus(DriverOnboardingDocumentType.VehiclePhoto),
     )
 
     return statuses.groupedStatus()

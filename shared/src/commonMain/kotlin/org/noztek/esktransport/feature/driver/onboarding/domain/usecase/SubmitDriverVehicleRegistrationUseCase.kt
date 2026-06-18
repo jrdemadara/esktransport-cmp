@@ -12,6 +12,10 @@ class SubmitDriverVehicleRegistrationUseCase(
         val vehicleFailure = vehicleResult.exceptionOrNull()
         if (vehicleFailure != null) return Result.failure(vehicleFailure)
 
-        return repository.uploadDocument(payload.registrationDocument)
+        val registrationResult = repository.uploadDocument(payload.registrationDocument)
+        val registrationFailure = registrationResult.exceptionOrNull()
+        if (registrationFailure != null) return Result.failure(registrationFailure)
+
+        return repository.uploadDocument(payload.vehiclePhoto)
     }
 }

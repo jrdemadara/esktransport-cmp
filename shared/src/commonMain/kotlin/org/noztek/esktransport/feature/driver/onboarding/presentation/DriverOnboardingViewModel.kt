@@ -210,6 +210,7 @@ class DriverOnboardingViewModel(
     fun submitVehicleRegistration(onSuccess: () -> Unit) {
         val state = _uiState.value
         val registrationPreview = state.capturedPreviews[DriverOnboardingDocumentType.VehicleRegistration]
+        val vehiclePhotoPreview = state.capturedPreviews[DriverOnboardingDocumentType.VehiclePhoto]
 
         when {
             state.plate.isBlank() -> {
@@ -218,6 +219,10 @@ class DriverOnboardingViewModel(
             }
             registrationPreview == null -> {
                 _uiState.update { it.copy(errorMessage = "Vehicle registration capture is required.") }
+                return
+            }
+            vehiclePhotoPreview == null -> {
+                _uiState.update { it.copy(errorMessage = "Vehicle photo capture is required.") }
                 return
             }
         }
@@ -236,6 +241,7 @@ class DriverOnboardingViewModel(
                             passengerCapacity = state.passengerCapacity.toIntOrNull(),
                         ),
                         registrationDocument = registrationPreview.toUpload(DriverOnboardingDocumentType.VehicleRegistration),
+                        vehiclePhoto = vehiclePhotoPreview.toUpload(DriverOnboardingDocumentType.VehiclePhoto),
                     ),
                 )
             }

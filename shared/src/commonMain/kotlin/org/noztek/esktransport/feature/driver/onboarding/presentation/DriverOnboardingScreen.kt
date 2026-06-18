@@ -385,6 +385,12 @@ private fun DocumentsSection(
             state = state,
             onCaptureClick = onCaptureClick,
         )
+        UploadRow(
+            title = "Vehicle photo",
+            type = DriverOnboardingDocumentType.VehiclePhoto,
+            state = state,
+            onCaptureClick = onCaptureClick,
+        )
     }
 }
 

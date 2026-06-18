@@ -62,6 +62,7 @@ data class DriverVehicleSetupPayload(
 data class DriverVehicleRegistrationPayload(
     val vehicle: DriverVehicleSetupPayload,
     val registrationDocument: DriverOnboardingDocumentUpload,
+    val vehiclePhoto: DriverOnboardingDocumentUpload,
 )
 
 data class DriverOnboardingDocumentUpload(
@@ -128,6 +129,7 @@ enum class DriverOnboardingDocumentType(val apiValue: String, val displayName: S
     LicenseBack("driver_license_back", "License back"),
     Selfie("driver_selfie", "Driver selfie"),
     VehicleRegistration("vehicle_registration", "Vehicle registration"),
+    VehiclePhoto("vehicle_photo", "Vehicle photo"),
 }
 
 fun String.toDriverOnboardingState(): DriverOnboardingState {
