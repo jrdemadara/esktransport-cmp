@@ -53,8 +53,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.PathFillType
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -294,18 +298,29 @@ private fun CaptureGuideOverlay(
     type: DriverOnboardingDocumentType,
     isGood: Boolean,
 ) {
-    val guideColor = if (isGood) Color(0xFF22C55E) else Color.White
+    val overlayColor = if (isGood) {
+        Color(0xFF16A34A).copy(alpha = 0.70f)
+    } else {
+        Color(0xFF2563EB).copy(alpha = 0.70f)
+    }
+    val guideColor = if (isGood) Color(0xFF22C55E) else Color(0xFFBFDBFE)
     Canvas(modifier = Modifier.fillMaxSize()) {
         val guideBounds = guideBoundsFor(
             type = type,
             frameWidth = size.width,
             frameHeight = size.height,
         )
-        drawRoundRect(
-            color = Color.Black.copy(alpha = 0.28f),
-            topLeft = Offset.Zero,
-            size = size,
-        )
+        val overlayPath = Path().apply {
+            fillType = PathFillType.EvenOdd
+            addRect(Rect(Offset.Zero, size))
+            addRoundRect(
+                RoundRect(
+                    rect = Rect(guideBounds.topLeft, guideBounds.size),
+                    cornerRadius = CornerRadius(guideBounds.cornerRadius, guideBounds.cornerRadius),
+                ),
+            )
+        }
+        drawPath(path = overlayPath, color = overlayColor)
         drawRoundRect(
             color = guideColor,
             topLeft = guideBounds.topLeft,
