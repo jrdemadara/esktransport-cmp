@@ -32,6 +32,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -219,7 +220,10 @@ actual fun DriverDocumentCaptureScreen(
                 modifier = Modifier.fillMaxSize(),
                 factory = { previewView },
             )
-            CaptureGuideOverlay(type = type, isGood = assessment.isGood)
+            CaptureGuideOverlay(
+                type = type,
+                isGood = assessment.isGood,
+            )
             CaptureTopBar(title = type.captureTitle(), onClose = onClose)
             CaptureBottomPanel(
                 assessment = assessment,
@@ -337,27 +341,41 @@ private fun CaptureBottomPanel(
     isCapturing: Boolean,
     modifier: Modifier = Modifier,
 ) {
+    val statusColor = if (assessment.isGood) Color(0xFF22C55E) else Color(0xFF93C5FD)
     Surface(
         modifier = modifier
             .fillMaxWidth()
             .padding(16.dp),
-        shape = RoundedCornerShape(14.dp),
-        color = MaterialTheme.colorScheme.surface,
-        contentColor = MaterialTheme.colorScheme.onSurface,
+        shape = RoundedCornerShape(12.dp),
+        color = Color.Black.copy(alpha = 0.72f),
+        contentColor = Color.White,
     ) {
         Column(
-            modifier = Modifier.padding(14.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Text(
-                text = assessment.message,
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Medium,
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Canvas(modifier = Modifier.size(9.dp)) {
+                    drawCircle(color = statusColor)
+                }
+                Text(
+                    text = assessment.message,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Medium,
+                    color = Color.White,
+                    modifier = Modifier.weight(1f),
+                )
+            }
             if (assessment.isGood) {
                 LinearProgressIndicator(
                     progress = { assessment.progress },
                     modifier = Modifier.fillMaxWidth(),
+                    color = Color(0xFF22C55E),
+                    trackColor = Color.White.copy(alpha = 0.18f),
                 )
             }
             if (isCapturing) {
@@ -366,11 +384,15 @@ private fun CaptureBottomPanel(
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    CircularProgressIndicator()
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(18.dp),
+                        color = Color.White,
+                        strokeWidth = 2.dp,
+                    )
                     Text(
                         text = "Capturing...",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = Color.White.copy(alpha = 0.78f),
                     )
                 }
             }
