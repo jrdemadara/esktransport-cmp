@@ -53,8 +53,10 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.backhandler.BackHandler
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
@@ -90,7 +92,8 @@ import org.noztek.esktransport.core.map.PlatformMapView
 private val GoButtonBlue = Color(0xFF2F80ED)
 private val GoButtonSubmittingGray = Color(0xFF9CA3AF)
 
-@OptIn(ExperimentalMaterial3Api::class)
+@Suppress("DEPRECATION")
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalComposeUiApi::class)
 @Composable
 fun GoScreen(
     viewModel: GoViewModel = koinViewModel(),
@@ -105,6 +108,10 @@ fun GoScreen(
     val lifecycleOwner = LocalLifecycleOwner.current
     var showSafetySheet by remember { mutableStateOf(false) }
     var lastAvailability by remember { mutableStateOf(homeState.isAvailable) }
+
+    BackHandler(enabled = true) {
+        // Keep Driver Mode as a focused session. Exit is handled from app navigation, not back gestures.
+    }
 
     LaunchedEffect(viewModel) {
         launch {
