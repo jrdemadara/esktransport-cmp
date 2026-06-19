@@ -129,9 +129,7 @@ fun HomeScreen(
                 onlineTime = onlineTime,
                 ratingLabel = ratingLabel,
             )
-            uiState.onboardingStatus?.vehicle?.takeIf { it.exists }?.let { vehicle ->
-                VehicleSummaryPanel(vehicle = vehicle)
-            }
+
             DriverSetupCard(
                 isLoading = uiState.isLoadingSetup,
                 status = uiState.onboardingStatus,
@@ -343,55 +341,6 @@ private fun StatSeparator() {
             .size(width = 1.dp, height = 34.dp)
             .background(MaterialTheme.colorScheme.outlineVariant),
     )
-}
-
-@Composable
-private fun VehicleSummaryPanel(
-    vehicle: DriverVehicleInfo?,
-) {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(8.dp),
-        color = MaterialTheme.colorScheme.surface,
-        contentColor = MaterialTheme.colorScheme.onSurface,
-    ) {
-        Column(
-            modifier = Modifier.padding(14.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Column(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(2.dp),
-                ) {
-                    Text(
-                        text = "Vehicle",
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Text(
-                        text = vehicle?.displayName().orEmpty().ifBlank { "No vehicle added" },
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.SemiBold,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-                VehicleStatusPill(vehicle = vehicle)
-            }
-
-            Text(
-                text = vehicle?.detailLine().orEmpty().ifBlank { "Add the vehicle details used for passenger service." },
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 2,
-            )
-        }
-    }
 }
 
 @Composable
