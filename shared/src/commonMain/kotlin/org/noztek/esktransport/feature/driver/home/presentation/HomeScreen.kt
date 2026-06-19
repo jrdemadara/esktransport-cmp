@@ -78,6 +78,7 @@ fun HomeScreen(
     onProfileClick: () -> Unit = {},
     onBottomBarNavigate: (String) -> Unit = {},
     onSetupClick: (DriverOnboardingStatus?) -> Unit = {},
+    onDriverModeClick: () -> Unit = {},
     viewModel: HomeViewModel = koinViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -128,6 +129,20 @@ fun HomeScreen(
                 totalTrips = totalTrips,
                 onlineTime = onlineTime,
                 ratingLabel = ratingLabel,
+            )
+
+            AppPrimaryButton(
+                text = "Switch to Driver Mode",
+                onClick = onDriverModeClick,
+                height = 44.dp,
+                contentPadding = PaddingValues(horizontal = 16.dp),
+                trailingIcon = {
+                    Icon(
+                        imageVector = Heroicons.Outline.ChevronRight,
+                        contentDescription = null,
+                        modifier = Modifier.size(15.dp),
+                    )
+                },
             )
 
             DriverSetupCard(

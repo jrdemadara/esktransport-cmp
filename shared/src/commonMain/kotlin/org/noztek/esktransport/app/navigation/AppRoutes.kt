@@ -25,6 +25,7 @@ object PassengerRoute {
 
 object DriverRoute {
     const val HOME = "driver/home"
+    const val GO = "driver/go"
 }
 
 object DevRoute {

@@ -7,6 +7,7 @@ import androidx.navigation.navigation
 import androidx.savedstate.read
 import org.koin.compose.koinInject
 import org.noztek.esktransport.core.map.MapboxConfig
+import org.noztek.esktransport.feature.driver.go.presentation.GoScreen
 import org.noztek.esktransport.feature.driver.home.presentation.HomeScreen
 import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverOnboardingStatus
 import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverRequirementStatus
@@ -26,6 +27,20 @@ fun NavGraphBuilder.driverNavGraph(navController: NavHostController) {
             HomeScreen(
                 onSetupClick = { status ->
                     navController.navigate(status.nextSetupRoute()) {
+                        launchSingleTop = true
+                    }
+                },
+                onDriverModeClick = {
+                    navController.navigate(DriverRoute.GO) {
+                        launchSingleTop = true
+                    }
+                },
+            )
+        }
+        composable(DriverRoute.GO) {
+            GoScreen(
+                onNavigateToTrip = { bookingPublicId ->
+                    navController.navigate("$ROUTE_DRIVER_TRIP_TRACKING/$bookingPublicId") {
                         launchSingleTop = true
                     }
                 },

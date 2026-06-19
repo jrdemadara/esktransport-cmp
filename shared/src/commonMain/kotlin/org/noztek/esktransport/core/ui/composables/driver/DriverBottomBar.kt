@@ -12,13 +12,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import com.composables.icons.heroicons.Heroicons
-import com.composables.icons.heroicons.outline.ChartBar
 import com.composables.icons.heroicons.outline.ChartBarSquare
-import com.composables.icons.heroicons.outline.CurrencyDollar
 import com.composables.icons.heroicons.outline.Home
 import com.composables.icons.heroicons.outline.QueueList
 import com.composables.icons.heroicons.outline.User
-import com.composables.icons.heroicons.solid.ChartBar
 
 data class DriverBottomBarItem(
     val route: String,
