@@ -10,6 +10,7 @@ import android.graphics.PointF
 import android.net.Uri
 import android.os.Handler
 import android.os.Looper
+import android.provider.OpenableColumns
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.OptIn
@@ -28,14 +29,19 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -70,6 +76,8 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.composables.icons.heroicons.Heroicons
 import com.composables.icons.heroicons.outline.ArrowLeft
+import com.composables.icons.heroicons.outline.Camera
+import com.composables.icons.heroicons.outline.Photo
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.face.Face
 import com.google.mlkit.vision.face.FaceDetection
@@ -88,6 +96,15 @@ actual fun DriverDocumentCaptureScreen(
     onCaptured: (CapturedDocumentImage) -> Unit,
     onClose: () -> Unit,
 ) {
+    if (type.usesSimpleVehicleCapture()) {
+        SimpleVehicleDocumentCaptureScreen(
+            type = type,
+            onCaptured = onCaptured,
+            onClose = onClose,
+        )
+        return
+    }
+
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val mainExecutor = remember { MainThreadExecutor() }
@@ -233,6 +250,233 @@ actual fun DriverDocumentCaptureScreen(
                 isCapturing = isCapturing,
                 modifier = Modifier.align(Alignment.BottomCenter),
             )
+        }
+    }
+}
+
+@Composable
+private fun SimpleVehicleDocumentCaptureScreen(
+    type: DriverOnboardingDocumentType,
+    onCaptured: (CapturedDocumentImage) -> Unit,
+    onClose: () -> Unit,
+) {
+    val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+    val mainExecutor = remember { MainThreadExecutor() }
+    val cameraExecutor = remember { Executors.newSingleThreadExecutor() }
+    val previewView = remember { PreviewView(context) }
+    var hasCameraPermission by remember {
+        mutableStateOf(context.checkSelfPermission(Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED)
+    }
+    var cameraProvider by remember { mutableStateOf<ProcessCameraProvider?>(null) }
+    var imageCapture by remember { mutableStateOf<ImageCapture?>(null) }
+    var isCapturing by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+
+    val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        hasCameraPermission = granted
+        if (!granted) errorMessage = "Camera permission is required to capture a new photo."
+    }
+    val galleryLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri == null) return@rememberLauncherForActivityResult
+
+        runCatching {
+            uri.readPickedImage(context = context, fallbackName = "driver_${type.apiValue}_${System.currentTimeMillis()}.jpg")
+        }.onSuccess(onCaptured)
+            .onFailure { errorMessage = "Unable to read selected image." }
+    }
+
+    LaunchedEffect(Unit) {
+        if (!hasCameraPermission) {
+            permissionLauncher.launch(Manifest.permission.CAMERA)
+        }
+    }
+
+    LaunchedEffect(hasCameraPermission, type) {
+        if (!hasCameraPermission) return@LaunchedEffect
+
+        val providerFuture = ProcessCameraProvider.getInstance(context)
+        providerFuture.addListener(
+            {
+                val provider = providerFuture.get()
+                cameraProvider = provider
+
+                val preview = CameraPreview.Builder().build().also {
+                    it.setSurfaceProvider(previewView.surfaceProvider)
+                }
+                val capture = ImageCapture.Builder()
+                    .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
+                    .setJpegQuality(88)
+                    .build()
+                imageCapture = capture
+
+                val selector = CameraSelector.Builder()
+                    .requireLensFacing(CameraSelector.LENS_FACING_BACK)
+                    .build()
+                provider.unbindAll()
+                provider.bindToLifecycle(lifecycleOwner, selector, preview, capture)
+            },
+            mainExecutor,
+        )
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            cameraProvider?.unbindAll()
+            cameraExecutor.shutdown()
+        }
+    }
+
+    Scaffold(
+        containerColor = Color.Black,
+        contentWindowInsets = WindowInsets.safeDrawing,
+    ) { innerPadding ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .background(Color.Black),
+        ) {
+            if (hasCameraPermission) {
+                AndroidView(
+                    modifier = Modifier.fillMaxSize(),
+                    factory = { previewView },
+                )
+            } else {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(24.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterVertically),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    Text(
+                        text = "Camera permission is required to capture a new photo.",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = Color.White,
+                    )
+                    Text(
+                        text = "You can still choose an image from your gallery.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color.White.copy(alpha = 0.72f),
+                    )
+                    AppPrimaryButton(
+                        text = "Allow camera",
+                        onClick = { permissionLauncher.launch(Manifest.permission.CAMERA) },
+                    )
+                }
+            }
+
+            CaptureTopBar(title = type.captureTitle(), onClose = onClose)
+            SimpleCaptureBottomPanel(
+                type = type,
+                isCapturing = isCapturing,
+                errorMessage = errorMessage,
+                onCaptureClick = {
+                    val capture = imageCapture
+                    if (capture == null) {
+                        errorMessage = "Camera is not ready yet."
+                    } else {
+                        isCapturing = true
+                        errorMessage = null
+                        captureSimpleImage(
+                            type = type,
+                            context = context,
+                            imageCapture = capture,
+                            executor = cameraExecutor,
+                            mainExecutor = mainExecutor,
+                            onCaptured = onCaptured,
+                            onError = { message ->
+                                isCapturing = false
+                                errorMessage = message
+                            },
+                        )
+                    }
+                },
+                onGalleryClick = { galleryLauncher.launch(arrayOf("image/*")) },
+                modifier = Modifier.align(Alignment.BottomCenter),
+            )
+        }
+    }
+}
+
+@Composable
+private fun SimpleCaptureBottomPanel(
+    type: DriverOnboardingDocumentType,
+    isCapturing: Boolean,
+    errorMessage: String?,
+    onCaptureClick: () -> Unit,
+    onGalleryClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(16.dp),
+        shape = RoundedCornerShape(12.dp),
+        color = Color.Black.copy(alpha = 0.74f),
+        contentColor = Color.White,
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Text(
+                text = "Capture a clear ${type.shortLabel()} image.",
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Medium,
+                color = Color.White,
+            )
+            if (errorMessage != null) {
+                Text(
+                    text = errorMessage,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color(0xFFFCA5A5),
+                )
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                OutlinedButton(
+                    onClick = onGalleryClick,
+                    enabled = !isCapturing,
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(54.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    contentPadding = PaddingValues(horizontal = 18.dp),
+                ) {
+                    Icon(
+                        imageVector = Heroicons.Outline.Photo,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp),
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Gallery", fontWeight = FontWeight.SemiBold)
+                }
+                Button(
+                    onClick = onCaptureClick,
+                    enabled = !isCapturing,
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(54.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    contentPadding = PaddingValues(horizontal = 18.dp),
+                ) {
+                    Icon(
+                        imageVector = Heroicons.Outline.Camera,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp),
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = if (isCapturing) "Capturing..." else "Capture",
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
+            }
         }
     }
 }
@@ -466,6 +710,49 @@ private fun captureDocument(
     )
 }
 
+private fun captureSimpleImage(
+    type: DriverOnboardingDocumentType,
+    context: Context,
+    imageCapture: ImageCapture,
+    executor: Executor,
+    mainExecutor: Executor,
+    onCaptured: (CapturedDocumentImage) -> Unit,
+    onError: (String) -> Unit,
+) {
+    val file = File(context.cacheDir, "driver_${type.apiValue}_${System.currentTimeMillis()}.jpg")
+    val outputOptions = ImageCapture.OutputFileOptions.Builder(file).build()
+    imageCapture.takePicture(
+        outputOptions,
+        executor,
+        object : ImageCapture.OnImageSavedCallback {
+            override fun onImageSaved(outputFileResults: ImageCapture.OutputFileResults) {
+                val bytes = runCatching { file.readCompressedJpegBytes() }.getOrNull()
+                file.delete()
+                mainExecutor.execute {
+                    if (bytes != null) {
+                        onCaptured(
+                            CapturedDocumentImage(
+                                fileName = file.name,
+                                mimeType = "image/jpeg",
+                                bytes = bytes,
+                            ),
+                        )
+                    } else {
+                        onError("Capture failed. Try again.")
+                    }
+                }
+            }
+
+            override fun onError(exception: ImageCaptureException) {
+                file.delete()
+                mainExecutor.execute {
+                    onError("Capture failed. Hold steady and try again.")
+                }
+            }
+        },
+    )
+}
+
 private fun validateCapturedSelfie(
     context: Context,
     file: File,
@@ -554,6 +841,69 @@ private fun File.readCroppedCompressedJpegBytes(
         }
         bitmap.recycle()
         output.toByteArray()
+    }
+}
+
+private fun Uri.readPickedImage(
+    context: Context,
+    fallbackName: String,
+): CapturedDocumentImage {
+    val resolver = context.contentResolver
+    val fileName = resolver.query(this, null, null, null, null)?.use { cursor ->
+        val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+        if (cursor.moveToFirst() && nameIndex >= 0) cursor.getString(nameIndex) else null
+    } ?: fallbackName
+    val tempFile = File(context.cacheDir, "picked_${System.currentTimeMillis()}.jpg")
+    resolver.openInputStream(this)?.use { input ->
+        tempFile.outputStream().use { output -> input.copyTo(output) }
+    } ?: error("Unable to open selected image.")
+
+    val bytes = try {
+        tempFile.readCompressedJpegBytes()
+    } finally {
+        tempFile.delete()
+    }
+
+    return CapturedDocumentImage(
+        fileName = fileName.withJpegExtension(),
+        mimeType = "image/jpeg",
+        bytes = bytes,
+    )
+}
+
+private fun File.readCompressedJpegBytes(): ByteArray {
+    val bounds = BitmapFactory.Options().apply {
+        inJustDecodeBounds = true
+    }
+    BitmapFactory.decodeFile(absolutePath, bounds)
+
+    val maxDimension = 1600
+    var sampleSize = 1
+    while ((bounds.outWidth / sampleSize) > maxDimension || (bounds.outHeight / sampleSize) > maxDimension) {
+        sampleSize *= 2
+    }
+
+    val options = BitmapFactory.Options().apply {
+        inSampleSize = sampleSize
+    }
+    val decodedBitmap = BitmapFactory.decodeFile(absolutePath, options) ?: return readBytes()
+    val bitmap = decodedBitmap.rotateByExif(absolutePath)
+    if (bitmap !== decodedBitmap) {
+        decodedBitmap.recycle()
+    }
+
+    return ByteArrayOutputStream().use { output ->
+        bitmap.compress(Bitmap.CompressFormat.JPEG, 84, output)
+        bitmap.recycle()
+        output.toByteArray()
+    }
+}
+
+private fun String.withJpegExtension(): String {
+    return if (endsWith(".jpg", ignoreCase = true) || endsWith(".jpeg", ignoreCase = true)) {
+        this
+    } else {
+        substringBeforeLast('.', missingDelimiterValue = this) + ".jpg"
     }
 }
 
@@ -679,15 +1029,15 @@ private fun guideBoundsFor(
     frameHeight: Float,
     selfieVerticalShiftFraction: Float = 0f,
 ): CaptureGuideBounds {
-    val guideWidth = if (type == DriverOnboardingDocumentType.Selfie) {
-        frameWidth * 0.72f
-    } else {
-        frameWidth * 0.84f
+    val guideWidth = when (type) {
+        DriverOnboardingDocumentType.Selfie -> frameWidth * 0.72f
+        DriverOnboardingDocumentType.VehicleRegistration -> frameWidth * 0.68f
+        else -> frameWidth * 0.84f
     }
-    val guideHeight = if (type == DriverOnboardingDocumentType.Selfie) {
-        (guideWidth * 1.28f).coerceAtMost(frameHeight * 0.58f)
-    } else {
-        guideWidth * 0.62f
+    val guideHeight = when (type) {
+        DriverOnboardingDocumentType.Selfie -> (guideWidth * 1.28f).coerceAtMost(frameHeight * 0.58f)
+        DriverOnboardingDocumentType.VehicleRegistration -> (guideWidth * 1.42f).coerceAtMost(frameHeight * 0.72f)
+        else -> guideWidth * 0.62f
     }
     val left = (frameWidth - guideWidth) / 2f
     val top = (frameHeight - guideHeight) / 2f - frameHeight * 0.04f + frameHeight * selfieVerticalShiftFraction
@@ -1033,6 +1383,10 @@ private fun DriverOnboardingDocumentType.captureTitle(): String {
         DriverOnboardingDocumentType.VehicleRegistration -> "Capture vehicle registration"
         DriverOnboardingDocumentType.VehiclePhoto -> "Capture vehicle photo"
     }
+}
+
+private fun DriverOnboardingDocumentType.usesSimpleVehicleCapture(): Boolean {
+    return this == DriverOnboardingDocumentType.VehiclePhoto
 }
 
 private fun DriverOnboardingDocumentType.initialPrompt(): String {

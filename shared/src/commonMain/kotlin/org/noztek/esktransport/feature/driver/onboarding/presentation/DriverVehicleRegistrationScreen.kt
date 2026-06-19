@@ -426,7 +426,7 @@ private fun VehicleRegistrationPreviewCard(
                     bytes = preview.bytes,
                     contentDescription = contentDescription,
                     modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Fit,
+                    contentScale = ContentScale.Crop,
                 )
             }
             Column(
