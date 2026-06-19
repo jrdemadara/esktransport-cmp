@@ -18,9 +18,12 @@ import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverVehi
 import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverVehicleSetupPayload
 import org.noztek.esktransport.feature.driver.onboarding.domain.usecase.GetDriverOnboardingStatusUseCase
 import org.noztek.esktransport.feature.driver.onboarding.domain.usecase.GetDriverServiceZonesUseCase
+import org.noztek.esktransport.feature.driver.onboarding.domain.usecase.ObserveDriverOnboardingStatusChangedUseCase
 import org.noztek.esktransport.feature.driver.onboarding.domain.usecase.SubmitDriverIdentityVerificationUseCase
 import org.noztek.esktransport.feature.driver.onboarding.domain.usecase.SubmitDriverServiceZonesUseCase
 import org.noztek.esktransport.feature.driver.onboarding.domain.usecase.SubmitDriverVehicleRegistrationUseCase
+import org.noztek.esktransport.feature.driver.onboarding.domain.usecase.SubscribeDriverOnboardingRealtimeUseCase
+import org.noztek.esktransport.feature.driver.onboarding.domain.usecase.UnsubscribeDriverOnboardingRealtimeUseCase
 
 class DriverOnboardingViewModel(
     private val getDriverOnboardingStatusUseCase: GetDriverOnboardingStatusUseCase,
@@ -28,12 +31,16 @@ class DriverOnboardingViewModel(
     private val submitDriverIdentityVerificationUseCase: SubmitDriverIdentityVerificationUseCase,
     private val submitDriverVehicleRegistrationUseCase: SubmitDriverVehicleRegistrationUseCase,
     private val submitDriverServiceZonesUseCase: SubmitDriverServiceZonesUseCase,
+    private val observeDriverOnboardingStatusChangedUseCase: ObserveDriverOnboardingStatusChangedUseCase,
+    private val subscribeDriverOnboardingRealtimeUseCase: SubscribeDriverOnboardingRealtimeUseCase,
+    private val unsubscribeDriverOnboardingRealtimeUseCase: UnsubscribeDriverOnboardingRealtimeUseCase,
     private val ioDispatcher: CoroutineDispatcher,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(DriverOnboardingUiState())
     val uiState: StateFlow<DriverOnboardingUiState> = _uiState.asStateFlow()
 
     init {
+        observeDriverOnboardingRealtime()
         refresh()
     }
 
@@ -309,6 +316,7 @@ class DriverOnboardingViewModel(
         status: DriverOnboardingStatus,
         successMessage: String? = null,
     ) {
+        subscribeDriverOnboardingRealtimeUseCase(status.driverId)
         _uiState.update {
             it.copy(
                 isLoading = false,
@@ -324,6 +332,41 @@ class DriverOnboardingViewModel(
                 year = status.vehicle.year?.toString() ?: it.year,
                 passengerCapacity = status.vehicle.passengerCapacity?.toString() ?: it.passengerCapacity,
                 selectedServiceZoneIds = status.serviceZones.map { zone -> zone.id }.toSet(),
+            )
+        }
+    }
+
+    override fun onCleared() {
+        unsubscribeDriverOnboardingRealtimeUseCase()
+        super.onCleared()
+    }
+
+    private fun observeDriverOnboardingRealtime() {
+        viewModelScope.launch {
+            observeDriverOnboardingStatusChangedUseCase().collect { event ->
+                val currentDriverId = _uiState.value.status?.driverId
+                if (currentDriverId == null || currentDriverId == event.driverId) {
+                    refreshFromRealtime(event.message)
+                }
+            }
+        }
+    }
+
+    private fun refreshFromRealtime(message: String?) {
+        viewModelScope.launch {
+            val result = withContext(ioDispatcher) { getDriverOnboardingStatusUseCase() }
+            result.fold(
+                onSuccess = { status ->
+                    applyStatus(
+                        status = status,
+                        successMessage = message ?: "Your driver setup status has been updated.",
+                    )
+                },
+                onFailure = { throwable ->
+                    _uiState.update {
+                        it.copy(errorMessage = throwable.message ?: "Unable to refresh driver setup.")
+                    }
+                },
             )
         }
     }

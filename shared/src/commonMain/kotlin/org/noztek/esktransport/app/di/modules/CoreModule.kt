@@ -11,6 +11,8 @@ import org.noztek.esktransport.core.realtime.RealtimeChannelNamer
 import org.noztek.esktransport.core.realtime.createRealtimeClient
 import org.noztek.esktransport.core.realtime.driver.PusherDriverBookingOfferRealtime
 import org.noztek.esktransport.core.realtime.driver.DriverBookingOfferRealtime
+import org.noztek.esktransport.core.realtime.driver.DriverOnboardingRealtime
+import org.noztek.esktransport.core.realtime.driver.PusherDriverOnboardingRealtime
 import org.noztek.esktransport.core.realtime.passenger.PusherPassengerRealtimeCoordinator
 import org.noztek.esktransport.core.realtime.passenger.PassengerRealtimeCoordinator
 import org.noztek.esktransport.core.session.SessionManager
@@ -34,6 +36,13 @@ val coreModule = module {
             channelNamer = get(),
             sessionManager = get(),
             ioDispatcher = get(named(IO_DISPATCHER_QUALIFIER)),
+            json = get(),
+        )
+    }
+    single<DriverOnboardingRealtime> {
+        PusherDriverOnboardingRealtime(
+            realtimeClient = get(),
+            channelNamer = get(),
             json = get(),
         )
     }

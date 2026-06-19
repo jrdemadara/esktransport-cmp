@@ -17,9 +17,12 @@ import org.noztek.esktransport.feature.driver.onboarding.data.remote.DriverOnboa
 import org.noztek.esktransport.feature.driver.onboarding.domain.repository.DriverOnboardingRepository
 import org.noztek.esktransport.feature.driver.onboarding.domain.usecase.GetDriverOnboardingStatusUseCase
 import org.noztek.esktransport.feature.driver.onboarding.domain.usecase.GetDriverServiceZonesUseCase
+import org.noztek.esktransport.feature.driver.onboarding.domain.usecase.ObserveDriverOnboardingStatusChangedUseCase
 import org.noztek.esktransport.feature.driver.onboarding.domain.usecase.SubmitDriverIdentityVerificationUseCase
 import org.noztek.esktransport.feature.driver.onboarding.domain.usecase.SubmitDriverServiceZonesUseCase
 import org.noztek.esktransport.feature.driver.onboarding.domain.usecase.SubmitDriverVehicleRegistrationUseCase
+import org.noztek.esktransport.feature.driver.onboarding.domain.usecase.SubscribeDriverOnboardingRealtimeUseCase
+import org.noztek.esktransport.feature.driver.onboarding.domain.usecase.UnsubscribeDriverOnboardingRealtimeUseCase
 import org.noztek.esktransport.feature.driver.onboarding.presentation.DriverOnboardingViewModel
 
 val driverHomeModule = module {
@@ -31,6 +34,9 @@ val driverHomeModule = module {
     single { SetDriverAvailabilityUseCase(repository = get()) }
     single { GetDriverOnboardingStatusUseCase(repository = get()) }
     single { GetDriverServiceZonesUseCase(repository = get()) }
+    single { ObserveDriverOnboardingStatusChangedUseCase(realtime = get()) }
+    single { SubscribeDriverOnboardingRealtimeUseCase(realtime = get()) }
+    single { UnsubscribeDriverOnboardingRealtimeUseCase(realtime = get()) }
     single { SubmitDriverIdentityVerificationUseCase(repository = get()) }
     single { SubmitDriverVehicleRegistrationUseCase(repository = get()) }
     single { SubmitDriverServiceZonesUseCase(repository = get()) }
@@ -46,6 +52,9 @@ val driverHomeModule = module {
     factory {
         HomeViewModel(
             getDriverOnboardingStatusUseCase = get(),
+            observeDriverOnboardingStatusChangedUseCase = get(),
+            subscribeDriverOnboardingRealtimeUseCase = get(),
+            unsubscribeDriverOnboardingRealtimeUseCase = get(),
             ioDispatcher = get(named(IO_DISPATCHER_QUALIFIER)),
         )
     }
@@ -56,6 +65,9 @@ val driverHomeModule = module {
             submitDriverIdentityVerificationUseCase = get(),
             submitDriverVehicleRegistrationUseCase = get(),
             submitDriverServiceZonesUseCase = get(),
+            observeDriverOnboardingStatusChangedUseCase = get(),
+            subscribeDriverOnboardingRealtimeUseCase = get(),
+            unsubscribeDriverOnboardingRealtimeUseCase = get(),
             ioDispatcher = get(named(IO_DISPATCHER_QUALIFIER)),
         )
     }
