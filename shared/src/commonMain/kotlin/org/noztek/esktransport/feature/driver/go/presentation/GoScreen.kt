@@ -184,7 +184,6 @@ fun GoScreen(
                 modifier = Modifier
                     .align(Alignment.TopStart)
                     .padding(start = 16.dp, top = 92.dp),
-                onMockOfferClick = viewModel::showMockIncomingOffer,
                 onSafetyClick = { showSafetySheet = true },
                 isAvailable = homeState.isAvailable,
                 isSubmitting = homeState.isSubmitting,
@@ -223,7 +222,7 @@ fun GoScreen(
                     isAccepting = homeState.isAcceptingOffer,
                     soundEffectPlayer = soundEffectPlayer,
                     onDecline = {
-                        soundEffectPlayer.play(SoundEffect.Close)
+                        soundEffectPlayer.play(SoundEffect.Denied)
                         viewModel.dismissOfferSheet()
                     },
                     onTimeout = viewModel::expireCurrentOffer,
@@ -235,7 +234,10 @@ fun GoScreen(
 
     if (showSafetySheet) {
         ModalBottomSheet(
-            onDismissRequest = { showSafetySheet = false },
+            onDismissRequest = {
+                soundEffectPlayer.play(SoundEffect.Denied)
+                showSafetySheet = false
+            },
             sheetState = safetySheetState,
         ) {
             SafetyToolkitSheet()
@@ -300,7 +302,6 @@ private fun DriverHomeToolbar(
 @Composable
 private fun DriverFloatingActions(
     modifier: Modifier = Modifier,
-    onMockOfferClick: () -> Unit,
     onSafetyClick: () -> Unit,
     isAvailable: Boolean,
     isSubmitting: Boolean,
@@ -312,7 +313,7 @@ private fun DriverFloatingActions(
         verticalArrangement = Arrangement.spacedBy(10.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        CircleIconButton(onClick = onMockOfferClick) {
+        CircleIconButton(onClick = {}) {
             Icon(
                 imageVector = Heroicons.Solid.Flag,
                 contentDescription = "Incoming request",

@@ -247,20 +247,6 @@ class GoViewModel(
         }
     }
 
-    fun showMockIncomingOffer() {
-        _uiState.update {
-            it.copy(
-                currentOffer = GoBookingOfferUiModel(
-                    bookingPublicId = "mock-booking-offer-001",
-                    passengerName = "Passenger",
-                    pickupLabel = "New Castle, Bachatle 3982",
-                    destinationLabel = "Beza Building, aadis 3259",
-                    fareLabel = "₱184.50",
-                ),
-            )
-        }
-    }
-
     fun acceptCurrentOffer() {
         val offer = _uiState.value.currentOffer ?: return
         if (_uiState.value.isAcceptingOffer) return
