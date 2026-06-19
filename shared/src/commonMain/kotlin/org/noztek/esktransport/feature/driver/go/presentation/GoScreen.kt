@@ -35,16 +35,13 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberDrawerState
 import androidx.compose.material3.rememberModalBottomSheetState
-import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
@@ -55,7 +52,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -79,7 +75,6 @@ import com.composables.icons.heroicons.solid.Flag
 import com.composables.icons.heroicons.outline.QueueList
 import com.composables.icons.heroicons.Heroicons
 import com.composables.icons.heroicons.outline.MapPin
-import com.composables.icons.heroicons.outline.Bars3
 import com.composables.icons.heroicons.outline.MagnifyingGlass
 import com.composables.icons.heroicons.outline.ShieldCheck
 import com.composables.icons.heroicons.outline.AdjustmentsHorizontal
@@ -105,8 +100,6 @@ fun GoScreen(
     onNavigateToTrip: (bookingPublicId: String) -> Unit = {},
 ) {
     val homeState by viewModel.uiState.collectAsState()
-    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
-    val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
     val safetySheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -148,77 +141,70 @@ fun GoScreen(
         lastAvailability = homeState.isAvailable
     }
 
-    ModalNavigationDrawer(
-        drawerState = drawerState,
-        gesturesEnabled = drawerState.isOpen,
-        drawerContent = { DrawerContent() },
-    ) {
-        Scaffold(
-            snackbarHost = { SnackbarHost(snackbarHostState) },
-            contentWindowInsets = WindowInsets.safeDrawing,
-        ) { paddingValues ->
-            Box(
+    Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        contentWindowInsets = WindowInsets.safeDrawing,
+    ) { paddingValues ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues),
+        ) {
+            PlatformMapView(
+                modifier = Modifier.fillMaxSize(),
+                config = mapboxConfig,
+                cameraCenter = MapPoint(latitude = 6.6881, longitude = 124.6779),
+                cameraDefaults = cameraDefaults.copy(zoom = 12.4, pitch = 0.0),
+            )
+
+            DriverHomeToolbar(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues),
-            ) {
-                PlatformMapView(
-                    modifier = Modifier.fillMaxSize(),
-                    config = mapboxConfig,
-                    cameraCenter = MapPoint(latitude = 6.6881, longitude = 124.6779),
-                    cameraDefaults = cameraDefaults.copy(zoom = 12.4, pitch = 0.0),
-                )
+                    .align(Alignment.TopCenter)
+                    .padding(horizontal = 18.dp, vertical = 12.dp),
+            )
 
-                DriverHomeToolbar(
+            DriverFloatingActions(
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .padding(start = 16.dp, top = 92.dp),
+                onMockOfferClick = viewModel::showMockIncomingOffer,
+                onSafetyClick = { showSafetySheet = true },
+            )
+
+            if (!homeState.isAvailable) {
+                DriverGoButton(
                     modifier = Modifier
-                        .align(Alignment.TopCenter)
-                        .padding(horizontal = 18.dp, vertical = 12.dp),
-                    onMenuClick = { scope.launch { drawerState.open() } },
+                        .align(Alignment.BottomCenter)
+                        .padding(bottom = 80.dp),
+                    isSubmitting = homeState.isSubmitting,
+                    onClick = {
+                        soundEffectPlayer.play(SoundEffect.Tap)
+                        viewModel.onGoToggle()
+                    },
                 )
+            }
 
-                DriverFloatingActions(
-                    modifier = Modifier
-                        .align(Alignment.TopStart)
-                        .padding(start = 16.dp, top = 92.dp),
-                    onMockOfferClick = viewModel::showMockIncomingOffer,
-                    onSafetyClick = { showSafetySheet = true },
+            if (homeState.currentOffer == null) {
+                DriverAvailabilitySheet(
+                    modifier = Modifier.align(Alignment.BottomCenter),
+                    isAvailable = homeState.isAvailable,
+                    isSubmitting = homeState.isSubmitting,
                 )
+            }
 
-                if (!homeState.isAvailable) {
-                    DriverGoButton(
-                        modifier = Modifier
-                            .align(Alignment.BottomCenter)
-                            .padding(bottom = 80.dp),
-                        isSubmitting = homeState.isSubmitting,
-                        onClick = {
-                            soundEffectPlayer.play(SoundEffect.Tap)
-                            viewModel.onGoToggle()
-                        },
-                    )
-                }
-
-                if (homeState.currentOffer == null) {
-                    DriverAvailabilitySheet(
-                        modifier = Modifier.align(Alignment.BottomCenter),
-                        isAvailable = homeState.isAvailable,
-                        isSubmitting = homeState.isSubmitting,
-                    )
-                }
-
-                homeState.currentOffer?.let { offer ->
-                    IncomingOfferOverlay(
-                        modifier = Modifier.align(Alignment.BottomCenter),
-                        offer = offer,
-                        isAccepting = homeState.isAcceptingOffer,
-                        soundEffectPlayer = soundEffectPlayer,
-                        onDecline = {
-                            soundEffectPlayer.play(SoundEffect.Close)
-                            viewModel.dismissOfferSheet()
-                        },
-                        onTimeout = viewModel::expireCurrentOffer,
-                        onAccept = viewModel::acceptCurrentOffer,
-                    )
-                }
+            homeState.currentOffer?.let { offer ->
+                IncomingOfferOverlay(
+                    modifier = Modifier.align(Alignment.BottomCenter),
+                    offer = offer,
+                    isAccepting = homeState.isAcceptingOffer,
+                    soundEffectPlayer = soundEffectPlayer,
+                    onDecline = {
+                        soundEffectPlayer.play(SoundEffect.Close)
+                        viewModel.dismissOfferSheet()
+                    },
+                    onTimeout = viewModel::expireCurrentOffer,
+                    onAccept = viewModel::acceptCurrentOffer,
+                )
             }
         }
     }
@@ -236,7 +222,6 @@ fun GoScreen(
 @Composable
 private fun DriverHomeToolbar(
     modifier: Modifier = Modifier,
-    onMenuClick: () -> Unit,
 ) {
     Surface(
         modifier = modifier.fillMaxWidth(),
@@ -251,12 +236,7 @@ private fun DriverHomeToolbar(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            IconButton(onClick = onMenuClick) {
-                Icon(
-                    imageVector = Heroicons.Outline.Bars3,
-                    contentDescription = "Menu",
-                )
-            }
+            Spacer(modifier = Modifier.width(48.dp))
             Surface(shape = RoundedCornerShape(999.dp), color = Color.Black) {
                 Row(
                     modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
@@ -614,80 +594,6 @@ private fun RouteSummary(offer: GoBookingOfferUiModel) {
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant, modifier = Modifier.padding(vertical = 8.dp))
             Text("Dropoff point", color = Color.Gray, style = MaterialTheme.typography.bodyMedium)
             Text(offer.destinationLabel, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-        }
-    }
-}
-
-@Composable
-private fun DrawerContent(modifier: Modifier = Modifier) {
-    Surface(
-        modifier = modifier
-            .fillMaxWidth(0.78f)
-            .fillMaxSize(),
-        color = MaterialTheme.colorScheme.surface,
-        shadowElevation = 12.dp,
-    ) {
-        Column(
-            modifier = Modifier.padding(horizontal = 24.dp, vertical = 32.dp),
-            verticalArrangement = Arrangement.spacedBy(18.dp),
-        ) {
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                Surface(modifier = Modifier.size(58.dp), shape = CircleShape, color = MaterialTheme.colorScheme.surfaceVariant) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Icon(
-                            imageVector = Heroicons.Outline.User,
-                            contentDescription = "Driver",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                }
-                Column {
-                    Text("Driver", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Icon(
-                            imageVector = Heroicons.Solid.Star,
-                            contentDescription = null,
-                            modifier = Modifier.size(14.dp),
-                            tint = Color(0xFFF59E0B),
-                        )
-                        Text("4.50", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                }
-            }
-            HorizontalDivider()
-            DrawerMenuItem("Inbox", badge = "3")
-            DrawerMenuItem("Refer Friend")
-            DrawerMenuItem("Opportunities", badge = "1")
-            DrawerMenuItem("Earnings")
-            DrawerMenuItem("Wallet")
-            DrawerMenuItem("Account")
-            Spacer(modifier = Modifier.weight(1f))
-            Text("Help", color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text("Learning Center", color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
-    }
-}
-
-@Composable
-private fun DrawerMenuItem(label: String, badge: String? = null) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(label, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Normal)
-        badge?.let {
-            Surface(shape = RoundedCornerShape(999.dp), color = MaterialTheme.colorScheme.primary) {
-                Text(
-                    it,
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
-                    color = MaterialTheme.colorScheme.onPrimary,
-                    style = MaterialTheme.typography.labelMedium,
-                )
-            }
         }
     }
 }
