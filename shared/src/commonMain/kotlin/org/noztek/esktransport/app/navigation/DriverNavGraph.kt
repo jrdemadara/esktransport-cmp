@@ -1,5 +1,7 @@
 package org.noztek.esktransport.app.navigation
 
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.composable
@@ -23,7 +25,16 @@ private const val ROUTE_DRIVER_SERVICE_ZONE = "driver-onboarding/service-zone"
 
 fun NavGraphBuilder.driverNavGraph(navController: NavHostController) {
     navigation(startDestination = DriverRoute.HOME, route = RootRoute.DRIVER) {
-        composable(DriverRoute.HOME) {
+        composable(
+            route = DriverRoute.HOME,
+            popEnterTransition = {
+                if (initialState.destination.route == DriverRoute.GO) {
+                    EnterTransition.None
+                } else {
+                    null
+                }
+            },
+        ) {
             HomeScreen(
                 onSetupClick = { status ->
                     navController.navigate(status.nextSetupRoute()) {
@@ -37,8 +48,17 @@ fun NavGraphBuilder.driverNavGraph(navController: NavHostController) {
                 },
             )
         }
-        composable(DriverRoute.GO) {
+        composable(
+            route = DriverRoute.GO,
+            enterTransition = { EnterTransition.None },
+            exitTransition = { ExitTransition.None },
+            popEnterTransition = { EnterTransition.None },
+            popExitTransition = { ExitTransition.None },
+        ) {
             GoScreen(
+                onNavigateHome = {
+                    navController.popBackStack(DriverRoute.HOME, inclusive = false)
+                },
                 onNavigateToTrip = { bookingPublicId ->
                     navController.navigate("$ROUTE_DRIVER_TRIP_TRACKING/$bookingPublicId") {
                         launchSingleTop = true

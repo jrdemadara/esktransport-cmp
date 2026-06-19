@@ -24,6 +24,7 @@ private const val DefaultPassengerName = "Passenger"
 data class GoUiState(
     val isAvailable: Boolean = false,
     val isSubmitting: Boolean = false,
+    val pendingAvailability: Boolean? = null,
     val isAcceptingOffer: Boolean = false,
     val statusMessage: String? = null,
     val currentOffer: GoBookingOfferUiModel? = null,
@@ -142,6 +143,41 @@ class GoViewModel(
         updateAvailability(target = !_uiState.value.isAvailable)
     }
 
+    fun goOfflineAndExit(onExit: () -> Unit) {
+        val state = _uiState.value
+        if (state.isSubmitting) return
+
+        if (!state.isAvailable) {
+            onExit()
+            return
+        }
+
+        viewModelScope.launch {
+            _uiState.update {
+                it.copy(
+                    isSubmitting = true,
+                    pendingAvailability = false,
+                    statusMessage = null,
+                )
+            }
+            val result = withContext(ioDispatcher) { setDriverAvailabilityUseCase(false) }
+            result.onSuccess {
+                onExit()
+            }.onFailure { error ->
+                val message = error.message ?: "Failed to go offline."
+                _uiState.update {
+                    it.copy(
+                        isSubmitting = false,
+                        pendingAvailability = null,
+                        statusMessage = message,
+                    )
+                }
+                _uiEvents.tryEmit(GoUiEvent.ShowSnackbar(message))
+                println("Go offline before exit error: $message")
+            }
+        }
+    }
+
     fun goOfflineOnAppBackground() {
         val state = _uiState.value
         if (state.isAvailable && !state.isSubmitting) {
@@ -151,15 +187,34 @@ class GoViewModel(
 
     private fun updateAvailability(target: Boolean) {
         viewModelScope.launch {
-            _uiState.update { it.copy(isSubmitting = true, statusMessage = null) }
+            _uiState.update {
+                it.copy(
+                    isSubmitting = true,
+                    pendingAvailability = target,
+                    statusMessage = null,
+                )
+            }
             val result = withContext(ioDispatcher) { setDriverAvailabilityUseCase(target) }
             result.onSuccess { available ->
                 val message = if (available) "You're now online." else "You're now offline."
-                _uiState.update { it.copy(isAvailable = available, isSubmitting = false, statusMessage = message) }
+                _uiState.update {
+                    it.copy(
+                        isAvailable = available,
+                        isSubmitting = false,
+                        pendingAvailability = null,
+                        statusMessage = message,
+                    )
+                }
                 _uiEvents.tryEmit(GoUiEvent.ShowSnackbar(message))
             }.onFailure { error ->
                 val message = error.message ?: "Failed to update driver availability."
-                _uiState.update { state -> state.copy(isSubmitting = false, statusMessage = message) }
+                _uiState.update { state ->
+                    state.copy(
+                        isSubmitting = false,
+                        pendingAvailability = null,
+                        statusMessage = message,
+                    )
+                }
                 _uiEvents.tryEmit(GoUiEvent.ShowSnackbar(message))
                 println("Go availability error: $message")
             }

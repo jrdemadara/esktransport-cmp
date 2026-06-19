@@ -74,6 +74,7 @@ import com.composables.icons.heroicons.solid.ChartBar
 import com.composables.icons.heroicons.outline.ChevronRight
 import com.composables.icons.heroicons.solid.UserCircle
 import com.composables.icons.heroicons.solid.Flag
+import com.composables.icons.heroicons.outline.ArrowLeft
 import com.composables.icons.heroicons.outline.QueueList
 import com.composables.icons.heroicons.Heroicons
 import com.composables.icons.heroicons.outline.MapPin
@@ -101,6 +102,7 @@ fun GoScreen(
     cameraDefaults: MapCameraDefaults = koinInject(),
     soundEffectPlayer: SoundEffectPlayer = koinInject(),
     onNavigateToTrip: (bookingPublicId: String) -> Unit = {},
+    onNavigateHome: () -> Unit = {},
 ) {
     val homeState by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -168,6 +170,10 @@ fun GoScreen(
                 modifier = Modifier
                     .align(Alignment.TopCenter)
                     .padding(horizontal = 18.dp, vertical = 12.dp),
+                isSubmitting = homeState.isSubmitting,
+                onExitClick = {
+                    viewModel.goOfflineAndExit(onNavigateHome)
+                },
             )
 
             DriverFloatingActions(
@@ -196,6 +202,7 @@ fun GoScreen(
                     modifier = Modifier.align(Alignment.BottomCenter),
                     isAvailable = homeState.isAvailable,
                     isSubmitting = homeState.isSubmitting,
+                    pendingAvailability = homeState.pendingAvailability,
                 )
             }
 
@@ -229,6 +236,8 @@ fun GoScreen(
 @Composable
 private fun DriverHomeToolbar(
     modifier: Modifier = Modifier,
+    isSubmitting: Boolean,
+    onExitClick: () -> Unit,
 ) {
     Surface(
         modifier = modifier.fillMaxWidth(),
@@ -243,7 +252,16 @@ private fun DriverHomeToolbar(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Spacer(modifier = Modifier.width(48.dp))
+            IconButton(
+                onClick = onExitClick,
+                enabled = !isSubmitting,
+            ) {
+                Icon(
+                    imageVector = Heroicons.Outline.ArrowLeft,
+                    contentDescription = "Back to home",
+                    tint = MaterialTheme.colorScheme.onSurface,
+                )
+            }
             Surface(shape = RoundedCornerShape(999.dp), color = Color.Black) {
                 Row(
                     modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
@@ -371,6 +389,7 @@ private fun DriverAvailabilitySheet(
     modifier: Modifier = Modifier,
     isAvailable: Boolean,
     isSubmitting: Boolean,
+    pendingAvailability: Boolean?,
 ) {
     Surface(
         modifier = modifier.fillMaxWidth(),
@@ -393,7 +412,11 @@ private fun DriverAvailabilitySheet(
                     contentDescription = "Filter",
                 )
                 Text(
-                    if (isSubmitting) "Going online..." else if (isAvailable) "You're online" else "You're offline",
+                    availabilityStatusLabel(
+                        isAvailable = isAvailable,
+                        isSubmitting = isSubmitting,
+                        pendingAvailability = pendingAvailability,
+                    ),
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Normal,
                 )
@@ -420,6 +443,19 @@ private fun DriverAvailabilitySheet(
                 )
             }
         }
+    }
+}
+
+private fun availabilityStatusLabel(
+    isAvailable: Boolean,
+    isSubmitting: Boolean,
+    pendingAvailability: Boolean?,
+): String {
+    return when {
+        isSubmitting && pendingAvailability == true -> "Going Online"
+        isSubmitting && pendingAvailability == false -> "Going Offline"
+        isAvailable -> "You're online"
+        else -> "You're offline"
     }
 }
 
