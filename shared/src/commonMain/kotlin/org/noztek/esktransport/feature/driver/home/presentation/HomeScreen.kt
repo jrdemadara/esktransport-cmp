@@ -410,6 +410,7 @@ private fun DriverSetupCard(
     onSetupClick: () -> Unit,
     onRetryClick: () -> Unit,
 ) {
+    if (isLoading && status == null && errorMessage == null) return
     if (status?.canGo == true) return
 
     Surface(
