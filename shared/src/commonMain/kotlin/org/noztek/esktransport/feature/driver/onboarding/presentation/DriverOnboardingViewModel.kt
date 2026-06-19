@@ -9,6 +9,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.noztek.esktransport.core.realtime.model.displayMessage
+import org.noztek.esktransport.core.realtime.model.matchesDriver
 import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverOnboardingDocumentType
 import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverOnboardingDocumentUpload
 import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverOnboardingStatus
@@ -345,8 +347,8 @@ class DriverOnboardingViewModel(
         viewModelScope.launch {
             observeDriverOnboardingStatusChangedUseCase().collect { event ->
                 val currentDriverId = _uiState.value.status?.driverId
-                if (currentDriverId == null || currentDriverId == event.driverId) {
-                    refreshFromRealtime(event.message)
+                if (event.matchesDriver(currentDriverId)) {
+                    refreshFromRealtime(event.displayMessage())
                 }
             }
         }

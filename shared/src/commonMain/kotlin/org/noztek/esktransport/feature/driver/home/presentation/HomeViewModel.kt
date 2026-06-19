@@ -9,6 +9,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.noztek.esktransport.core.realtime.model.displayMessage
+import org.noztek.esktransport.core.realtime.model.matchesDriver
 import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverOnboardingStatus
 import org.noztek.esktransport.feature.driver.onboarding.domain.usecase.GetDriverOnboardingStatusUseCase
 import org.noztek.esktransport.feature.driver.onboarding.domain.usecase.ObserveDriverOnboardingStatusChangedUseCase
@@ -19,6 +21,7 @@ data class HomeUiState(
     val isLoadingSetup: Boolean = true,
     val onboardingStatus: DriverOnboardingStatus? = null,
     val errorMessage: String? = null,
+    val statusMessage: String? = null,
 )
 
 class HomeViewModel(
@@ -36,7 +39,10 @@ class HomeViewModel(
         refreshOnboardingStatus()
     }
 
-    fun refreshOnboardingStatus(showLoading: Boolean = true) {
+    fun refreshOnboardingStatus(
+        showLoading: Boolean = true,
+        statusMessage: String? = null,
+    ) {
         if (!showLoading && _uiState.value.isLoadingSetup) return
 
         viewModelScope.launch {
@@ -55,6 +61,7 @@ class HomeViewModel(
                             isLoadingSetup = false,
                             onboardingStatus = status,
                             errorMessage = null,
+                            statusMessage = statusMessage,
                         )
                     }
                 },
@@ -70,6 +77,10 @@ class HomeViewModel(
         }
     }
 
+    fun clearStatusMessage() {
+        _uiState.update { it.copy(statusMessage = null) }
+    }
+
     override fun onCleared() {
         unsubscribeDriverOnboardingRealtimeUseCase()
         super.onCleared()
@@ -79,8 +90,11 @@ class HomeViewModel(
         viewModelScope.launch {
             observeDriverOnboardingStatusChangedUseCase().collect { event ->
                 val currentDriverId = _uiState.value.onboardingStatus?.driverId
-                if (currentDriverId == null || currentDriverId == event.driverId) {
-                    refreshOnboardingStatus(showLoading = false)
+                if (event.matchesDriver(currentDriverId)) {
+                    refreshOnboardingStatus(
+                        showLoading = false,
+                        statusMessage = event.displayMessage(),
+                    )
                 }
             }
         }
