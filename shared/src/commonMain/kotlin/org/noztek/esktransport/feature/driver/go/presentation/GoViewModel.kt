@@ -143,6 +143,13 @@ class GoViewModel(
         updateAvailability(target = !_uiState.value.isAvailable)
     }
 
+    fun goOffline() {
+        val state = _uiState.value
+        if (!state.isAvailable || state.isSubmitting) return
+
+        updateAvailability(target = false)
+    }
+
     fun goOfflineAndExit(onExit: () -> Unit) {
         val state = _uiState.value
         if (state.isSubmitting) return

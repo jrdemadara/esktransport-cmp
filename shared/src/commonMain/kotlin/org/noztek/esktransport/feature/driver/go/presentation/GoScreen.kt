@@ -11,6 +11,7 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -65,6 +66,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import asktransport_cmp.shared.generated.resources.Res
+import asktransport_cmp.shared.generated.resources.cup_of_coffee
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -83,6 +86,7 @@ import com.composables.icons.heroicons.outline.ShieldCheck
 import com.composables.icons.heroicons.outline.AdjustmentsHorizontal
 import com.composables.icons.heroicons.solid.Star
 import com.composables.icons.heroicons.outline.User
+import org.jetbrains.compose.resources.painterResource
 import org.noztek.esktransport.core.audio.SoundEffect
 import org.noztek.esktransport.core.audio.SoundEffectPlayer
 import org.noztek.esktransport.core.map.MapCameraDefaults
@@ -182,6 +186,12 @@ fun GoScreen(
                     .padding(start = 16.dp, top = 92.dp),
                 onMockOfferClick = viewModel::showMockIncomingOffer,
                 onSafetyClick = { showSafetySheet = true },
+                isAvailable = homeState.isAvailable,
+                isSubmitting = homeState.isSubmitting,
+                onPauseClick = {
+                    soundEffectPlayer.play(SoundEffect.Tap)
+                    viewModel.goOffline()
+                },
             )
 
             if (!homeState.isAvailable) {
@@ -292,7 +302,11 @@ private fun DriverFloatingActions(
     modifier: Modifier = Modifier,
     onMockOfferClick: () -> Unit,
     onSafetyClick: () -> Unit,
+    isAvailable: Boolean,
+    isSubmitting: Boolean,
+    onPauseClick: () -> Unit,
 ) {
+    val canPause = isAvailable && !isSubmitting
     Column(
         modifier = modifier,
         verticalArrangement = Arrangement.spacedBy(10.dp),
@@ -316,6 +330,18 @@ private fun DriverFloatingActions(
                 contentDescription = "Safety",
                 tint = MaterialTheme.colorScheme.primary,
             )
+        }
+        if (isAvailable) {
+            CircleIconButton(
+                onClick = onPauseClick,
+                enabled = canPause,
+            ) {
+                Image(
+                    painter = painterResource(Res.drawable.cup_of_coffee),
+                    contentDescription = "Go offline",
+                    modifier = Modifier.size(25.dp),
+                )
+            }
         }
     }
 }
@@ -452,8 +478,8 @@ private fun availabilityStatusLabel(
     pendingAvailability: Boolean?,
 ): String {
     return when {
-        isSubmitting && pendingAvailability == true -> "Going Online"
-        isSubmitting && pendingAvailability == false -> "Going Offline"
+        isSubmitting && pendingAvailability == true -> "Going online..."
+        isSubmitting && pendingAvailability == false -> "Going offline..."
         isAvailable -> "You're online"
         else -> "You're offline"
     }
@@ -708,10 +734,12 @@ private fun SafetyToolkitItem(
 @Composable
 private fun CircleIconButton(
     onClick: () -> Unit,
+    enabled: Boolean = true,
     content: @Composable () -> Unit,
 ) {
     Surface(
         onClick = onClick,
+        enabled = enabled,
         modifier = Modifier.size(52.dp),
         shape = CircleShape,
         color = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
