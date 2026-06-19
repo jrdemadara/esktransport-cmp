@@ -14,5 +14,4 @@ interface DriverOnboardingRepository {
     suspend fun getServiceZones(): Result<List<DriverServiceZone>>
     suspend fun submitServiceZones(payload: DriverServiceZoneSelectionPayload): Result<DriverOnboardingStatus>
     suspend fun uploadDocument(upload: DriverOnboardingDocumentUpload): Result<DriverOnboardingStatus>
-    suspend fun submitForReview(): Result<DriverOnboardingStatus>
 }

@@ -82,9 +82,6 @@ class DriverOnboardingApi(
         ).body()
     }
 
-    suspend fun submitForReview(): DriverOnboardingMutationResponseDto {
-        return client.post("${baseUrl.trimEnd('/')}/api/v1/rider/onboarding/submit").body()
-    }
 }
 
 private fun FormBuilder.appendIdentityFile(

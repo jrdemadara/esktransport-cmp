@@ -18,22 +18,16 @@ import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverVehi
 import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverVehicleSetupPayload
 import org.noztek.esktransport.feature.driver.onboarding.domain.usecase.GetDriverOnboardingStatusUseCase
 import org.noztek.esktransport.feature.driver.onboarding.domain.usecase.GetDriverServiceZonesUseCase
-import org.noztek.esktransport.feature.driver.onboarding.domain.usecase.SaveDriverVehicleSetupUseCase
 import org.noztek.esktransport.feature.driver.onboarding.domain.usecase.SubmitDriverIdentityVerificationUseCase
-import org.noztek.esktransport.feature.driver.onboarding.domain.usecase.SubmitDriverOnboardingUseCase
 import org.noztek.esktransport.feature.driver.onboarding.domain.usecase.SubmitDriverServiceZonesUseCase
 import org.noztek.esktransport.feature.driver.onboarding.domain.usecase.SubmitDriverVehicleRegistrationUseCase
-import org.noztek.esktransport.feature.driver.onboarding.domain.usecase.UploadDriverOnboardingDocumentUseCase
 
 class DriverOnboardingViewModel(
     private val getDriverOnboardingStatusUseCase: GetDriverOnboardingStatusUseCase,
     private val getDriverServiceZonesUseCase: GetDriverServiceZonesUseCase,
-    private val saveDriverVehicleSetupUseCase: SaveDriverVehicleSetupUseCase,
     private val submitDriverIdentityVerificationUseCase: SubmitDriverIdentityVerificationUseCase,
     private val submitDriverVehicleRegistrationUseCase: SubmitDriverVehicleRegistrationUseCase,
     private val submitDriverServiceZonesUseCase: SubmitDriverServiceZonesUseCase,
-    private val uploadDriverOnboardingDocumentUseCase: UploadDriverOnboardingDocumentUseCase,
-    private val submitDriverOnboardingUseCase: SubmitDriverOnboardingUseCase,
     private val ioDispatcher: CoroutineDispatcher,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(DriverOnboardingUiState())
@@ -217,44 +211,6 @@ class DriverOnboardingViewModel(
         }
     }
 
-    fun saveVehicle() {
-        val state = _uiState.value
-        if (state.plate.isBlank()) {
-            _uiState.update { it.copy(errorMessage = "Plate number is required.") }
-            return
-        }
-
-        viewModelScope.launch {
-            _uiState.update { it.copy(isSavingVehicle = true, errorMessage = null, successMessage = null) }
-            val result = withContext(ioDispatcher) {
-                saveDriverVehicleSetupUseCase(
-                    DriverVehicleSetupPayload(
-                        vehicleTypeCode = state.vehicleTypeCode,
-                        plate = state.plate.trim(),
-                        make = state.make.trim().ifBlank { null },
-                        model = state.model.trim().ifBlank { null },
-                        year = state.year.toIntOrNull(),
-                        passengerCapacity = state.passengerCapacity.toIntOrNull(),
-                    ),
-                )
-            }
-            result.fold(
-                onSuccess = { status ->
-                    applyStatus(status, successMessage = "Vehicle setup saved.")
-                    _uiState.update { it.copy(isSavingVehicle = false) }
-                },
-                onFailure = { throwable ->
-                    _uiState.update {
-                        it.copy(
-                            isSavingVehicle = false,
-                            errorMessage = throwable.message ?: "Unable to save vehicle.",
-                        )
-                    }
-                },
-            )
-        }
-    }
-
     fun submitVehicleRegistration(onSuccess: () -> Unit) {
         val state = _uiState.value
         val registrationPreview = state.capturedPreviews[DriverOnboardingDocumentType.VehicleRegistration]
@@ -338,78 +294,6 @@ class DriverOnboardingViewModel(
                         it.copy(
                             isSubmittingServiceZones = false,
                             errorMessage = throwable.message ?: "Unable to save service zones.",
-                        )
-                    }
-                },
-            )
-        }
-    }
-
-    fun uploadDocument(
-        type: DriverOnboardingDocumentType,
-        fileName: String,
-        mimeType: String,
-        bytes: ByteArray,
-    ) {
-        val state = _uiState.value
-        viewModelScope.launch {
-            _uiState.update {
-                it.copy(
-                    uploadingType = type,
-                    errorMessage = null,
-                    successMessage = null,
-                    capturedPreviews = it.capturedPreviews + (
-                        type to CapturedDocumentPreview(
-                            fileName = fileName,
-                            mimeType = mimeType,
-                            bytes = bytes,
-                        )
-                        ),
-                )
-            }
-            val result = withContext(ioDispatcher) {
-                uploadDriverOnboardingDocumentUseCase(
-                    DriverOnboardingDocumentUpload(
-                        type = type,
-                        fileName = fileName,
-                        mimeType = mimeType,
-                        bytes = bytes,
-                        licenseNo = state.licenseNo.trim().ifBlank { null },
-                        licenseExpiry = state.licenseExpiry.trim().ifBlank { null },
-                    ),
-                )
-            }
-            result.fold(
-                onSuccess = { status ->
-                    applyStatus(status, successMessage = "${type.displayName} uploaded.")
-                    _uiState.update { it.copy(uploadingType = null) }
-                },
-                onFailure = { throwable ->
-                    _uiState.update {
-                        it.copy(
-                            uploadingType = null,
-                            errorMessage = throwable.message ?: "Unable to upload ${type.displayName.lowercase()}.",
-                        )
-                    }
-                },
-            )
-        }
-    }
-
-    fun submitForReview() {
-        viewModelScope.launch {
-            _uiState.update { it.copy(isSubmitting = true, errorMessage = null, successMessage = null) }
-            val result = withContext(ioDispatcher) { submitDriverOnboardingUseCase() }
-            result.fold(
-                onSuccess = { status ->
-                    applyStatus(status, successMessage = "Setup submitted for review.")
-                    _uiState.update { it.copy(isSubmitting = false) }
-                },
-                onFailure = { throwable ->
-                    _uiState.update {
-                        it.copy(
-                            isSubmitting = false,
-                            errorMessage = throwable.message ?: "Unable to submit setup.",
                         )
                     }
                 },

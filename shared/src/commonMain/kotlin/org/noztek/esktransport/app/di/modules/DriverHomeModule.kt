@@ -17,12 +17,9 @@ import org.noztek.esktransport.feature.driver.onboarding.data.remote.DriverOnboa
 import org.noztek.esktransport.feature.driver.onboarding.domain.repository.DriverOnboardingRepository
 import org.noztek.esktransport.feature.driver.onboarding.domain.usecase.GetDriverOnboardingStatusUseCase
 import org.noztek.esktransport.feature.driver.onboarding.domain.usecase.GetDriverServiceZonesUseCase
-import org.noztek.esktransport.feature.driver.onboarding.domain.usecase.SaveDriverVehicleSetupUseCase
 import org.noztek.esktransport.feature.driver.onboarding.domain.usecase.SubmitDriverIdentityVerificationUseCase
-import org.noztek.esktransport.feature.driver.onboarding.domain.usecase.SubmitDriverOnboardingUseCase
 import org.noztek.esktransport.feature.driver.onboarding.domain.usecase.SubmitDriverServiceZonesUseCase
 import org.noztek.esktransport.feature.driver.onboarding.domain.usecase.SubmitDriverVehicleRegistrationUseCase
-import org.noztek.esktransport.feature.driver.onboarding.domain.usecase.UploadDriverOnboardingDocumentUseCase
 import org.noztek.esktransport.feature.driver.onboarding.presentation.DriverOnboardingViewModel
 
 val driverHomeModule = module {
@@ -34,12 +31,9 @@ val driverHomeModule = module {
     single { SetDriverAvailabilityUseCase(repository = get()) }
     single { GetDriverOnboardingStatusUseCase(repository = get()) }
     single { GetDriverServiceZonesUseCase(repository = get()) }
-    single { SaveDriverVehicleSetupUseCase(repository = get()) }
     single { SubmitDriverIdentityVerificationUseCase(repository = get()) }
     single { SubmitDriverVehicleRegistrationUseCase(repository = get()) }
     single { SubmitDriverServiceZonesUseCase(repository = get()) }
-    single { UploadDriverOnboardingDocumentUseCase(repository = get()) }
-    single { SubmitDriverOnboardingUseCase(repository = get()) }
     single { AcceptOfferUseCase(api = get()) }
     single { ExpireOfferUseCase(api = get()) }
     single {
@@ -59,12 +53,9 @@ val driverHomeModule = module {
         DriverOnboardingViewModel(
             getDriverOnboardingStatusUseCase = get(),
             getDriverServiceZonesUseCase = get(),
-            saveDriverVehicleSetupUseCase = get(),
             submitDriverIdentityVerificationUseCase = get(),
             submitDriverVehicleRegistrationUseCase = get(),
             submitDriverServiceZonesUseCase = get(),
-            uploadDriverOnboardingDocumentUseCase = get(),
-            submitDriverOnboardingUseCase = get(),
             ioDispatcher = get(named(IO_DISPATCHER_QUALIFIER)),
         )
     }

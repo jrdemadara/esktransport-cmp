@@ -178,7 +178,7 @@ private fun DriverIdentityVerificationContent(
             AppPrimaryButton(
                 text = if (state.isSubmittingIdentity) "Submitting..." else "Continue",
                 onClick = onContinue,
-                enabled = state.uploadingType == null && !state.isSubmittingIdentity,
+                enabled = !state.isSubmittingIdentity,
                 modifier = Modifier.padding(top = 4.dp, bottom = 18.dp),
             )
         }
@@ -323,10 +323,10 @@ private fun IdentityUploadRow(
             }
             OutlinedButton(
                 onClick = { onCaptureClick(type) },
-                enabled = state.uploadingType == null,
+                enabled = !state.isSubmittingIdentity,
                 contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp),
             ) {
-                Text(if (state.uploadingType == type) "Uploading" else "Capture")
+                Text("Capture")
             }
         }
         if (preview != null) {

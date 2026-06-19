@@ -89,14 +89,6 @@ class DriverOnboardingRepositoryImpl(
         }
     }
 
-    override suspend fun submitForReview(): Result<DriverOnboardingStatus> {
-        return try {
-            Result.success(api.submitForReview().data.toDomain())
-        } catch (throwable: Throwable) {
-            val message = ApiErrorParser.parse(throwable, "Failed to submit driver setup.")
-            Result.failure(IllegalStateException(message))
-        }
-    }
 }
 
 private suspend fun parseUploadError(throwable: Throwable, fallback: String): String {

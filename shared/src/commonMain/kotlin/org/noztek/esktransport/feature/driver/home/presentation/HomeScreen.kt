@@ -475,46 +475,36 @@ private fun DriverSetupCard(
                 )
             }
 
-            val stepStatuses = status?.stepStatuses
-            val identityStatus = stepStatuses?.identityVerification ?: status.identityVerificationStatus()
-            val vehicleRegistrationStatus = stepStatuses?.vehicleRegistration
-                ?: status.vehicleRegistrationStatus()
-            val serviceRadiusStatus = stepStatuses?.serviceRadius ?: DriverRequirementStatus.Missing
+            val setupSteps = status.setupProgressSteps()
             SetupStepper(
-                steps = listOf(
-                    SetupProgressStep(
-                        label = "Account registration",
-                        status = stepStatuses?.accountRegistration ?: DriverRequirementStatus.Approved,
-                    ),
-                    SetupProgressStep(
-                        label = "Identity verification",
-                        status = identityStatus,
-                    ),
-                    SetupProgressStep(
-                        label = "Vehicle registration",
-                        status = vehicleRegistrationStatus,
-                    ),
-                    SetupProgressStep(
-                        label = "Service zone",
-                        status = serviceRadiusStatus,
-                    ),
-                ),
+                steps = setupSteps,
             )
 
-            AppPrimaryButton(
-                text = if (errorMessage != null && status == null) "Retry" else "Finish Setup",
-                onClick = if (errorMessage != null && status == null) onRetryClick else onSetupClick,
-                enabled = !isLoading,
-                height = 44.dp,
-                contentPadding = PaddingValues(horizontal = 16.dp),
-                trailingIcon = {
-                    Icon(
-                        imageVector = Heroicons.Outline.ChevronRight,
-                        contentDescription = null,
-                        modifier = Modifier.size(15.dp),
-                    )
-                },
-            )
+            val shouldShowAction = errorMessage != null && status == null ||
+                setupSteps.any { it.status.needsDriverAction() }
+
+            if (shouldShowAction) {
+                AppPrimaryButton(
+                    text = if (errorMessage != null && status == null) "Retry" else "Finish Setup",
+                    onClick = if (errorMessage != null && status == null) onRetryClick else onSetupClick,
+                    enabled = !isLoading,
+                    height = 44.dp,
+                    contentPadding = PaddingValues(horizontal = 16.dp),
+                    trailingIcon = {
+                        Icon(
+                            imageVector = Heroicons.Outline.ChevronRight,
+                            contentDescription = null,
+                            modifier = Modifier.size(15.dp),
+                        )
+                    },
+                )
+            } else if (!isLoading) {
+                Text(
+                    text = setupReviewMessage(status),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
     }
 }
@@ -537,6 +527,40 @@ private fun setupDescription(status: DriverOnboardingStatus?): String {
             ?: "Your account needs review before going online."
         else -> "Complete the required setup steps before going online."
     }
+}
+
+private fun setupReviewMessage(status: DriverOnboardingStatus?): String {
+    return when (status?.status) {
+        DriverOnboardingState.Rejected -> "Review the highlighted setup step when an update is requested."
+        DriverOnboardingState.Blocked -> "Your account needs review before you can go online."
+        else -> "Your documents are under review. Verification may take up to 3 working days, and we will notify you once your account is ready to go online."
+    }
+}
+
+private fun DriverOnboardingStatus?.setupProgressSteps(): List<SetupProgressStep> {
+    val stepStatuses = this?.stepStatuses
+    val identityStatus = stepStatuses?.identityVerification ?: identityVerificationStatus()
+    val vehicleRegistrationStatus = stepStatuses?.vehicleRegistration ?: vehicleRegistrationStatus()
+    val serviceRadiusStatus = stepStatuses?.serviceRadius ?: DriverRequirementStatus.Missing
+
+    return listOf(
+        SetupProgressStep(
+            label = "Account registration",
+            status = stepStatuses?.accountRegistration ?: DriverRequirementStatus.Approved,
+        ),
+        SetupProgressStep(
+            label = "Identity verification",
+            status = identityStatus,
+        ),
+        SetupProgressStep(
+            label = "Vehicle registration",
+            status = vehicleRegistrationStatus,
+        ),
+        SetupProgressStep(
+            label = "Service zone",
+            status = serviceRadiusStatus,
+        ),
+    )
 }
 
 private fun DriverOnboardingStatus?.identityVerificationStatus(): DriverRequirementStatus {
@@ -575,6 +599,12 @@ private fun List<DriverRequirementStatus>.groupedStatus(): DriverRequirementStat
         any { it == DriverRequirementStatus.PendingReview } -> DriverRequirementStatus.PendingReview
         else -> DriverRequirementStatus.Uploaded
     }
+}
+
+private fun DriverRequirementStatus.needsDriverAction(): Boolean {
+    return this == DriverRequirementStatus.Missing ||
+        this == DriverRequirementStatus.Rejected ||
+        this == DriverRequirementStatus.Expired
 }
 
 private data class SetupProgressStep(
