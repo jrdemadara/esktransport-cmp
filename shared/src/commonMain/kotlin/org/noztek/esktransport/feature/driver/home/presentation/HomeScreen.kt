@@ -495,7 +495,7 @@ private fun DriverSetupCard(
                         status = vehicleRegistrationStatus,
                     ),
                     SetupProgressStep(
-                        label = "Service radius",
+                        label = "Service zone",
                         status = serviceRadiusStatus,
                     ),
                 ),
@@ -661,7 +661,7 @@ private val SetupProgressStep.shortLabel: String
         "Account registration" -> "Account"
         "Identity verification" -> "Identity"
         "Vehicle registration" -> "Vehicle"
-        "Service radius" -> "Radius"
+        "Service zone" -> "Zone"
         else -> label
     }
 

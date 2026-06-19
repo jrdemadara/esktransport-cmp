@@ -29,6 +29,8 @@ data class DriverOnboardingDataDto(
     val stepStatuses: DriverStepStatusesDto = DriverStepStatusesDto(),
     val license: DriverLicenseDto,
     val vehicle: DriverVehicleDto,
+    @SerialName("service_zones")
+    val serviceZones: List<DriverServiceZoneDto> = emptyList(),
     val requirements: List<DriverOnboardingRequirementDto> = emptyList(),
 )
 
@@ -101,4 +103,23 @@ data class DriverVehicleSetupRequestDto(
     val year: Int? = null,
     @SerialName("passenger_capacity")
     val passengerCapacity: Int? = null,
+)
+
+@Serializable
+data class DriverServiceZonesResponseDto(
+    val data: List<DriverServiceZoneDto> = emptyList(),
+)
+
+@Serializable
+data class DriverServiceZoneDto(
+    val id: Long,
+    val name: String,
+    @SerialName("zone_type")
+    val zoneType: String,
+)
+
+@Serializable
+data class DriverServiceZoneSelectionRequestDto(
+    @SerialName("service_zone_ids")
+    val serviceZoneIds: List<Long>,
 )

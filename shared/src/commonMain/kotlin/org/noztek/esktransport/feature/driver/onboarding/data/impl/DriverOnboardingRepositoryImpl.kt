@@ -9,10 +9,13 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import org.noztek.esktransport.core.network.ApiErrorParser
 import org.noztek.esktransport.feature.driver.onboarding.data.remote.DriverOnboardingApi
+import org.noztek.esktransport.feature.driver.onboarding.data.remote.dto.DriverServiceZoneSelectionRequestDto
 import org.noztek.esktransport.feature.driver.onboarding.data.remote.dto.DriverVehicleSetupRequestDto
 import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverIdentityVerificationPayload
 import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverOnboardingDocumentUpload
 import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverOnboardingStatus
+import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverServiceZone
+import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverServiceZoneSelectionPayload
 import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverVehicleSetupPayload
 import org.noztek.esktransport.feature.driver.onboarding.domain.repository.DriverOnboardingRepository
 
@@ -52,6 +55,27 @@ class DriverOnboardingRepositoryImpl(
             Result.success(response.data.toDomain())
         } catch (throwable: Throwable) {
             val message = ApiErrorParser.parse(throwable, "Failed to save vehicle setup.")
+            Result.failure(IllegalStateException(message))
+        }
+    }
+
+    override suspend fun getServiceZones(): Result<List<DriverServiceZone>> {
+        return try {
+            Result.success(api.getServiceZones().data.map { it.toDomain() })
+        } catch (throwable: Throwable) {
+            val message = ApiErrorParser.parse(throwable, "Failed to load service zones.")
+            Result.failure(IllegalStateException(message))
+        }
+    }
+
+    override suspend fun submitServiceZones(payload: DriverServiceZoneSelectionPayload): Result<DriverOnboardingStatus> {
+        return try {
+            val response = api.submitServiceZones(
+                DriverServiceZoneSelectionRequestDto(serviceZoneIds = payload.serviceZoneIds),
+            )
+            Result.success(response.data.toDomain())
+        } catch (throwable: Throwable) {
+            val message = ApiErrorParser.parse(throwable, "Failed to save service zones.")
             Result.failure(IllegalStateException(message))
         }
     }

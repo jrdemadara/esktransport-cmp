@@ -12,6 +12,7 @@ import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverOnbo
 import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverRequirementStatus
 import org.noztek.esktransport.feature.driver.onboarding.presentation.DriverIdentityVerificationScreen
 import org.noztek.esktransport.feature.driver.onboarding.presentation.DriverOnboardingScreen
+import org.noztek.esktransport.feature.driver.onboarding.presentation.DriverServiceZoneScreen
 import org.noztek.esktransport.feature.driver.onboarding.presentation.DriverVehicleRegistrationScreen
 import org.noztek.esktransport.feature.driver.trip_navigation.presentation.TripNavigationScreen
 
@@ -19,6 +20,7 @@ private const val ROUTE_DRIVER_TRIP_TRACKING = "driver-trip-tracking"
 private const val ROUTE_DRIVER_ONBOARDING = "driver-onboarding"
 private const val ROUTE_DRIVER_IDENTITY_VERIFICATION = "driver-onboarding/identity"
 private const val ROUTE_DRIVER_VEHICLE_REGISTRATION = "driver-onboarding/vehicle-registration"
+private const val ROUTE_DRIVER_SERVICE_ZONE = "driver-onboarding/service-zone"
 
 fun NavGraphBuilder.driverNavGraph(navController: NavHostController) {
     navigation(startDestination = DriverRoute.HOME, route = RootRoute.DRIVER) {
@@ -47,6 +49,14 @@ fun NavGraphBuilder.driverNavGraph(navController: NavHostController) {
                 },
             )
         }
+        composable(ROUTE_DRIVER_SERVICE_ZONE) {
+            DriverServiceZoneScreen(
+                onBack = { navController.popBackStack() },
+                onContinue = {
+                    navController.popBackStack(DriverRoute.HOME, inclusive = false)
+                },
+            )
+        }
         composable(ROUTE_DRIVER_ONBOARDING) {
             DriverOnboardingScreen(
                 onBack = { navController.popBackStack() },
@@ -69,7 +79,7 @@ private fun DriverOnboardingStatus?.nextSetupRoute(): String {
     return when {
         stepStatuses.identityVerification.needsDriverAction() -> ROUTE_DRIVER_IDENTITY_VERIFICATION
         stepStatuses.vehicleRegistration.needsDriverAction() -> ROUTE_DRIVER_VEHICLE_REGISTRATION
-        stepStatuses.serviceRadius.needsDriverAction() -> ROUTE_DRIVER_ONBOARDING
+        stepStatuses.serviceRadius.needsDriverAction() -> ROUTE_DRIVER_SERVICE_ZONE
         else -> ROUTE_DRIVER_ONBOARDING
     }
 }

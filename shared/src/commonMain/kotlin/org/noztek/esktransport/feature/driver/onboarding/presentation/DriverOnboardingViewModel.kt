@@ -13,20 +13,25 @@ import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverOnbo
 import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverOnboardingDocumentUpload
 import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverOnboardingStatus
 import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverIdentityVerificationPayload
+import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverServiceZoneSelectionPayload
 import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverVehicleRegistrationPayload
 import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverVehicleSetupPayload
 import org.noztek.esktransport.feature.driver.onboarding.domain.usecase.GetDriverOnboardingStatusUseCase
+import org.noztek.esktransport.feature.driver.onboarding.domain.usecase.GetDriverServiceZonesUseCase
 import org.noztek.esktransport.feature.driver.onboarding.domain.usecase.SaveDriverVehicleSetupUseCase
 import org.noztek.esktransport.feature.driver.onboarding.domain.usecase.SubmitDriverIdentityVerificationUseCase
 import org.noztek.esktransport.feature.driver.onboarding.domain.usecase.SubmitDriverOnboardingUseCase
+import org.noztek.esktransport.feature.driver.onboarding.domain.usecase.SubmitDriverServiceZonesUseCase
 import org.noztek.esktransport.feature.driver.onboarding.domain.usecase.SubmitDriverVehicleRegistrationUseCase
 import org.noztek.esktransport.feature.driver.onboarding.domain.usecase.UploadDriverOnboardingDocumentUseCase
 
 class DriverOnboardingViewModel(
     private val getDriverOnboardingStatusUseCase: GetDriverOnboardingStatusUseCase,
+    private val getDriverServiceZonesUseCase: GetDriverServiceZonesUseCase,
     private val saveDriverVehicleSetupUseCase: SaveDriverVehicleSetupUseCase,
     private val submitDriverIdentityVerificationUseCase: SubmitDriverIdentityVerificationUseCase,
     private val submitDriverVehicleRegistrationUseCase: SubmitDriverVehicleRegistrationUseCase,
+    private val submitDriverServiceZonesUseCase: SubmitDriverServiceZonesUseCase,
     private val uploadDriverOnboardingDocumentUseCase: UploadDriverOnboardingDocumentUseCase,
     private val submitDriverOnboardingUseCase: SubmitDriverOnboardingUseCase,
     private val ioDispatcher: CoroutineDispatcher,
@@ -86,6 +91,49 @@ class DriverOnboardingViewModel(
 
     fun updatePassengerCapacity(value: String) {
         _uiState.update { it.copy(passengerCapacity = value.filter(Char::isDigit).take(2)) }
+    }
+
+    fun loadServiceZones() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoadingServiceZones = true, errorMessage = null, successMessage = null) }
+            val result = withContext(ioDispatcher) { getDriverServiceZonesUseCase() }
+            result.fold(
+                onSuccess = { zones ->
+                    _uiState.update {
+                        it.copy(
+                            isLoadingServiceZones = false,
+                            serviceZones = zones,
+                            selectedServiceZoneIds = if (it.selectedServiceZoneIds.isEmpty()) {
+                                it.status?.serviceZones?.map { zone -> zone.id }?.toSet().orEmpty()
+                            } else {
+                                it.selectedServiceZoneIds
+                            },
+                        )
+                    }
+                },
+                onFailure = { throwable ->
+                    _uiState.update {
+                        it.copy(
+                            isLoadingServiceZones = false,
+                            errorMessage = throwable.message ?: "Unable to load service zones.",
+                        )
+                    }
+                },
+            )
+        }
+    }
+
+    fun toggleServiceZone(zoneId: Long) {
+        _uiState.update {
+            val selected = it.selectedServiceZoneIds
+            it.copy(
+                selectedServiceZoneIds = if (zoneId in selected) {
+                    selected - zoneId
+                } else {
+                    selected + zoneId
+                },
+            )
+        }
     }
 
     fun captureDocumentPreview(
@@ -263,6 +311,40 @@ class DriverOnboardingViewModel(
         }
     }
 
+    fun submitServiceZones(onSuccess: () -> Unit) {
+        val state = _uiState.value
+        val zoneIds = state.selectedServiceZoneIds.toList()
+
+        if (zoneIds.isEmpty()) {
+            _uiState.update { it.copy(errorMessage = "Choose at least one service zone.") }
+            return
+        }
+
+        viewModelScope.launch {
+            _uiState.update { it.copy(isSubmittingServiceZones = true, errorMessage = null, successMessage = null) }
+            val result = withContext(ioDispatcher) {
+                submitDriverServiceZonesUseCase(
+                    DriverServiceZoneSelectionPayload(serviceZoneIds = zoneIds),
+                )
+            }
+            result.fold(
+                onSuccess = { status ->
+                    applyStatus(status, successMessage = "Service zones saved.")
+                    _uiState.update { it.copy(isSubmittingServiceZones = false) }
+                    onSuccess()
+                },
+                onFailure = { throwable ->
+                    _uiState.update {
+                        it.copy(
+                            isSubmittingServiceZones = false,
+                            errorMessage = throwable.message ?: "Unable to save service zones.",
+                        )
+                    }
+                },
+            )
+        }
+    }
+
     fun uploadDocument(
         type: DriverOnboardingDocumentType,
         fileName: String,
@@ -357,6 +439,7 @@ class DriverOnboardingViewModel(
                 model = status.vehicle.model ?: it.model,
                 year = status.vehicle.year?.toString() ?: it.year,
                 passengerCapacity = status.vehicle.passengerCapacity?.toString() ?: it.passengerCapacity,
+                selectedServiceZoneIds = status.serviceZones.map { zone -> zone.id }.toSet(),
             )
         }
     }

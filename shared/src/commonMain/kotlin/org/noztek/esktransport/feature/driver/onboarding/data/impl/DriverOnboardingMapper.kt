@@ -1,9 +1,11 @@
 package org.noztek.esktransport.feature.driver.onboarding.data.impl
 
 import org.noztek.esktransport.feature.driver.onboarding.data.remote.dto.DriverOnboardingDataDto
+import org.noztek.esktransport.feature.driver.onboarding.data.remote.dto.DriverServiceZoneDto
 import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverLicenseInfo
 import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverOnboardingRequirement
 import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverOnboardingStatus
+import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverServiceZone
 import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverStepStatuses
 import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverVehicleInfo
 import org.noztek.esktransport.feature.driver.onboarding.domain.model.toDriverOnboardingDocumentType
@@ -42,6 +44,7 @@ internal fun DriverOnboardingDataDto.toDomain(): DriverOnboardingStatus {
             status = vehicle.status,
             isAvailable = vehicle.isAvailable,
         ),
+        serviceZones = serviceZones.map { it.toDomain() },
         requirements = requirements.map { requirement ->
             DriverOnboardingRequirement(
                 type = requirement.type.toDriverOnboardingDocumentType(),
@@ -53,5 +56,13 @@ internal fun DriverOnboardingDataDto.toDomain(): DriverOnboardingStatus {
                 expiresAt = requirement.expiresAt,
             )
         },
+    )
+}
+
+internal fun DriverServiceZoneDto.toDomain(): DriverServiceZone {
+    return DriverServiceZone(
+        id = id,
+        name = name,
+        zoneType = zoneType,
     )
 }

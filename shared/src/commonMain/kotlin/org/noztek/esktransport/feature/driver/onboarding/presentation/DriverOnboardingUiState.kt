@@ -2,12 +2,15 @@ package org.noztek.esktransport.feature.driver.onboarding.presentation
 
 import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverOnboardingDocumentType
 import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverOnboardingStatus
+import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverServiceZone
 
 data class DriverOnboardingUiState(
     val isLoading: Boolean = true,
+    val isLoadingServiceZones: Boolean = false,
     val isSavingVehicle: Boolean = false,
     val isSubmittingIdentity: Boolean = false,
     val isSubmittingVehicleRegistration: Boolean = false,
+    val isSubmittingServiceZones: Boolean = false,
     val isSubmitting: Boolean = false,
     val uploadingType: DriverOnboardingDocumentType? = null,
     val status: DriverOnboardingStatus? = null,
@@ -21,6 +24,8 @@ data class DriverOnboardingUiState(
     val model: String = "",
     val year: String = "",
     val passengerCapacity: String = "",
+    val serviceZones: List<DriverServiceZone> = emptyList(),
+    val selectedServiceZoneIds: Set<Long> = emptySet(),
     val capturedPreviews: Map<DriverOnboardingDocumentType, CapturedDocumentPreview> = emptyMap(),
 )
 

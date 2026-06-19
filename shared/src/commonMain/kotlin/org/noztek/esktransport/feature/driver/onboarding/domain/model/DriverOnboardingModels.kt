@@ -9,6 +9,7 @@ data class DriverOnboardingStatus(
     val stepStatuses: DriverStepStatuses,
     val license: DriverLicenseInfo,
     val vehicle: DriverVehicleInfo,
+    val serviceZones: List<DriverServiceZone>,
     val requirements: List<DriverOnboardingRequirement>,
 )
 
@@ -40,6 +41,12 @@ data class DriverVehicleInfo(
     val isAvailable: Boolean? = null,
 )
 
+data class DriverServiceZone(
+    val id: Long,
+    val name: String,
+    val zoneType: String,
+)
+
 data class DriverOnboardingRequirement(
     val type: DriverOnboardingDocumentType,
     val label: String,
@@ -63,6 +70,10 @@ data class DriverVehicleRegistrationPayload(
     val vehicle: DriverVehicleSetupPayload,
     val registrationDocument: DriverOnboardingDocumentUpload,
     val vehiclePhoto: DriverOnboardingDocumentUpload,
+)
+
+data class DriverServiceZoneSelectionPayload(
+    val serviceZoneIds: List<Long>,
 )
 
 data class DriverOnboardingDocumentUpload(

@@ -14,6 +14,8 @@ import io.ktor.http.HttpHeaders
 import io.ktor.http.contentType
 import org.noztek.esktransport.feature.driver.onboarding.data.remote.dto.DriverOnboardingMutationResponseDto
 import org.noztek.esktransport.feature.driver.onboarding.data.remote.dto.DriverOnboardingResponseDto
+import org.noztek.esktransport.feature.driver.onboarding.data.remote.dto.DriverServiceZoneSelectionRequestDto
+import org.noztek.esktransport.feature.driver.onboarding.data.remote.dto.DriverServiceZonesResponseDto
 import org.noztek.esktransport.feature.driver.onboarding.data.remote.dto.DriverVehicleSetupRequestDto
 import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverIdentityVerificationPayload
 import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverOnboardingDocumentUpload
@@ -28,6 +30,17 @@ class DriverOnboardingApi(
 
     suspend fun saveVehicle(request: DriverVehicleSetupRequestDto): DriverOnboardingMutationResponseDto {
         return client.post("${baseUrl.trimEnd('/')}/api/v1/rider/onboarding/vehicle") {
+            contentType(ContentType.Application.Json)
+            setBody(request)
+        }.body()
+    }
+
+    suspend fun getServiceZones(): DriverServiceZonesResponseDto {
+        return client.get("${baseUrl.trimEnd('/')}/api/v1/rider/onboarding/service-zones").body()
+    }
+
+    suspend fun submitServiceZones(request: DriverServiceZoneSelectionRequestDto): DriverOnboardingMutationResponseDto {
+        return client.post("${baseUrl.trimEnd('/')}/api/v1/rider/onboarding/service-zone") {
             contentType(ContentType.Application.Json)
             setBody(request)
         }.body()
