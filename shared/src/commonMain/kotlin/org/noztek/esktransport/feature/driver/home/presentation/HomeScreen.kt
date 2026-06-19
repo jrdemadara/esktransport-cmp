@@ -144,19 +144,21 @@ fun HomeScreen(
                 ratingLabel = ratingLabel,
             )
 
-            AppPrimaryButton(
-                text = "Switch to Driver Mode",
-                onClick = onDriverModeClick,
-                height = 44.dp,
-                contentPadding = PaddingValues(horizontal = 16.dp),
-                trailingIcon = {
-                    Icon(
-                        imageVector = Heroicons.Outline.ChevronRight,
-                        contentDescription = null,
-                        modifier = Modifier.size(15.dp),
-                    )
-                },
-            )
+            if (uiState.onboardingStatus?.canGo == true) {
+                AppPrimaryButton(
+                    text = "Switch to Driver Mode",
+                    onClick = onDriverModeClick,
+                    height = 44.dp,
+                    contentPadding = PaddingValues(horizontal = 16.dp),
+                    trailingIcon = {
+                        Icon(
+                            imageVector = Heroicons.Outline.ChevronRight,
+                            contentDescription = null,
+                            modifier = Modifier.size(15.dp),
+                        )
+                    },
+                )
+            }
 
             DriverSetupCard(
                 isLoading = uiState.isLoadingSetup,
