@@ -1,4 +1,4 @@
-import UIKit
+ import UIKit
 import SwiftUI
 import Shared
 
@@ -31,5 +31,6 @@ struct ContentView: View {
             ComposeView()
                 .ignoresSafeArea(.container, edges: .bottom)
         }
+        .ignoresSafeArea(.keyboard)
     }
 }

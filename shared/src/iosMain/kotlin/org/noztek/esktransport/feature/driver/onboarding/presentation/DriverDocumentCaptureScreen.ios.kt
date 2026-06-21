@@ -31,6 +31,7 @@ import platform.CoreGraphics.CGImageCreateWithImageInRect
 import platform.CoreGraphics.CGImageGetHeight
 import platform.CoreGraphics.CGImageGetWidth
 import platform.CoreGraphics.CGRectMake
+import platform.CoreGraphics.CGSizeMake
 import platform.CoreVideo.CVPixelBufferRef
 import platform.Foundation.NSData
 import platform.Foundation.NSError
@@ -43,13 +44,18 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -81,6 +87,7 @@ import androidx.compose.ui.viewinterop.UIKitView
 import com.composables.icons.heroicons.Heroicons
 import com.composables.icons.heroicons.outline.ArrowLeft
 import com.composables.icons.heroicons.outline.Camera
+import com.composables.icons.heroicons.outline.Photo
 import kotlinx.cinterop.BetaInteropApi
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.addressOf
@@ -90,7 +97,15 @@ import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverOnbo
 import platform.UIKit.UIColor
 import platform.UIKit.UIImage
 import platform.UIKit.UIImageJPEGRepresentation
+import platform.UIKit.UIImagePickerController
+import platform.UIKit.UIImagePickerControllerDelegateProtocol
+import platform.UIKit.UIImagePickerControllerOriginalImage
+import platform.UIKit.UIImagePickerControllerSourceType
+import platform.UIKit.UINavigationControllerDelegateProtocol
 import platform.UIKit.UIView
+import platform.UIKit.UIGraphicsBeginImageContextWithOptions
+import platform.UIKit.UIGraphicsEndImageContext
+import platform.UIKit.UIGraphicsGetImageFromCurrentImageContext
 import platform.darwin.NSObject
 import platform.darwin.dispatch_async
 import platform.darwin.dispatch_get_global_queue
@@ -98,6 +113,8 @@ import platform.darwin.dispatch_get_main_queue
 
 private const val SelfieStableCaptureDurationMs = 700L
 private const val SelfieDetectionGraceDurationMs = 420L
+private const val UploadMaxDimension = 1920.0
+private const val UploadMaxBytes = 1_800_000UL
 
 @OptIn(ExperimentalForeignApi::class)
 @Composable
@@ -106,9 +123,16 @@ actual fun DriverDocumentCaptureScreen(
     onCaptured: (CapturedDocumentImage) -> Unit,
     onClose: () -> Unit,
 ) {
-    if (!type.isIdentityCapture()) {
-        IosCaptureUnavailableContent(onClose = onClose)
-        return
+    when (type) {
+        DriverOnboardingDocumentType.VehicleRegistration -> {
+            IosVehicleRegistrationCaptureScreen(onCaptured = onCaptured, onClose = onClose)
+            return
+        }
+        DriverOnboardingDocumentType.VehiclePhoto -> {
+            IosVehiclePhotoCaptureScreen(onCaptured = onCaptured, onClose = onClose)
+            return
+        }
+        else -> Unit
     }
 
     val isSelfie = type == DriverOnboardingDocumentType.Selfie
@@ -202,6 +226,144 @@ actual fun DriverDocumentCaptureScreen(
     }
 }
 
+@OptIn(ExperimentalForeignApi::class)
+@Composable
+private fun IosVehicleRegistrationCaptureScreen(
+    onCaptured: (CapturedDocumentImage) -> Unit,
+    onClose: () -> Unit,
+) {
+    val type = DriverOnboardingDocumentType.VehicleRegistration
+    val latestOnCaptured by androidx.compose.runtime.rememberUpdatedState(onCaptured)
+    var permissionGranted by remember { mutableStateOf(false) }
+    var permissionResolved by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+    var isCapturing by remember { mutableStateOf(false) }
+    val camera = remember(type) {
+        IosIdentityCameraController(
+            type = type,
+            onPermissionChanged = { granted ->
+                permissionGranted = granted
+                permissionResolved = true
+            },
+            onSelfieAssessmentChanged = {},
+            onCaptureStarted = { isCapturing = true },
+            onCaptured = latestOnCaptured,
+            onCaptureFailed = { message ->
+                isCapturing = false
+                errorMessage = message
+            },
+        )
+    }
+
+    LaunchedEffect(camera) { camera.requestPermissionAndStart() }
+    DisposableEffect(camera) { onDispose(camera::stop) }
+
+    if (!permissionResolved || !permissionGranted) {
+        IosCameraPermissionContent(
+            isCheckingPermission = !permissionResolved,
+            onRequestPermission = camera::requestPermissionAndStart,
+            onClose = onClose,
+        )
+        return
+    }
+
+    Scaffold(containerColor = Color.Black, contentWindowInsets = WindowInsets.safeDrawing) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black),
+        ) {
+            UIKitView(modifier = Modifier.fillMaxSize(), factory = { camera.previewView })
+            IosVehicleRegistrationGuideOverlay()
+            IosVehicleCaptureTopBar(title = type.captureTitle(), onClose = onClose)
+            IosVehicleRegistrationCapturePanel(
+                isCapturing = isCapturing,
+                errorMessage = errorMessage,
+                onCapture = camera::captureManually,
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .navigationBarsPadding(),
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalForeignApi::class)
+@Composable
+private fun IosVehiclePhotoCaptureScreen(
+    onCaptured: (CapturedDocumentImage) -> Unit,
+    onClose: () -> Unit,
+) {
+    val type = DriverOnboardingDocumentType.VehiclePhoto
+    val latestOnCaptured by androidx.compose.runtime.rememberUpdatedState(onCaptured)
+    var permissionGranted by remember { mutableStateOf(false) }
+    var permissionResolved by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+    var isCapturing by remember { mutableStateOf(false) }
+    var galleryPicker by remember { mutableStateOf<IosVehicleImagePicker?>(null) }
+    val camera = remember(type) {
+        IosIdentityCameraController(
+            type = type,
+            onPermissionChanged = { granted ->
+                permissionGranted = granted
+                permissionResolved = true
+            },
+            onSelfieAssessmentChanged = {},
+            onCaptureStarted = { isCapturing = true },
+            onCaptured = latestOnCaptured,
+            onCaptureFailed = { message ->
+                isCapturing = false
+                errorMessage = message
+            },
+        )
+    }
+
+    LaunchedEffect(camera) { camera.requestPermissionAndStart() }
+    DisposableEffect(camera) { onDispose(camera::stop) }
+
+    if (!permissionResolved || !permissionGranted) {
+        IosCameraPermissionContent(
+            isCheckingPermission = !permissionResolved,
+            onRequestPermission = camera::requestPermissionAndStart,
+            onClose = onClose,
+        )
+        return
+    }
+
+    Scaffold(containerColor = Color.Black, contentWindowInsets = WindowInsets.safeDrawing) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black),
+        ) {
+            UIKitView(modifier = Modifier.fillMaxSize(), factory = { camera.previewView })
+            IosVehicleCaptureTopBar(title = type.captureTitle(), onClose = onClose)
+            IosVehiclePhotoCapturePanel(
+                isCapturing = isCapturing,
+                errorMessage = errorMessage,
+                onCapture = camera::captureManually,
+                onGallery = {
+                    val picker = IosVehicleImagePicker(
+                        onImageSelected = { image ->
+                            galleryPicker = null
+                            latestOnCaptured(image)
+                        },
+                        onFailure = { message ->
+                            galleryPicker = null
+                            errorMessage = message
+                        },
+                    )
+                    galleryPicker = picker
+                    picker.present(from = camera.previewView)
+                },
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .navigationBarsPadding(),
+            )
+        }
+    }
+}
+
 @Composable
 private fun IosLicenseGuideOverlay() {
     val overlayColor = Color(0xFF2563EB).copy(alpha = 0.70f)
@@ -209,6 +371,35 @@ private fun IosLicenseGuideOverlay() {
     Canvas(modifier = Modifier.fillMaxSize()) {
         val guideWidth = size.width * 0.90f
         val guideHeight = (guideWidth * 0.62f).coerceAtMost(size.height * 0.48f)
+        val guideRect = Rect(
+            offset = Offset(
+                x = (size.width - guideWidth) / 2f,
+                y = (size.height - guideHeight) / 2f - size.height * 0.04f,
+            ),
+            size = Size(guideWidth, guideHeight),
+        )
+        val overlay = Path().apply {
+            fillType = PathFillType.EvenOdd
+            addRect(Rect(Offset.Zero, size))
+            addRect(guideRect)
+        }
+        drawPath(overlay, overlayColor)
+        drawRect(
+            color = guideColor,
+            topLeft = guideRect.topLeft,
+            size = guideRect.size,
+            style = Stroke(width = 4f),
+        )
+    }
+}
+
+@Composable
+private fun IosVehicleRegistrationGuideOverlay() {
+    val overlayColor = Color(0xFF2563EB).copy(alpha = 0.70f)
+    val guideColor = Color(0xFFBFDBFE)
+    Canvas(modifier = Modifier.fillMaxSize()) {
+        val guideWidth = size.width * 0.80f
+        val guideHeight = (guideWidth * 1.42f).coerceAtMost(size.height * 0.68f)
         val guideRect = Rect(
             offset = Offset(
                 x = (size.width - guideWidth) / 2f,
@@ -295,6 +486,154 @@ private fun IosManualCapturePanel(
 }
 
 @Composable
+private fun IosVehicleCaptureTopBar(
+    title: String,
+    onClose: () -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        IconButton(onClick = onClose) {
+            Icon(
+                imageVector = Heroicons.Outline.ArrowLeft,
+                contentDescription = "Back",
+                tint = Color.White,
+            )
+        }
+        Text(
+            text = title,
+            modifier = Modifier.weight(1f),
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = Color.White,
+        )
+        Spacer(modifier = Modifier.width(48.dp))
+    }
+}
+
+@Composable
+private fun IosVehicleRegistrationCapturePanel(
+    isCapturing: Boolean,
+    errorMessage: String?,
+    onCapture: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(16.dp),
+        color = Color.Black.copy(alpha = 0.72f),
+        contentColor = Color.White,
+    ) {
+        Column(
+            modifier = Modifier.padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Text(
+                text = "Fit the full registration document inside the frame.",
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Medium,
+            )
+            if (errorMessage != null) {
+                Text(
+                    text = errorMessage,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color(0xFFFCA5A5),
+                )
+            }
+            Button(
+                onClick = onCapture,
+                enabled = !isCapturing,
+                modifier = Modifier.fillMaxWidth(),
+                contentPadding = PaddingValues(vertical = 14.dp),
+            ) {
+                Icon(
+                    imageVector = Heroicons.Outline.Camera,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp),
+                )
+                Text(
+                    text = if (isCapturing) "Capturing..." else "Capture document",
+                    modifier = Modifier.padding(start = 8.dp),
+                    fontWeight = FontWeight.SemiBold,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun IosVehiclePhotoCapturePanel(
+    isCapturing: Boolean,
+    errorMessage: String?,
+    onCapture: () -> Unit,
+    onGallery: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(16.dp),
+        color = Color.Black.copy(alpha = 0.72f),
+        contentColor = Color.White,
+    ) {
+        Column(
+            modifier = Modifier.padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Text(
+                text = "Capture a clear photo of the service vehicle.",
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Medium,
+            )
+            if (errorMessage != null) {
+                Text(
+                    text = errorMessage,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color(0xFFFCA5A5),
+                )
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                OutlinedButton(
+                    onClick = onGallery,
+                    enabled = !isCapturing,
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(52.dp),
+                ) {
+                    Icon(
+                        imageVector = Heroicons.Outline.Photo,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp),
+                    )
+                    Text("Gallery", modifier = Modifier.padding(start = 8.dp))
+                }
+                Button(
+                    onClick = onCapture,
+                    enabled = !isCapturing,
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(52.dp),
+                ) {
+                    Icon(
+                        imageVector = Heroicons.Outline.Camera,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp),
+                    )
+                    Text(
+                        text = if (isCapturing) "Capturing" else "Capture",
+                        modifier = Modifier.padding(start = 8.dp),
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
 private fun IosSelfieStatusPanel(
     assessment: IosCaptureAssessment,
     isCapturing: Boolean,
@@ -331,42 +670,17 @@ private fun IosSelfieStatusPanel(
     }
 }
 
-private fun DriverOnboardingDocumentType.isIdentityCapture(): Boolean = when (this) {
-    DriverOnboardingDocumentType.LicenseFront,
-    DriverOnboardingDocumentType.LicenseBack,
-    DriverOnboardingDocumentType.Selfie,
-    -> true
-    else -> false
-}
-
 private fun DriverOnboardingDocumentType.initialPrompt(): String = when (this) {
     DriverOnboardingDocumentType.Selfie -> "Place your face inside the oval."
     else -> "Position the entire license inside the frame."
 }
 
-@Composable
-private fun IosCaptureUnavailableContent(onClose: () -> Unit) {
-    Scaffold(
-        containerColor = MaterialTheme.colorScheme.background,
-        contentWindowInsets = WindowInsets.safeDrawing,
-    ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterVertically),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            Text(
-                text = "Vehicle capture is not available on iOS yet.",
-                style = MaterialTheme.typography.titleMedium,
-            )
-            OutlinedButton(onClick = onClose) {
-                Text("Back")
-            }
-        }
-    }
+private fun DriverOnboardingDocumentType.captureTitle(): String = when (this) {
+    DriverOnboardingDocumentType.LicenseFront -> "Capture license front"
+    DriverOnboardingDocumentType.LicenseBack -> "Capture license back"
+    DriverOnboardingDocumentType.Selfie -> "Capture selfie"
+    DriverOnboardingDocumentType.VehicleRegistration -> "Capture vehicle registration"
+    DriverOnboardingDocumentType.VehiclePhoto -> "Capture vehicle photo"
 }
 
 @Composable
@@ -421,6 +735,49 @@ private data class IosNormalizedCrop(
     val width: Double,
     val height: Double,
 )
+
+@OptIn(ExperimentalForeignApi::class)
+private class IosVehicleImagePicker(
+    private val onImageSelected: (CapturedDocumentImage) -> Unit,
+    private val onFailure: (String) -> Unit,
+) : NSObject(), UIImagePickerControllerDelegateProtocol, UINavigationControllerDelegateProtocol {
+    private val picker = UIImagePickerController()
+
+    fun present(from: UIView) {
+        val host = from.window?.rootViewController
+        if (host == null) {
+            onFailure("Unable to open the photo library.")
+            return
+        }
+        picker.sourceType = UIImagePickerControllerSourceType.UIImagePickerControllerSourceTypePhotoLibrary
+        picker.delegate = this
+        host.presentViewController(picker, animated = true, completion = null)
+    }
+
+    override fun imagePickerControllerDidCancel(picker: UIImagePickerController) {
+        picker.dismissViewControllerAnimated(true, completion = null)
+    }
+
+    override fun imagePickerController(
+        picker: UIImagePickerController,
+        didFinishPickingMediaWithInfo: Map<Any?, *>,
+    ) {
+        picker.dismissViewControllerAnimated(true, completion = null)
+        val image = didFinishPickingMediaWithInfo[UIImagePickerControllerOriginalImage] as? UIImage
+        val data = image?.let { UIImageJPEGRepresentation(it, 0.92) }
+        if (data == null) {
+            onFailure("Unable to read the selected image.")
+            return
+        }
+        onImageSelected(
+            CapturedDocumentImage(
+                fileName = "driver_vehicle_photo_${(NSProcessInfo.processInfo.systemUptime * 1000.0).toLong()}.jpg",
+                mimeType = "image/jpeg",
+                bytes = data.toByteArray(),
+            ),
+        )
+    }
+}
 
 @OptIn(BetaInteropApi::class, ExperimentalForeignApi::class)
 private class IosIdentityCameraController(
@@ -507,7 +864,7 @@ private class IosIdentityCameraController(
     }
 
     fun captureManually() {
-        if (!isSelfie) capturePhoto(licenseGuideCrop = previewView.licenseGuideCrop())
+        if (!isSelfie) capturePhoto(documentGuideCrop = previewView.documentGuideCrop(type))
     }
 
     private fun handleSelfieAssessment(assessment: IosCaptureAssessment) {
@@ -532,13 +889,13 @@ private class IosIdentityCameraController(
         }
     }
 
-    private fun capturePhoto(licenseGuideCrop: IosNormalizedCrop? = null) {
+    private fun capturePhoto(documentGuideCrop: IosNormalizedCrop? = null) {
         if (isCapturing) return
         isCapturing = true
         onCaptureStarted()
         val delegate = IosPhotoCaptureDelegate(
             type = type,
-            licenseGuideCrop = licenseGuideCrop,
+            documentGuideCrop = documentGuideCrop,
             onSuccess = { image ->
                 isCapturing = false
                 photoDelegate = null
@@ -580,10 +937,16 @@ private class IosCameraPreviewView(previewLayer: AVCaptureVideoPreviewLayer) : U
         cameraPreviewLayer.frame = bounds
     }
 
-    fun licenseGuideCrop(): IosNormalizedCrop {
+    fun documentGuideCrop(type: DriverOnboardingDocumentType): IosNormalizedCrop {
         val guideRect = bounds.useContents {
-            val guideWidth = size.width * 0.90
-            val guideHeight = minOf(guideWidth * 0.62, size.height * 0.48)
+            val guideWidth = when (type) {
+                DriverOnboardingDocumentType.VehicleRegistration -> size.width * 0.80
+                else -> size.width * 0.90
+            }
+            val guideHeight = when (type) {
+                DriverOnboardingDocumentType.VehicleRegistration -> minOf(guideWidth * 1.42, size.height * 0.68)
+                else -> minOf(guideWidth * 0.62, size.height * 0.48)
+            }
             CGRectMake(
                 x = (size.width - guideWidth) / 2.0,
                 y = (size.height - guideHeight) / 2.0 - size.height * 0.04,
@@ -656,7 +1019,7 @@ private class IosSelfieFrameAnalyzer(
 @OptIn(BetaInteropApi::class, ExperimentalForeignApi::class)
 private class IosPhotoCaptureDelegate(
     private val type: DriverOnboardingDocumentType,
-    private val licenseGuideCrop: IosNormalizedCrop?,
+    private val documentGuideCrop: IosNormalizedCrop?,
     private val onSuccess: (CapturedDocumentImage) -> Unit,
     private val onFailure: (String) -> Unit,
 ) : NSObject(), AVCapturePhotoCaptureDelegateProtocol {
@@ -673,27 +1036,36 @@ private class IosPhotoCaptureDelegate(
             return
         }
         val capturedData = when {
-            type.isLicenseCapture() && licenseGuideCrop != null -> cropLicenseGuide(data, licenseGuideCrop)
+            type.isGuidedDocumentCapture() && documentGuideCrop != null -> cropDocumentGuide(data, documentGuideCrop)
             type == DriverOnboardingDocumentType.Selfie -> cropSelfieToFace(data)
             else -> data
+        }
+        val uploadData = capturedData.asJpegForUpload()
+        if (uploadData.length == 0UL) {
+            dispatch_async(dispatch_get_main_queue()) {
+                onFailure("The captured image is empty. Please capture it again.")
+            }
+            return
         }
         dispatch_async(dispatch_get_main_queue()) {
             onSuccess(
                 CapturedDocumentImage(
                     fileName = "driver_${type.apiValue}_${(NSProcessInfo.processInfo.systemUptime * 1000.0).toLong()}.jpg",
                     mimeType = "image/jpeg",
-                    bytes = capturedData.toByteArray(),
+                    bytes = uploadData.toByteArray(),
                 ),
             )
         }
     }
 }
 
-private fun DriverOnboardingDocumentType.isLicenseCapture(): Boolean =
-    this == DriverOnboardingDocumentType.LicenseFront || this == DriverOnboardingDocumentType.LicenseBack
+private fun DriverOnboardingDocumentType.isGuidedDocumentCapture(): Boolean =
+    this == DriverOnboardingDocumentType.LicenseFront ||
+        this == DriverOnboardingDocumentType.LicenseBack ||
+        this == DriverOnboardingDocumentType.VehicleRegistration
 
 @OptIn(ExperimentalForeignApi::class)
-private fun cropLicenseGuide(data: NSData, guide: IosNormalizedCrop): NSData {
+private fun cropDocumentGuide(data: NSData, guide: IosNormalizedCrop): NSData {
     val sourceImage = UIImage(data = data)
     val cgImage = sourceImage.CGImage ?: return data
     val width = CGImageGetWidth(cgImage).toDouble()
@@ -715,6 +1087,42 @@ private fun cropLicenseGuide(data: NSData, guide: IosNormalizedCrop): NSData {
         orientation = sourceImage.imageOrientation,
     )
     return UIImageJPEGRepresentation(orientedCrop, 0.98) ?: data
+}
+
+@OptIn(ExperimentalForeignApi::class)
+private fun NSData.asJpegForUpload(): NSData {
+    val source = UIImage(data = this)
+    val image = source.resizedForUpload()
+    val qualities = listOf(0.86, 0.76, 0.66)
+    var encoded = UIImageJPEGRepresentation(image, qualities.last()) ?: return this
+
+    for (quality in qualities) {
+        val candidate = UIImageJPEGRepresentation(image, quality) ?: continue
+        encoded = candidate
+        if (candidate.length <= UploadMaxBytes) break
+    }
+
+    return encoded
+}
+
+@OptIn(ExperimentalForeignApi::class)
+private fun UIImage.resizedForUpload(): UIImage {
+    val sourceSize = size.useContents { width to height }
+    val longestEdge = maxOf(sourceSize.first, sourceSize.second)
+    if (longestEdge <= UploadMaxDimension) return this
+
+    val scale = UploadMaxDimension / longestEdge
+    val targetWidth = sourceSize.first * scale
+    val targetHeight = sourceSize.second * scale
+    UIGraphicsBeginImageContextWithOptions(
+        size = CGSizeMake(targetWidth, targetHeight),
+        opaque = false,
+        scale = 1.0,
+    )
+    drawInRect(CGRectMake(0.0, 0.0, targetWidth, targetHeight))
+    val resized = UIGraphicsGetImageFromCurrentImageContext()
+    UIGraphicsEndImageContext()
+    return resized ?: this
 }
 
 private data class IosNormalizedPoint(

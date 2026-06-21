@@ -363,6 +363,7 @@ private fun VehicleCaptureRow(
         if (preview != null) {
             VehicleRegistrationPreviewCard(
                 preview = preview,
+                type = type,
                 helperText = helperText,
                 contentDescription = "$title preview",
             )
@@ -398,10 +399,12 @@ private fun VehicleSectionSurface(
 @Composable
 private fun VehicleRegistrationPreviewCard(
     preview: CapturedDocumentPreview,
+    type: DriverOnboardingDocumentType,
     helperText: String,
     contentDescription: String,
 ) {
     val shape = RoundedCornerShape(8.dp)
+    val isRegistrationDocument = type == DriverOnboardingDocumentType.VehicleRegistration
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = shape,
@@ -415,8 +418,8 @@ private fun VehicleRegistrationPreviewCard(
         ) {
             Box(
                 modifier = Modifier
-                    .height(82.dp)
-                    .aspectRatio(1.58f)
+                    .height(if (isRegistrationDocument) 104.dp else 82.dp)
+                    .aspectRatio(if (isRegistrationDocument) 0.70f else 1.58f)
                     .clip(shape)
                     .border(1.dp, MaterialTheme.colorScheme.outlineVariant, shape)
                     .background(MaterialTheme.colorScheme.surfaceVariant),

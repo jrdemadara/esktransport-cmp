@@ -234,7 +234,7 @@ private fun IdentityLicenseSection(
             onValueChange = onLicenseExpiryChange,
             label = "License expiry (YYYY-MM-DD)",
             modifier = Modifier.fillMaxWidth(),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
         )
     }
 }
