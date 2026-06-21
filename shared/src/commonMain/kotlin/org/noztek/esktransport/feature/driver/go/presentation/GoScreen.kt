@@ -93,6 +93,7 @@ import org.noztek.esktransport.core.map.MapCameraDefaults
 import org.noztek.esktransport.core.map.MapPoint
 import org.noztek.esktransport.core.map.MapboxConfig
 import org.noztek.esktransport.core.map.PlatformMapView
+import org.noztek.esktransport.core.platform.isIosPlatform
 
 private val GoButtonBlue = Color(0xFF2F80ED)
 private val GoButtonSubmittingGray = Color(0xFF9CA3AF)
@@ -156,7 +157,7 @@ fun GoScreen(
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
-        contentWindowInsets = WindowInsets.safeDrawing,
+        contentWindowInsets = if (isIosPlatform()) WindowInsets(0) else WindowInsets.safeDrawing,
     ) { paddingValues ->
         Box(
             modifier = Modifier
