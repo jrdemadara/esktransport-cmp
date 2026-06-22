@@ -14,6 +14,8 @@ final class IosMapboxViewFactory: NSObject, Shared.IosMapboxViewFactory {
         var lastCameraCenter: CLLocationCoordinate2D?
         var antTimer: Timer?
         var styleLoadedCancelable: Cancelable?
+        var userLocationCancelable: Cancelable?
+        var hasCenteredOnUserLocation = false
         var markerManager: CircleAnnotationManager?
         var destinationMarkerManager: PointAnnotationManager?
 
@@ -79,6 +81,7 @@ final class IosMapboxViewFactory: NSObject, Shared.IosMapboxViewFactory {
             self.applyAntPath(to: mapView, container: container, request: request)
             self.applyMarkers(to: mapView, container: container, request: request)
         }
+        configureUserLocation(in: mapView, container: container, request: request)
         applyCamera(to: mapView, request: request, lastCenter: nil)
         container.lastCameraCenter = CLLocationCoordinate2D(latitude: request.latitude, longitude: request.longitude)
         return container
@@ -94,10 +97,47 @@ final class IosMapboxViewFactory: NSObject, Shared.IosMapboxViewFactory {
         }
         container.panObserver?.onCameraMoving = request.onCameraMoving
         container.panObserver?.onCameraIdle = request.onCameraIdle
+        configureUserLocation(in: mapView, container: container, request: request)
         applyCamera(to: mapView, request: request, lastCenter: container.lastCameraCenter)
         applyAntPath(to: mapView, container: container, request: request)
         applyMarkers(to: mapView, container: container, request: request)
         container.lastCameraCenter = CLLocationCoordinate2D(latitude: request.latitude, longitude: request.longitude)
+    }
+
+    private func configureUserLocation(
+        in mapView: MapView,
+        container: MapContainerView,
+        request: IosMapboxViewRequest
+    ) {
+        guard request.showUserLocation else {
+            mapView.location.options.puckType = nil
+            container.userLocationCancelable?.cancel()
+            container.userLocationCancelable = nil
+            container.hasCenteredOnUserLocation = false
+            return
+        }
+
+        var puck = Puck2DConfiguration(
+            topImage: driverLocationPuckImage(),
+            pulsing: .init(
+                color: driverPrimaryColor.withAlphaComponent(0.42),
+                radius: .constant(38)
+            )
+        )
+        puck.showsAccuracyRing = false
+        mapView.location.options.puckType = .puck2D(puck)
+
+        guard container.userLocationCancelable == nil else { return }
+        container.userLocationCancelable = mapView.location.onLocationChange.observeNext { [weak mapView, weak container] locations in
+            guard let mapView, let container, !container.hasCenteredOnUserLocation,
+                  let location = locations.last else { return }
+
+            container.hasCenteredOnUserLocation = true
+            mapView.camera.ease(
+                to: CameraOptions(center: location.coordinate, zoom: request.zoom),
+                duration: 0.45
+            )
+        }
     }
 
     private func applyMarkers(to mapView: MapView, container: MapContainerView, request: IosMapboxViewRequest) {
@@ -280,6 +320,19 @@ final class IosMapboxViewFactory: NSObject, Shared.IosMapboxViewFactory {
                 pitch: request.pitch
             )
         )
+    }
+}
+
+private let driverPrimaryColor = UIColor(red: 0.145, green: 0.388, blue: 0.922, alpha: 1.0)
+
+private func driverLocationPuckImage() -> UIImage {
+    let size = CGSize(width: 28, height: 28)
+    let renderer = UIGraphicsImageRenderer(size: size)
+    return renderer.image { _ in
+        UIColor.white.setFill()
+        UIBezierPath(ovalIn: CGRect(x: 1, y: 1, width: 26, height: 26)).fill()
+        driverPrimaryColor.setFill()
+        UIBezierPath(ovalIn: CGRect(x: 5, y: 5, width: 18, height: 18)).fill()
     }
 }
 

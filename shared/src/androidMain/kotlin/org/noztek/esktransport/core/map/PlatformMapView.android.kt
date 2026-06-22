@@ -43,6 +43,7 @@ actual fun PlatformMapView(
     cameraDefaults: MapCameraDefaults,
     markers: List<MapMarker>,
     routeLines: List<MapRouteLine>,
+    showUserLocation: Boolean,
     onCameraMoving: ((MapPoint) -> Unit)?,
     onCameraIdle: ((MapPoint) -> Unit)?,
 ) {

@@ -169,6 +169,7 @@ fun GoScreen(
                 config = mapboxConfig,
                 cameraCenter = MapPoint(latitude = 6.6881, longitude = 124.6779),
                 cameraDefaults = cameraDefaults.copy(zoom = 12.4, pitch = 0.0),
+                showUserLocation = isIosPlatform(),
             )
 
             DriverHomeToolbar(

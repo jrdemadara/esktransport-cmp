@@ -15,6 +15,7 @@ class IosMapboxViewRequest(
     val antPathEnabled: Boolean,
     val antPathColorHex: String,
     val antPathWidth: Double,
+    val showUserLocation: Boolean,
     val onCameraMoving: ((MapPoint) -> Unit)?,
     val onCameraIdle: ((MapPoint) -> Unit)?,
 )
