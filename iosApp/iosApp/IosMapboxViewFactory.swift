@@ -118,7 +118,7 @@ final class IosMapboxViewFactory: NSObject, Shared.IosMapboxViewFactory {
         }
 
         var puck = Puck2DConfiguration(
-            topImage: driverLocationPuckImage(),
+            topImage: driverLocationPuckImage(color: driverPrimaryColor),
             pulsing: .init(
                 color: driverPrimaryColor.withAlphaComponent(0.42),
                 radius: .constant(38)
@@ -323,15 +323,15 @@ final class IosMapboxViewFactory: NSObject, Shared.IosMapboxViewFactory {
     }
 }
 
-private let driverPrimaryColor = UIColor(red: 0.145, green: 0.388, blue: 0.922, alpha: 1.0)
+private let driverPrimaryColor = UIColor(red: 0.0, green: 0.294, blue: 0.831, alpha: 1.0)
 
-private func driverLocationPuckImage() -> UIImage {
+private func driverLocationPuckImage(color: UIColor) -> UIImage {
     let size = CGSize(width: 28, height: 28)
     let renderer = UIGraphicsImageRenderer(size: size)
     return renderer.image { _ in
         UIColor.white.setFill()
         UIBezierPath(ovalIn: CGRect(x: 1, y: 1, width: 26, height: 26)).fill()
-        driverPrimaryColor.setFill()
+        color.setFill()
         UIBezierPath(ovalIn: CGRect(x: 5, y: 5, width: 18, height: 18)).fill()
     }
 }

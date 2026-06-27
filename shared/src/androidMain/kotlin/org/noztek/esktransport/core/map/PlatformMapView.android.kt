@@ -1,5 +1,9 @@
 package org.noztek.esktransport.core.map
 
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Color as AndroidColor
+import android.graphics.Paint
 import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
@@ -12,6 +16,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import com.mapbox.android.gestures.MoveGestureDetector
 import com.mapbox.bindgen.Value
 import com.mapbox.common.MapboxOptions
@@ -19,6 +25,8 @@ import com.mapbox.geojson.Feature
 import com.mapbox.geojson.FeatureCollection
 import com.mapbox.geojson.LineString
 import com.mapbox.geojson.Point
+import com.mapbox.maps.CameraOptions
+import com.mapbox.maps.ImageHolder
 import com.mapbox.maps.extension.compose.MapEffect
 import com.mapbox.maps.extension.compose.MapboxMap
 import com.mapbox.maps.extension.compose.animation.viewport.rememberMapViewportState
@@ -31,9 +39,14 @@ import com.mapbox.maps.extension.style.sources.addSource
 import com.mapbox.maps.extension.style.sources.generated.GeoJsonSource
 import com.mapbox.maps.extension.style.sources.generated.geoJsonSource
 import com.mapbox.maps.extension.style.sources.getSourceAs
+import com.mapbox.maps.plugin.LocationPuck2D
+import com.mapbox.maps.plugin.locationcomponent.OnIndicatorPositionChangedListener
+import com.mapbox.maps.plugin.locationcomponent.location
 import com.mapbox.maps.plugin.gestures.OnMoveListener
 import com.mapbox.maps.plugin.gestures.gestures
 import kotlinx.coroutines.delay
+import androidx.core.graphics.createBitmap
+import kotlin.time.Duration.Companion.milliseconds
 
 @Composable
 actual fun PlatformMapView(
@@ -73,15 +86,55 @@ actual fun PlatformMapView(
             bearing(cameraDefaults.bearing)
         }
     }
-    val adaptiveStyle = if (isSystemInDarkTheme()) MapboxStyle.DARK else MapboxStyle.LIGHT
+    val isDarkMode = isSystemInDarkTheme()
+    val adaptiveStyle = if (isDarkMode) MapboxStyle.DARK else MapboxStyle.LIGHT
     val currentOnCameraMoving = rememberUpdatedState(onCameraMoving)
     val currentOnCameraIdle = rememberUpdatedState(onCameraIdle)
+    val userLocationColor = Color(0xFF2563EB).toArgb()
 
     MapboxMap(
         modifier = modifier,
         mapViewportState = viewportState,
         style = { MapStyle(style = adaptiveStyle.uri) },
     ) {
+        MapEffect(showUserLocation, userLocationColor, cameraDefaults) { mapView ->
+            val location = mapView.location
+            if (!showUserLocation) {
+                location.enabled = false
+                return@MapEffect
+            }
+
+            var centeredOnFirstLocation = false
+            val positionListener = OnIndicatorPositionChangedListener { point ->
+                if (centeredOnFirstLocation) return@OnIndicatorPositionChangedListener
+                centeredOnFirstLocation = true
+                mapView.mapboxMap.setCamera(
+                    CameraOptions.Builder()
+                        .center(point)
+                        .zoom(cameraDefaults.zoom)
+                        .pitch(cameraDefaults.pitch)
+                        .bearing(cameraDefaults.bearing)
+                        .build(),
+                )
+            }
+
+            location.locationPuck = createDriverLocationPuck(userLocationColor)
+            location.pulsingColor = userLocationColor.withAlpha(0.36f)
+            location.pulsingMaxRadius = 42f
+            location.pulsingEnabled = true
+            location.puckBearingEnabled = false
+            location.enabled = true
+            location.addOnIndicatorPositionChangedListener(positionListener)
+
+            try {
+                kotlinx.coroutines.awaitCancellation()
+            } finally {
+                location.removeOnIndicatorPositionChangedListener(positionListener)
+                location.pulsingEnabled = false
+                location.enabled = false
+            }
+        }
+
         MapEffect(Unit) { mapView ->
             val moveListener = object : OnMoveListener {
                 override fun onMoveBegin(detector: MoveGestureDetector) {
@@ -179,7 +232,7 @@ actual fun PlatformMapView(
                         Value.valueOf(values),
                     )
                     step = (step + 1) % dashArraySequence.size
-                    delay(50L)
+                    delay(50L.milliseconds)
                 }
             } catch (_: Throwable) {
                 // map recomposed/disposed; stop animation loop
@@ -228,7 +281,50 @@ private fun MissingMapToken(modifier: Modifier) {
 
 private fun MapPoint.toPoint(): Point = Point.fromLngLat(longitude, latitude)
 
-private fun androidx.compose.ui.graphics.Color.toHexColorString(): String {
+private fun createDriverLocationPuck(color: Int): LocationPuck2D {
+    return LocationPuck2D(
+        topImage = ImageHolder.from(createDriverLocationPuckBitmap(color)),
+    )
+}
+
+private fun createDriverLocationPuckBitmap(color: Int): Bitmap {
+    val size = 72
+    val bitmap = createBitmap(size, size)
+    val canvas = Canvas(bitmap)
+    val center = size / 2f
+
+    val outerPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        this.color = AndroidColor.WHITE
+        style = Paint.Style.FILL
+    }
+    canvas.drawCircle(center, center, 28f, outerPaint)
+
+    val innerPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        this.color = color
+        style = Paint.Style.FILL
+    }
+    canvas.drawCircle(center, center, 18f, innerPaint)
+
+    val strokePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        this.color = color.withAlpha(0.18f)
+        style = Paint.Style.STROKE
+        strokeWidth = 4f
+    }
+    canvas.drawCircle(center, center, 30f, strokePaint)
+
+    return bitmap
+}
+
+private fun Int.withAlpha(alpha: Float): Int {
+    return AndroidColor.argb(
+        (alpha.coerceIn(0f, 1f) * 255f).toInt(),
+        AndroidColor.red(this),
+        AndroidColor.green(this),
+        AndroidColor.blue(this),
+    )
+}
+
+private fun Color.toHexColorString(): String {
     val r = (red * 255f).toInt().coerceIn(0, 255)
     val g = (green * 255f).toInt().coerceIn(0, 255)
     val b = (blue * 255f).toInt().coerceIn(0, 255)
