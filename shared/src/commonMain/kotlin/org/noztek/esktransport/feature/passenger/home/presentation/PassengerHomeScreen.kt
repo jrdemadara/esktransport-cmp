@@ -45,11 +45,11 @@ import com.composables.icons.heroicons.Heroicons
 import com.composables.icons.heroicons.outline.MapPin
 import com.composables.icons.heroicons.outline.PaperAirplane
 import com.composables.icons.heroicons.outline.MagnifyingGlass
-import asktransport_cmp.shared.generated.resources.Res
-import asktransport_cmp.shared.generated.resources.home_big_truck
-import asktransport_cmp.shared.generated.resources.home_car
-import asktransport_cmp.shared.generated.resources.home_scooter
-import asktransport_cmp.shared.generated.resources.home_tricycle
+import esktransport.shared.generated.resources.Res
+import esktransport.shared.generated.resources.home_big_truck
+import esktransport.shared.generated.resources.home_car
+import esktransport.shared.generated.resources.home_scooter
+import esktransport.shared.generated.resources.home_tricycle
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
 import org.noztek.esktransport.core.platform.isIosPlatform

@@ -8,7 +8,7 @@ private let appBackgroundColor = Color(
             return UIColor(red: 0x11 / 255.0, green: 0x13 / 255.0, blue: 0x1B / 255.0, alpha: 1.0)
         }
 
-        return UIColor(red: 0xFA / 255.0, green: 0xF8 / 255.0, blue: 0xFF / 255.0, alpha: 1.0)
+        return UIColor(red: 0xF6 / 255.0, green: 0xF9 / 255.0, blue: 0xFF / 255.0, alpha: 1.0)
     }
 )
 
@@ -29,7 +29,7 @@ struct ContentView: View {
             appBackgroundColor
                 .ignoresSafeArea()
             ComposeView()
-                .ignoresSafeArea(.container, edges: .bottom)
+                .ignoresSafeArea(.container, edges: [.top, .bottom])
         }
         .ignoresSafeArea(.keyboard)
     }

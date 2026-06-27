@@ -20,9 +20,11 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
@@ -67,9 +69,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import asktransport_cmp.shared.generated.resources.Res
-import asktransport_cmp.shared.generated.resources.cup_dark
-import asktransport_cmp.shared.generated.resources.cup_light
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -88,6 +87,9 @@ import com.composables.icons.heroicons.outline.ShieldCheck
 import com.composables.icons.heroicons.outline.AdjustmentsHorizontal
 import com.composables.icons.heroicons.solid.Star
 import com.composables.icons.heroicons.outline.User
+import esktransport.shared.generated.resources.Res
+import esktransport.shared.generated.resources.cup_dark
+import esktransport.shared.generated.resources.cup_light
 import org.jetbrains.compose.resources.painterResource
 import org.noztek.esktransport.core.audio.SoundEffect
 import org.noztek.esktransport.core.audio.SoundEffectPlayer
@@ -96,6 +98,7 @@ import org.noztek.esktransport.core.map.MapPoint
 import org.noztek.esktransport.core.map.MapboxConfig
 import org.noztek.esktransport.core.map.PlatformMapView
 import org.noztek.esktransport.core.platform.isIosPlatform
+import kotlin.time.Duration.Companion.milliseconds
 
 private val GoButtonBlue = Color(0xFF2F80ED)
 private val GoButtonSubmittingGray = Color(0xFF9CA3AF)
@@ -159,7 +162,11 @@ fun GoScreen(
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
-        contentWindowInsets = if (isIosPlatform()) WindowInsets(0) else WindowInsets.safeDrawing,
+        contentWindowInsets = if (isIosPlatform()) {
+            WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal)
+        } else {
+            WindowInsets.safeDrawing
+        },
     ) { paddingValues ->
         Box(
             modifier = Modifier
@@ -515,7 +522,7 @@ private fun IncomingOfferOverlay(
             )
         }
         repeat(10) { tick ->
-            delay(1000)
+            delay(1000.milliseconds)
             secondsLeft = 9 - tick
         }
         soundEffectPlayer.play(SoundEffect.Denied)

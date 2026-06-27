@@ -29,16 +29,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import asktransport_cmp.shared.generated.resources.Res
-import asktransport_cmp.shared.generated.resources.forgot_password
-import asktransport_cmp.shared.generated.resources.logo
+import esktransport.shared.generated.resources.Res
+import esktransport.shared.generated.resources.forgot_password
 import org.jetbrains.compose.resources.painterResource
 import org.koin.compose.viewmodel.koinViewModel
+import org.noztek.esktransport.core.ui.composables.common.AppCommonTopBar
 import org.noztek.esktransport.core.ui.composables.common.AppInputField
 
 @Composable
@@ -50,6 +49,7 @@ fun ForgotPasswordScreen(
 ) {
     var phone by remember { mutableStateOf("") }
     val state by viewModel.state.collectAsState()
+    val backgroundColor = MaterialTheme.colorScheme.background
 
     LaunchedEffect(state.isSuccess) {
         if (state.isSuccess) {
@@ -60,13 +60,14 @@ fun ForgotPasswordScreen(
     Scaffold(
         modifier = modifier
             .fillMaxSize()
-            .background(Color.White),
-        containerColor = Color.White,
-        topBar = { ForgotPasswordTopBar() },
+            .background(backgroundColor),
+        containerColor = backgroundColor,
+        topBar = { AppCommonTopBar(containerColor = backgroundColor) },
     ) { contentPadding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .background(backgroundColor)
                 .padding(contentPadding)
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 22.dp),
@@ -114,7 +115,7 @@ fun ForgotPasswordScreen(
             if (state.error != null) {
                 Text(
                     text = state.error ?: "",
-                    style = MaterialTheme.typography.bodySmall,
+                    style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.error,
                     modifier = Modifier.padding(top = 12.dp),
                 )
@@ -145,51 +146,17 @@ fun ForgotPasswordScreen(
             ) {
                 Text(
                     text = "Remember your password? ",
-                    style = MaterialTheme.typography.bodySmall,
+                    style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Text(
                     text = "Login",
-                    style = MaterialTheme.typography.bodySmall,
+                    style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.clickable(enabled = !state.isLoading, onClick = onBackToLogin),
                 )
             }
         }
-    }
-}
-
-@Composable
-private fun ForgotPasswordTopBar(modifier: Modifier = Modifier) {
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .background(Color.White)
-            .padding(horizontal = 22.dp, vertical = 18.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        ForgotPasswordLogo()
-    }
-}
-
-@Composable
-private fun ForgotPasswordLogo(modifier: Modifier = Modifier) {
-    Row(
-        modifier = modifier,
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
-    ) {
-        Image(
-            painter = painterResource(Res.drawable.logo),
-            contentDescription = "EskTransport",
-            modifier = Modifier.height(34.dp),
-        )
-        Text(
-            text = "EskTransport",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurface,
-        )
     }
 }

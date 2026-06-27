@@ -1,6 +1,5 @@
 package org.noztek.esktransport.feature.common.register.presentation
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -35,11 +34,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import asktransport_cmp.shared.generated.resources.Res
-import asktransport_cmp.shared.generated.resources.logo
 import kotlinx.coroutines.launch
-import org.jetbrains.compose.resources.painterResource
 import org.koin.compose.viewmodel.koinViewModel
+import org.noztek.esktransport.core.ui.composables.common.AppCommonTopBar
 import org.noztek.esktransport.core.ui.composables.common.AppInputField
 import org.noztek.esktransport.core.ui.composables.common.AppLegalFooter
 import org.noztek.esktransport.feature.common.register.domain.model.RegisterRole
@@ -70,6 +67,7 @@ fun RegisterScreen(
     } else {
         "Create an account to book rides, track your driver, and manage every trip with a cleaner experience."
     }
+    val backgroundColor = MaterialTheme.colorScheme.background
 
     LaunchedEffect(state.isRegistered, state.registeredPhone) {
         val registeredPhone = state.registeredPhone
@@ -81,14 +79,15 @@ fun RegisterScreen(
     Scaffold(
         modifier = modifier
             .fillMaxSize()
-            .background(Color.White),
-        containerColor = Color.White,
+            .background(backgroundColor),
+        containerColor = backgroundColor,
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         topBar = {
-            RegisterTopBar()
+            AppCommonTopBar(containerColor = backgroundColor)
         },
         bottomBar = {
             AppLegalFooter(
+                containerColor = backgroundColor,
                 onPrivacyClick = {
                     coroutineScope.launch {
                         snackbarHostState.showSnackbar("Privacy Policy will be available soon.")
@@ -105,6 +104,7 @@ fun RegisterScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .background(backgroundColor)
                 .padding(contentPadding)
                 .padding(horizontal = 22.dp),
         ) {
@@ -218,12 +218,12 @@ fun RegisterScreen(
                 ) {
                     Text(
                         text = "Already have an account? ",
-                        style = MaterialTheme.typography.bodySmall,
+                        style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     Text(
                         text = "Login",
-                        style = MaterialTheme.typography.bodySmall,
+                        style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.clickable(enabled = !state.isSubmitting, onClick = onLoginClick),
@@ -231,39 +231,5 @@ fun RegisterScreen(
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun RegisterTopBar(modifier: Modifier = Modifier) {
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .background(Color.White)
-            .padding(horizontal = 22.dp, vertical = 18.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        RegisterLogo()
-    }
-}
-
-@Composable
-private fun RegisterLogo(modifier: Modifier = Modifier) {
-    Row(
-        modifier = modifier,
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
-    ) {
-        Image(
-            painter = painterResource(Res.drawable.logo),
-            contentDescription = "EskTransport `logo-nobg`",
-            modifier = Modifier.height(34.dp),
-        )
-        Text(
-            text = "EskTransport",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurface,
-        )
     }
 }

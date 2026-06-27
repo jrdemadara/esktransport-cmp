@@ -43,12 +43,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import asktransport_cmp.shared.generated.resources.Res
-import asktransport_cmp.shared.generated.resources.map_pin_black
-import asktransport_cmp.shared.generated.resources.map_pin_red
 import com.composables.icons.heroicons.Heroicons
 import com.composables.icons.heroicons.outline.MagnifyingGlass
 import com.composables.icons.heroicons.outline.MapPin
+import esktransport.shared.generated.resources.Res
+import esktransport.shared.generated.resources.map_pin_black
+import esktransport.shared.generated.resources.map_pin_red
 import org.jetbrains.compose.resources.painterResource
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel

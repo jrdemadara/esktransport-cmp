@@ -54,8 +54,6 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import androidx.navigation.navigation
 import androidx.savedstate.read
-import asktransport_cmp.shared.generated.resources.Res
-import asktransport_cmp.shared.generated.resources.logo
 import com.composables.icons.heroicons.outline.ArrowLeft
 import com.composables.icons.heroicons.outline.Bell
 import com.composables.icons.heroicons.outline.Sparkles
@@ -64,6 +62,8 @@ import com.composables.icons.heroicons.outline.Home
 import com.composables.icons.heroicons.Heroicons
 import com.composables.icons.heroicons.outline.User
 import com.composables.icons.heroicons.outline.RectangleStack
+import esktransport.shared.generated.resources.Res
+import esktransport.shared.generated.resources.logo
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.painterResource

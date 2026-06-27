@@ -2,24 +2,21 @@ package org.noztek.esktransport.feature.driver.home.presentation
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -45,13 +42,12 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import asktransport_cmp.shared.generated.resources.Res
-import asktransport_cmp.shared.generated.resources.home_car
-import asktransport_cmp.shared.generated.resources.home_scooter
-import asktransport_cmp.shared.generated.resources.home_tricycle
 import com.composables.icons.heroicons.Heroicons
 import com.composables.icons.heroicons.outline.ChevronRight
-import com.composables.icons.heroicons.outline.ExclamationTriangle
+import esktransport.shared.generated.resources.Res
+import esktransport.shared.generated.resources.home_car
+import esktransport.shared.generated.resources.home_scooter
+import esktransport.shared.generated.resources.home_tricycle
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -62,8 +58,8 @@ import org.noztek.esktransport.core.ui.composables.driver.DriverTopBar
 import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverOnboardingDocumentType
 import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverOnboardingState
 import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverOnboardingStatus
-import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverVehicleInfo
 import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverRequirementStatus
+import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverVehicleInfo
 
 enum class DriverHomeVehicleType {
     Motorcycle,

@@ -23,11 +23,12 @@ fun AppLegalFooter(
     onPrivacyClick: () -> Unit,
     onTermsClick: () -> Unit,
     modifier: Modifier = Modifier,
+    containerColor: Color = Color.White,
 ) {
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .background(Color.White)
+            .background(containerColor)
             .padding(horizontal = 22.dp, vertical = 14.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {

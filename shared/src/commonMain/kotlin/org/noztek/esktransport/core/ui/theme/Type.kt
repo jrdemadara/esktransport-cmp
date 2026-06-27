@@ -4,8 +4,8 @@ import androidx.compose.material3.Typography
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
-import asktransport_cmp.shared.generated.resources.Res
-import asktransport_cmp.shared.generated.resources.inter_variable
+import esktransport.shared.generated.resources.Res
+import esktransport.shared.generated.resources.inter_variable
 import org.jetbrains.compose.resources.Font
 
 private val baseline = Typography()

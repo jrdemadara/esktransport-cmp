@@ -1,6 +1,4 @@
-import org.gradle.internal.impldep.org.bouncycastle.util.Properties
-
-rootProject.name = "asktransport-cmp"
+rootProject.name = "esktransport"
 enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 
 val localProps = java.util.Properties().apply {

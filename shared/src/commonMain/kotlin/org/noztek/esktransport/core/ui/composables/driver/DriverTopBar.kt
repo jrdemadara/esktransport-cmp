@@ -7,7 +7,10 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.CenterAlignedTopAppBar
@@ -25,11 +28,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
-import asktransport_cmp.shared.generated.resources.Res
-import asktransport_cmp.shared.generated.resources.logo
 import com.composables.icons.heroicons.Heroicons
 import com.composables.icons.heroicons.outline.Bell
 import com.composables.icons.heroicons.outline.User
+import esktransport.shared.generated.resources.Res
+import esktransport.shared.generated.resources.logo
 import org.jetbrains.compose.resources.painterResource
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -43,7 +46,7 @@ fun DriverTopBar(
 ) {
     CenterAlignedTopAppBar(
         modifier = modifier,
-        windowInsets = WindowInsets(0),
+        windowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top),
         colors = TopAppBarDefaults.topAppBarColors(
             containerColor = MaterialTheme.colorScheme.background,
             actionIconContentColor = MaterialTheme.colorScheme.onBackground,

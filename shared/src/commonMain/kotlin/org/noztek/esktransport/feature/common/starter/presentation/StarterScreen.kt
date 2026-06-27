@@ -23,7 +23,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
@@ -44,37 +43,41 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import asktransport_cmp.shared.generated.resources.Res
-import asktransport_cmp.shared.generated.resources.big_truck
-import asktransport_cmp.shared.generated.resources.car
-import asktransport_cmp.shared.generated.resources.logo
-import asktransport_cmp.shared.generated.resources.medium_truck
-import asktransport_cmp.shared.generated.resources.scooter
-import asktransport_cmp.shared.generated.resources.starter
-import asktransport_cmp.shared.generated.resources.tricycle
+import esktransport.shared.generated.resources.Res
+import esktransport.shared.generated.resources.big_truck
+import esktransport.shared.generated.resources.car
+import esktransport.shared.generated.resources.medium_truck
+import esktransport.shared.generated.resources.scooter
+import esktransport.shared.generated.resources.starter
+import esktransport.shared.generated.resources.tricycle
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
+import org.noztek.esktransport.core.ui.composables.common.AppCommonTopBar
 import kotlin.math.PI
 import kotlin.math.roundToInt
 import kotlin.math.sin
 
 @Composable
-fun WelcomeScreen(
+fun StarterScreen(
     onLoginClick: () -> Unit,
     onCustomerRegisterClick: () -> Unit,
     onDriverRegisterClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val backgroundColor = MaterialTheme.colorScheme.background
     Scaffold(
         modifier = modifier
             .fillMaxSize()
-            .background(Color.White),
-        containerColor = Color.White,
-        topBar = { StarterTopBar() },
+            .background(backgroundColor),
+        containerColor = backgroundColor,
+        topBar = {
+            AppCommonTopBar(containerColor = backgroundColor)
+        },
     ) { contentPadding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .background(backgroundColor)
                 .padding(contentPadding)
                 .padding(bottom = 18.dp),
         ) {
@@ -88,7 +91,7 @@ fun WelcomeScreen(
 
             Column(modifier = Modifier.padding(horizontal = 10.dp)) {
                 Text(
-                    text = "Move smarter with EskTransport",
+                    text = "Move smarter with\n eSKTransport",
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface,
@@ -150,53 +153,18 @@ fun WelcomeScreen(
             ) {
                 Text(
                     text = "Already have an account? ",
-                    style = MaterialTheme.typography.bodySmall,
+                    style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Text(
                     text = "Login",
-                    style = MaterialTheme.typography.bodySmall,
+                    style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.clickable(onClick = onLoginClick),
                 )
             }
         }
-    }
-}
-
-@Composable
-private fun StarterTopBar(modifier: Modifier = Modifier) {
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .background(Color.White)
-            .statusBarsPadding()
-            .padding(horizontal = 22.dp, vertical = 18.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        StarterLogo()
-    }
-}
-
-@Composable
-private fun StarterLogo(modifier: Modifier = Modifier) {
-    Row(
-        modifier = modifier,
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
-    ) {
-        Image(
-            painter = painterResource(Res.drawable.logo),
-            contentDescription = "EskTransport `logo-nobg`",
-            modifier = Modifier.size(28.dp),
-        )
-        Text(
-            text = "EskTransport",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurface,
-        )
     }
 }
 

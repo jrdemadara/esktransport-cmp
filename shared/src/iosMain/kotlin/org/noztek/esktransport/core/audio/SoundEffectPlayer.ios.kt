@@ -1,6 +1,6 @@
 package org.noztek.esktransport.core.audio
 
-import asktransport_cmp.shared.generated.resources.Res
+import esktransport.shared.generated.resources.Res
 import kotlinx.cinterop.ExperimentalForeignApi
 import platform.AVFAudio.AVAudioPlayer
 import platform.Foundation.NSURL
