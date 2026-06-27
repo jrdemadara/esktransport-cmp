@@ -52,7 +52,6 @@ import esktransport.shared.generated.resources.home_scooter
 import esktransport.shared.generated.resources.home_tricycle
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
-import org.noztek.esktransport.core.platform.isIosPlatform
 
 @Composable
 fun PassengerHomeScreen(
@@ -60,14 +59,13 @@ fun PassengerHomeScreen(
     onSuggestionClick: (Int) -> Unit = {},
     contentPadding: PaddingValues = PaddingValues(0.dp),
 ) {
-    val topPadding = if (isIosPlatform()) 4.dp else 12.dp
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
             .padding(contentPadding)
             .padding(horizontal = 16.dp)
-            .padding(top = topPadding, bottom = 12.dp),
+            .padding(top = 12.dp, bottom = 12.dp),
     ) {
         SearchRow(onWhereToClick = onWhereToClick)
         Spacer(modifier = Modifier.height(10.dp))

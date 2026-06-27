@@ -69,7 +69,6 @@ import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.painterResource
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
-import org.noztek.esktransport.core.platform.isIosPlatform
 import org.noztek.esktransport.core.realtime.passenger.PassengerRealtimeCoordinator
 import org.noztek.esktransport.feature.passenger.booking_status.presentation.PassengerBookingStatusScreen
 import org.noztek.esktransport.feature.passenger.booking_review.domain.model.BookingReviewInput
@@ -188,11 +187,7 @@ private fun PassengerShell(onLogout: () -> Unit) {
 
     Scaffold(
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
-        contentWindowInsets = if (isIosPlatform()) {
-            WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal)
-        } else {
-            WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal)
-        },
+        contentWindowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal),
         topBar = {
             when {
                 isRidePlannerRoute -> PassengerBackTopBar("Plan your trip") { navController.popBackStack() }
@@ -392,7 +387,7 @@ private fun PassengerShell(onLogout: () -> Unit) {
 @Composable
 private fun PassengerBackTopBar(title: String, onBack: () -> Unit) {
     TopAppBar(
-        windowInsets = WindowInsets(0),
+        windowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top),
         colors = TopAppBarDefaults.topAppBarColors(
             containerColor = MaterialTheme.colorScheme.background,
             titleContentColor = MaterialTheme.colorScheme.onBackground,
@@ -416,7 +411,7 @@ private fun PassengerBackTopBar(title: String, onBack: () -> Unit) {
 @Composable
 private fun PassengerHomeTopBar(onProfileClick: () -> Unit) {
     CenterAlignedTopAppBar(
-        windowInsets = WindowInsets(0),
+        windowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top),
         colors = TopAppBarDefaults.topAppBarColors(
             containerColor = MaterialTheme.colorScheme.background,
             actionIconContentColor = MaterialTheme.colorScheme.onBackground,
