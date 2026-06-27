@@ -17,6 +17,7 @@ import org.noztek.esktransport.core.realtime.passenger.PassengerRealtimeCoordina
 import org.noztek.esktransport.feature.passenger.booking_review.domain.model.BookingReviewInput
 import org.noztek.esktransport.feature.passenger.booking_review.domain.usecase.CancelBookingUseCase
 import org.noztek.esktransport.feature.passenger.booking_review.domain.usecase.CreateBookingUseCase
+import org.noztek.esktransport.feature.passenger.booking_review.domain.usecase.CreateFareQuoteUseCase
 
 sealed class BookingReviewUiEvent {
     data class ShowSnackbar(val message: String) : BookingReviewUiEvent()
@@ -24,6 +25,7 @@ sealed class BookingReviewUiEvent {
 }
 
 class BookingReviewViewModel(
+    private val createFareQuoteUseCase: CreateFareQuoteUseCase,
     private val createBookingUseCase: CreateBookingUseCase,
     private val cancelBookingUseCase: CancelBookingUseCase,
     private val ioDispatcher: CoroutineDispatcher,
@@ -37,6 +39,7 @@ class BookingReviewViewModel(
     val uiEvents: SharedFlow<BookingReviewUiEvent> = _uiEvents.asSharedFlow()
     private var pendingBookingPublicId: String? = null
     private var searchCountdownJob: Job? = null
+    private var fareQuoteJob: Job? = null
 
     fun startRealtime() {
         viewModelScope.launch {
@@ -101,8 +104,11 @@ class BookingReviewViewModel(
     fun setInput(input: BookingReviewInput) {
         val current = _uiState.value.input
         val isSameInput = current == null || current == input
+        val shouldRequestQuote = current != input
         _uiState.value = _uiState.value.copy(
             input = input,
+            fareQuote = if (shouldRequestQuote) null else _uiState.value.fareQuote,
+            fareQuoteError = if (shouldRequestQuote) null else _uiState.value.fareQuoteError,
             isSearchingForRider = if (isSameInput) {
                 _uiState.value.isSearchingForRider
             } else {
@@ -111,6 +117,9 @@ class BookingReviewViewModel(
             isSearchExpired = if (isSameInput) _uiState.value.isSearchExpired else false,
             searchSecondsRemaining = if (isSameInput) _uiState.value.searchSecondsRemaining else SEARCH_TIMEOUT_SECONDS,
         )
+        if (shouldRequestQuote) {
+            requestFareQuote(input)
+        }
     }
 
     fun confirmBooking() {
@@ -118,12 +127,16 @@ class BookingReviewViewModel(
             _uiEvents.tryEmit(BookingReviewUiEvent.ShowSnackbar("Missing booking data."))
             return
         }
+        val fareQuote = _uiState.value.fareQuote ?: run {
+            _uiEvents.tryEmit(BookingReviewUiEvent.ShowSnackbar("Fare is not ready yet."))
+            return
+        }
 
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isCreatingBooking = true)
             
             val result = withContext(ioDispatcher) {
-                createBookingUseCase(payload)
+                createBookingUseCase(payload, fareQuote.id)
             }
             
             _uiState.value = _uiState.value.copy(isCreatingBooking = false)
@@ -193,6 +206,43 @@ class BookingReviewViewModel(
         confirmBooking()
     }
 
+    fun retryFareQuote() {
+        val input = _uiState.value.input ?: return
+        requestFareQuote(input)
+    }
+
+    private fun requestFareQuote(input: BookingReviewInput) {
+        fareQuoteJob?.cancel()
+        fareQuoteJob = viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(
+                isLoadingFareQuote = true,
+                fareQuoteError = null,
+                fareQuote = null,
+            )
+
+            val result = withContext(ioDispatcher) {
+                createFareQuoteUseCase(input)
+            }
+
+            val currentInput = _uiState.value.input
+            if (currentInput != input) return@launch
+
+            result.onSuccess { quote ->
+                _uiState.value = _uiState.value.copy(
+                    fareQuote = quote,
+                    isLoadingFareQuote = false,
+                    fareQuoteError = null,
+                )
+            }.onFailure { error ->
+                _uiState.value = _uiState.value.copy(
+                    fareQuote = null,
+                    isLoadingFareQuote = false,
+                    fareQuoteError = error.message ?: "Unable to get fare quote.",
+                )
+            }
+        }
+    }
+
     private fun startSearchCountdown() {
         searchCountdownJob?.cancel()
         searchCountdownJob = viewModelScope.launch {
@@ -233,6 +283,7 @@ class BookingReviewViewModel(
     }
 
     override fun onCleared() {
+        fareQuoteJob?.cancel()
         stopSearchCountdown()
         stopRealtime()
         super.onCleared()

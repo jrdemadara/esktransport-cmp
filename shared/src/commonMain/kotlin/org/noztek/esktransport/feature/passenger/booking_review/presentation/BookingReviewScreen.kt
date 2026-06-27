@@ -51,22 +51,25 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.composables.icons.heroicons.Heroicons
 import com.composables.icons.heroicons.outline.MagnifyingGlass
 import com.composables.icons.heroicons.outline.Map
 import com.composables.icons.heroicons.outline.MapPin
+import com.composables.icons.heroicons.outline.Clock
 import com.composables.icons.heroicons.outline.Users
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 import org.noztek.esktransport.core.map.MapboxConfig
-import org.noztek.esktransport.core.platform.isIosPlatform
 import org.noztek.esktransport.core.ui.composables.common.AppPrimaryButton
 import org.noztek.esktransport.feature.passenger.booking_review.domain.model.BookingReviewInput
+import org.noztek.esktransport.feature.passenger.location_search.domain.model.GeoPoint
 import kotlinx.coroutines.launch
 import kotlin.math.atan2
 import kotlin.math.cos
+import kotlin.math.roundToInt
 import kotlin.math.sin
 import kotlin.math.sqrt
 
@@ -81,10 +84,9 @@ fun BookingReviewScreen(
     LaunchedEffect(input) { viewModel.setInput(input) }
 
     val uiState by viewModel.uiState.collectAsState()
-    val stateInput = input
-    val pickupPoint = stateInput.pickupPoint
-    val destinationPoint = stateInput.destinationPoint
-    val routePoints = stateInput.routePoints
+    val pickupPoint = input.pickupPoint
+    val destinationPoint = input.destinationPoint
+    val routePoints = input.routePoints
     val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(viewModel) {
@@ -101,17 +103,25 @@ fun BookingReviewScreen(
         onDispose { viewModel.stopRealtime() }
     }
 
-    val tripDistanceLabel = remember(pickupPoint, destinationPoint) {
-        formatDistanceLabel(
-            haversineKm(
+    val tripDistanceMeters = remember(pickupPoint, destinationPoint, routePoints) {
+        routeDistanceMeters(routePoints)
+            ?: (haversineKm(
                 lat1 = pickupPoint.latitude,
                 lng1 = pickupPoint.longitude,
                 lat2 = destinationPoint.latitude,
                 lng2 = destinationPoint.longitude,
-            ) * 1000.0,
-        )
+            ) * 1000.0)
     }
-    val vehicleLabel = when (stateInput.vehicleTypeIndex) {
+    val tripDistanceLabel = remember(tripDistanceMeters) {
+        formatDistanceLabel(tripDistanceMeters)
+    }
+    val tripEtaLabel = remember(tripDistanceMeters) {
+        formatEtaLabel(tripDistanceMeters)
+    }
+    val fareLabel = remember(uiState.fareQuote) {
+        uiState.fareQuote?.let { quote -> formatFareLabel(quote.amount, quote.currency) }
+    }
+    val vehicleLabel = when (input.vehicleTypeIndex) {
         0 -> "MOTORCYCLE"
         1 -> "TRICYCLE"
         2 -> "CAR"
@@ -120,7 +130,7 @@ fun BookingReviewScreen(
     }
     val scaffoldState = rememberBottomSheetScaffoldState(
         bottomSheetState = rememberStandardBottomSheetState(
-            initialValue = if (isIosPlatform()) SheetValue.Expanded else SheetValue.PartiallyExpanded,
+            initialValue = SheetValue.Expanded,
             skipHiddenState = true,
         ),
     )
@@ -139,21 +149,27 @@ fun BookingReviewScreen(
                 )
                 uiState.isSearchingForRider -> SearchingSheet(
                     vehicleLabel = vehicleLabel,
-                    seatCount = stateInput.requiredSeats,
+                    seatCount = input.requiredSeats,
                     distanceLabel = tripDistanceLabel,
-                    destinationLocation = stateInput.destinationLocation,
+                    etaLabel = tripEtaLabel,
+                    destinationLocation = input.destinationLocation,
                     secondsRemaining = uiState.searchSecondsRemaining,
                     isCancelling = uiState.isCancellingBooking,
                     onCancel = viewModel::cancelSearch,
                 )
                 else -> ReviewSheet(
-                    pickupLocation = stateInput.pickupLocation,
-                    destinationLocation = stateInput.destinationLocation,
+                    pickupLocation = input.pickupLocation,
+                    destinationLocation = input.destinationLocation,
                     vehicleLabel = vehicleLabel,
-                    seatCount = stateInput.requiredSeats,
+                    seatCount = input.requiredSeats,
                     distanceLabel = tripDistanceLabel,
+                    etaLabel = tripEtaLabel,
+                    fareLabel = fareLabel,
                     isCreatingBooking = uiState.isCreatingBooking,
+                    isFareLoading = uiState.isLoadingFareQuote,
+                    fareError = uiState.fareQuoteError,
                     onConfirm = viewModel::confirmBooking,
+                    onRetryFare = viewModel::retryFareQuote,
                 )
             }
         },
@@ -180,6 +196,7 @@ private fun SearchingSheet(
     vehicleLabel: String,
     seatCount: Int,
     distanceLabel: String,
+    etaLabel: String,
     destinationLocation: String,
     secondsRemaining: Int,
     isCancelling: Boolean,
@@ -262,7 +279,7 @@ private fun SearchingSheet(
                 }
             }
             Text(
-                text = "$vehicleLabel • $seatCount ${if (seatCount == 1) "seat" else "seats"} • $distanceLabel",
+                text = "$vehicleLabel • $seatCount ${if (seatCount == 1) "seat" else "seats"} • $distanceLabel • $etaLabel",
                 style = MaterialTheme.typography.bodySmall,
                 color = secondaryTextColor,
             )
@@ -419,9 +436,16 @@ private fun ReviewSheet(
     vehicleLabel: String,
     seatCount: Int,
     distanceLabel: String,
+    etaLabel: String,
+    fareLabel: String?,
     isCreatingBooking: Boolean,
+    isFareLoading: Boolean,
+    fareError: String?,
     onConfirm: () -> Unit,
+    onRetryFare: () -> Unit,
 ) {
+    val canConfirm = !isCreatingBooking && !isFareLoading && fareLabel != null
+    val shouldRetryFare = !isFareLoading && fareLabel == null && fareError != null
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -431,10 +455,13 @@ private fun ReviewSheet(
         val destinationColor = MaterialTheme.colorScheme.error
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Column {
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(2.dp),
+            ) {
                 Text(
                     text = "Review ride",
                     style = MaterialTheme.typography.titleMedium,
@@ -447,42 +474,69 @@ private fun ReviewSheet(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            Surface(
-                shape = RoundedCornerShape(999.dp),
-                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.10f),
-                contentColor = MaterialTheme.colorScheme.primary,
-            ) {
+            Column(horizontalAlignment = Alignment.End) {
                 Text(
-                    vehicleLabel,
+                    text = "Estimated fare",
                     style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Text(
+                    text = when {
+                        isFareLoading -> "..."
+                        fareLabel != null -> fareLabel
+                        else -> "--"
+                    },
+                    style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                    maxLines = 1,
                 )
             }
         }
         TripPointRow("Pickup", pickupLocation, MaterialTheme.colorScheme.primary)
         TripPointRow("Destination", destinationLocation, destinationColor)
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            RideMetaPill(
-                icon = { Icon(Heroicons.Outline.Users, contentDescription = null, modifier = Modifier.size(18.dp)) },
-                label = "$seatCount seats",
-                modifier = Modifier.weight(1f),
-            )
-            RideMetaPill(
-                icon = { Icon(Heroicons.Outline.Map, contentDescription = null, modifier = Modifier.size(18.dp)) },
-                label = distanceLabel,
-                modifier = Modifier.weight(1f),
-            )
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                RideMetaPill(
+                    icon = { Icon(Heroicons.Outline.Map, contentDescription = null, modifier = Modifier.size(18.dp)) },
+                    label = vehicleLabel,
+                    modifier = Modifier.weight(1f),
+                )
+                RideMetaPill(
+                    icon = { Icon(Heroicons.Outline.Users, contentDescription = null, modifier = Modifier.size(18.dp)) },
+                    label = "$seatCount seats",
+                    modifier = Modifier.weight(1f),
+                )
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                RideMetaPill(
+                    icon = { Icon(Heroicons.Outline.MapPin, contentDescription = null, modifier = Modifier.size(18.dp)) },
+                    label = distanceLabel,
+                    modifier = Modifier.weight(1f),
+                )
+                RideMetaPill(
+                    icon = { Icon(Heroicons.Outline.Clock, contentDescription = null, modifier = Modifier.size(18.dp)) },
+                    label = etaLabel,
+                    modifier = Modifier.weight(1f),
+                )
+            }
         }
         AppPrimaryButton(
-            text = if (isCreatingBooking) "Confirming..." else "Confirm Booking",
-            onClick = onConfirm,
-            enabled = !isCreatingBooking,
+            text = when {
+                isCreatingBooking -> "Confirming..."
+                shouldRetryFare -> "Retry Fare"
+                isFareLoading -> "Loading Fare..."
+                else -> "Confirm Booking"
+            },
+            onClick = if (shouldRetryFare) onRetryFare else onConfirm,
+            enabled = canConfirm || shouldRetryFare,
         )
         Spacer(modifier = Modifier.height(4.dp))
     }
@@ -533,6 +587,8 @@ private fun RideMetaPill(
                 style = MaterialTheme.typography.bodySmall,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
         }
     }
@@ -559,9 +615,51 @@ private fun haversineKm(lat1: Double, lng1: Double, lat2: Double, lng2: Double):
     return earthRadiusKm * 2 * atan2(sqrt(a), sqrt(1 - a))
 }
 
+private fun routeDistanceMeters(routePoints: List<GeoPoint>): Double? {
+    if (routePoints.size < 2) return null
+    return routePoints
+        .zipWithNext()
+        .sumOf { (start, end) ->
+            haversineKm(
+                lat1 = start.latitude,
+                lng1 = start.longitude,
+                lat2 = end.latitude,
+                lng2 = end.longitude,
+            ) * 1000.0
+        }
+}
+
 private fun formatDistanceLabel(distanceMeters: Double): String {
     if (distanceMeters < 1000) return "${distanceMeters.toInt()} m"
     val km = distanceMeters / 1000.0
     val oneDecimal = ((km * 10).toInt() / 10.0).toString()
     return if (oneDecimal.endsWith(".0")) "${km.toInt()} km" else "$oneDecimal km"
+}
+
+private fun formatEtaLabel(distanceMeters: Double): String {
+    val averageUrbanSpeedKmH = 22.0
+    val rawMinutes = (distanceMeters / 1000.0) / averageUrbanSpeedKmH * 60.0
+    val minutes = rawMinutes.toInt().let { wholeMinutes ->
+        if (rawMinutes > wholeMinutes) wholeMinutes + 1 else wholeMinutes
+    }.coerceAtLeast(1)
+
+    return if (minutes < 60) {
+        "$minutes min"
+    } else {
+        val hours = minutes / 60
+        val remainingMinutes = minutes % 60
+        if (remainingMinutes == 0) "${hours}h" else "${hours}h ${remainingMinutes}m"
+    }
+}
+
+private fun formatFareLabel(amount: Double, currency: String): String {
+    val cents = (amount * 100).roundToInt().coerceAtLeast(0)
+    val whole = cents / 100
+    val fraction = (cents % 100).toString().padStart(2, '0')
+    val prefix = when (currency.uppercase()) {
+        "PHP" -> "₱"
+        "USD" -> "\$"
+        else -> "${currency.uppercase()} "
+    }
+    return "$prefix$whole.$fraction"
 }

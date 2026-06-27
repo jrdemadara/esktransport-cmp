@@ -5,6 +5,8 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class CreateBookingRequestDto(
+    @SerialName("quote_id")
+    val quoteId: Long? = null,
     @SerialName("pickup_lat")
     val pickupLat: Double,
     @SerialName("pickup_lng")
@@ -24,6 +26,40 @@ data class CreateBookingRequestDto(
     @SerialName("passenger_capacity")
     val passengerCapacity: Int,
     val notes: String? = null
+)
+
+@Serializable
+data class CreateFareQuoteRequestDto(
+    @SerialName("pickup_lat")
+    val pickupLat: Double,
+    @SerialName("pickup_lng")
+    val pickupLng: Double,
+    @SerialName("destination_lat")
+    val destinationLat: Double,
+    @SerialName("destination_lng")
+    val destinationLng: Double,
+    @SerialName("vehicle_type_code")
+    val vehicleTypeCode: String,
+)
+
+@Serializable
+data class CreateFareQuoteResponseDto(
+    val message: String,
+    val data: FareQuoteDataDto,
+)
+
+@Serializable
+data class FareQuoteDataDto(
+    @SerialName("quote_id")
+    val quoteId: Long,
+    val amount: Double,
+    val currency: String,
+    @SerialName("distance_km")
+    val distanceKm: Double,
+    @SerialName("duration_min")
+    val durationMin: Int,
+    @SerialName("expires_at")
+    val expiresAt: String,
 )
 
 @Serializable
@@ -73,4 +109,3 @@ data class CancelBookingDataDto(
     @SerialName("cancelled_at")
     val cancelledAt: String,
 )
-
