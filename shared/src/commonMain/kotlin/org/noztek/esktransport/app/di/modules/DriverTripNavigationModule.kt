@@ -5,6 +5,7 @@ import org.koin.dsl.module
 import org.noztek.esktransport.feature.rider.trip_navigation.data.impl.RiderTripNavigationRepositoryImpl
 import org.noztek.esktransport.feature.rider.trip_navigation.data.remote.RiderTripNavigationApi
 import org.noztek.esktransport.feature.rider.trip_navigation.domain.repository.RiderTripNavigationRepository
+import org.noztek.esktransport.feature.rider.trip_navigation.domain.usecase.CancelRiderTripUseCase
 import org.noztek.esktransport.feature.rider.trip_navigation.domain.usecase.ConfirmRiderPickupUseCase
 import org.noztek.esktransport.feature.rider.trip_navigation.domain.usecase.GetRiderTripSessionUseCase
 import org.noztek.esktransport.feature.rider.trip_navigation.domain.usecase.UpdateRiderTripLocationUseCase
@@ -18,6 +19,7 @@ val driverTripNavigationModule = module {
         )
     }
     single<RiderTripNavigationRepository> { RiderTripNavigationRepositoryImpl(api = get()) }
+    single { CancelRiderTripUseCase(repository = get()) }
     single { ConfirmRiderPickupUseCase(repository = get()) }
     single { GetRiderTripSessionUseCase(repository = get()) }
     single { UpdateRiderTripLocationUseCase(repository = get()) }
@@ -25,7 +27,9 @@ val driverTripNavigationModule = module {
         TripNavigationViewModel(
             getRiderTripSessionUseCase = get(),
             confirmRiderPickupUseCase = get(),
+            cancelRiderTripUseCase = get(),
             updateRiderTripLocationUseCase = get(),
+            realtimeCoordinator = get(),
             mapboxDirectionsClient = get(),
             ioDispatcher = get(named(IO_DISPATCHER_QUALIFIER)),
         )

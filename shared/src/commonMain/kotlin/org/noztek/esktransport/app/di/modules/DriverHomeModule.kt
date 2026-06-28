@@ -24,6 +24,7 @@ import org.noztek.esktransport.feature.driver.onboarding.domain.usecase.SubmitDr
 import org.noztek.esktransport.feature.driver.onboarding.domain.usecase.SubscribeDriverOnboardingRealtimeUseCase
 import org.noztek.esktransport.feature.driver.onboarding.domain.usecase.UnsubscribeDriverOnboardingRealtimeUseCase
 import org.noztek.esktransport.feature.driver.onboarding.presentation.DriverOnboardingViewModel
+import org.noztek.esktransport.feature.driver.session.presentation.DriverSessionViewModel
 
 val driverHomeModule = module {
     single { GoApi(client = get(), baseUrl = get(named(API_BASE_URL_QUALIFIER))) }
@@ -59,6 +60,12 @@ val driverHomeModule = module {
         )
     }
     factory {
+        DriverSessionViewModel(
+            getDriverActiveBookingUseCase = get(),
+            ioDispatcher = get(named(IO_DISPATCHER_QUALIFIER)),
+        )
+    }
+    factory {
         DriverOnboardingViewModel(
             getDriverOnboardingStatusUseCase = get(),
             getDriverServiceZonesUseCase = get(),
@@ -79,6 +86,7 @@ val driverHomeModule = module {
             expireOfferUseCase = get(),
             getActiveBookingUseCase = get(),
             realtimeCoordinator = get(),
+            availabilityLifecycleCoordinator = get(),
             ioDispatcher = get(named(IO_DISPATCHER_QUALIFIER)),
         )
     }

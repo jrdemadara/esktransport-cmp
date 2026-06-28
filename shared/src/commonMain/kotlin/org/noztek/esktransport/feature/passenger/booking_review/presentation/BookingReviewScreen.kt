@@ -1,6 +1,5 @@
 package org.noztek.esktransport.feature.passenger.booking_review.presentation
 
-import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -48,8 +47,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.pointer.PointerEventPass
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -66,6 +63,7 @@ import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 import org.noztek.esktransport.core.map.MapboxConfig
 import org.noztek.esktransport.core.ui.composables.common.AppPrimaryButton
+import org.noztek.esktransport.core.ui.composables.common.HoldToCancelButton
 import org.noztek.esktransport.feature.passenger.booking_review.domain.model.BookingReviewInput
 import org.noztek.esktransport.feature.passenger.location_search.domain.model.GeoPoint
 import kotlinx.coroutines.launch
@@ -415,72 +413,6 @@ private fun SearchExpiredSheet(
 }
 
 @Composable
-private fun HoldToCancelButton(
-    isCancelling: Boolean,
-    onCancel: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val scope = rememberCoroutineScope()
-    val progress = remember { Animatable(0f) }
-    val errorColor = MaterialTheme.colorScheme.error
-    val onErrorColor = MaterialTheme.colorScheme.onError
-    val errorContainerColor = MaterialTheme.colorScheme.error.copy(alpha = 0.10f)
-
-    BoxWithConstraints(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(48.dp)
-            .clip(RoundedCornerShape(14.dp))
-            .background(errorContainerColor)
-            .pointerInput(isCancelling, onCancel) {
-                if (isCancelling) return@pointerInput
-                awaitPointerEventScope {
-                    while (true) {
-                        val down = awaitPointerEvent(PointerEventPass.Main)
-                            .changes
-                            .firstOrNull { it.pressed }
-                        if (down == null) continue
-
-                        val holdJob = scope.launch {
-                            progress.snapTo(0f)
-                            progress.animateTo(
-                                targetValue = 1f,
-                                animationSpec = tween(durationMillis = 3000, easing = LinearEasing),
-                            )
-                            onCancel()
-                        }
-
-                        do {
-                            val event = awaitPointerEvent(PointerEventPass.Main)
-                            val stillPressed = event.changes.any { it.pressed }
-                            if (!stillPressed) {
-                                holdJob.cancel()
-                                scope.launch { progress.animateTo(0f, tween(durationMillis = 160)) }
-                                break
-                            }
-                        } while (true)
-                    }
-                }
-            },
-        contentAlignment = Alignment.Center,
-    ) {
-        Box(
-            modifier = Modifier
-                .align(Alignment.CenterStart)
-                .fillMaxHeight()
-                .width(maxWidth * progress.value)
-                .background(errorColor),
-        )
-        Text(
-            text = if (isCancelling) "Cancelling..." else "Press and hold 3s to cancel",
-            style = MaterialTheme.typography.labelLarge,
-            fontWeight = FontWeight.SemiBold,
-            color = if (progress.value > 0.55f) onErrorColor else errorColor,
-        )
-    }
-}
-
-@Composable
 private fun ReviewSheet(
     pickupLocation: String,
     destinationLocation: String,
@@ -579,6 +511,7 @@ private fun ReviewSheet(
                 )
             }
         }
+        Spacer(modifier = Modifier.height(4.dp))
         AppPrimaryButton(
             text = when {
                 isCreatingBooking -> "Confirming..."

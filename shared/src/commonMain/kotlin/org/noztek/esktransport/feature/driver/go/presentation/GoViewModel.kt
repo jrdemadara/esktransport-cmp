@@ -3,6 +3,7 @@ package org.noztek.esktransport.feature.driver.go.presentation
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -14,6 +15,7 @@ import kotlinx.coroutines.withContext
 import org.noztek.esktransport.core.realtime.driver.DriverBookingOfferRealtime
 import org.noztek.esktransport.feature.common.active_booking.domain.model.ActiveBookingStatus
 import org.noztek.esktransport.feature.common.active_booking.domain.usecase.GetDriverActiveBookingUseCase
+import org.noztek.esktransport.feature.driver.go.domain.lifecycle.DriverAvailabilityLifecycleCoordinator
 import org.noztek.esktransport.feature.driver.go.domain.usecase.AcceptOfferUseCase
 import org.noztek.esktransport.feature.driver.go.domain.usecase.ExpireOfferUseCase
 import org.noztek.esktransport.feature.driver.go.domain.usecase.GetDriverAvailabilityUseCase
@@ -42,6 +44,7 @@ class GoViewModel(
     private val expireOfferUseCase: ExpireOfferUseCase,
     private val getActiveBookingUseCase: GetDriverActiveBookingUseCase,
     private val realtimeCoordinator: DriverBookingOfferRealtime,
+    private val availabilityLifecycleCoordinator: DriverAvailabilityLifecycleCoordinator,
     private val ioDispatcher: CoroutineDispatcher,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(GoUiState())
@@ -49,13 +52,15 @@ class GoViewModel(
 
     private val _uiEvents = MutableSharedFlow<GoUiEvent>()
     val uiEvents: SharedFlow<GoUiEvent> = _uiEvents
+    private var realtimeJob: Job? = null
 
     init {
         refreshAvailability()
     }
 
     fun startRealtime() {
-        viewModelScope.launch {
+        if (realtimeJob?.isActive == true) return
+        realtimeJob = viewModelScope.launch {
             realtimeCoordinator.subscribeDriverBookingOffers()
             launch {
                 realtimeCoordinator.driverBookingOffers().collect { event ->
@@ -90,13 +95,15 @@ class GoViewModel(
     }
 
     fun stopRealtime() {
-        realtimeCoordinator.unsubscribeDriverBookingOffers()
+        realtimeJob?.cancel()
+        realtimeJob = null
     }
 
     fun refreshAvailability() {
         viewModelScope.launch {
             val result = withContext(ioDispatcher) { getDriverAvailabilityUseCase() }
             result.onSuccess { available ->
+                availabilityLifecycleCoordinator.updateAvailability(available)
                 _uiState.update { it.copy(isAvailable = available) }
             }.onFailure { error ->
                 val message = error.message ?: "Failed to fetch driver availability."
@@ -169,6 +176,7 @@ class GoViewModel(
             }
             val result = withContext(ioDispatcher) { setDriverAvailabilityUseCase(false) }
             result.onSuccess {
+                availabilityLifecycleCoordinator.updateAvailability(false)
                 onExit()
             }.onFailure { error ->
                 val message = error.message ?: "Failed to go offline."
@@ -203,6 +211,7 @@ class GoViewModel(
             }
             val result = withContext(ioDispatcher) { setDriverAvailabilityUseCase(target) }
             result.onSuccess { available ->
+                availabilityLifecycleCoordinator.updateAvailability(available)
                 val message = if (available) "You're now online." else "You're now offline."
                 _uiState.update {
                     it.copy(

@@ -33,6 +33,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -64,6 +65,7 @@ import com.composables.icons.heroicons.outline.User
 import com.composables.icons.heroicons.outline.RectangleStack
 import esktransport.shared.generated.resources.Res
 import esktransport.shared.generated.resources.logo
+import esktransport.shared.generated.resources.logo_nobg
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.painterResource
@@ -166,11 +168,30 @@ private fun PassengerShell(onLogout: () -> Unit) {
 
     LaunchedEffect(passengerRealtimeCoordinator) {
         passengerRealtimeCoordinator.subscribePassengerDriverAssigned()
-        passengerRealtimeCoordinator.passengerBookingAccepted().collectLatest { event ->
-            navController.navigate("$ROUTE_TRIP_TRACKING/${event.bookingPublicId}") {
-                popUpTo(ROUTE_HOME) { inclusive = false }
-                launchSingleTop = true
+        launch {
+            passengerRealtimeCoordinator.passengerBookingAccepted().collectLatest { event ->
+                navController.navigate("$ROUTE_TRIP_TRACKING/${event.bookingPublicId}") {
+                    popUpTo(ROUTE_HOME) { inclusive = false }
+                    launchSingleTop = true
+                }
             }
+        }
+        launch {
+            passengerRealtimeCoordinator.passengerBookingCancelled().collectLatest { event ->
+                if (event.cancelledBy == "passenger") return@collectLatest
+                bookingReviewViewModel.showReviewSheet()
+                navController.navigate(ROUTE_BOOKING_REVIEW) {
+                    popUpTo(ROUTE_HOME) { inclusive = false }
+                    launchSingleTop = true
+                }
+                snackbarHostState.showSnackbar("Trip cancelled by driver.")
+            }
+        }
+    }
+
+    DisposableEffect(passengerRealtimeCoordinator) {
+        onDispose {
+            passengerRealtimeCoordinator.unsubscribePassengerDriverAssigned()
         }
     }
 
@@ -368,7 +389,16 @@ private fun PassengerShell(onLogout: () -> Unit) {
                 route = "$ROUTE_TRIP_TRACKING/{bookingId}",
                 arguments = listOf(navArgument("bookingId") { type = NavType.StringType }),
             ) { backStackEntry ->
-                TripTrackingScreen(bookingId = backStackEntry.arguments?.read { getStringOrNull("bookingId") }.orEmpty())
+                TripTrackingScreen(
+                    bookingId = backStackEntry.arguments?.read { getStringOrNull("bookingId") }.orEmpty(),
+                    onCancelled = {
+                        bookingReviewViewModel.showReviewSheet()
+                        navController.navigate(ROUTE_BOOKING_REVIEW) {
+                            popUpTo(ROUTE_HOME) { inclusive = false }
+                            launchSingleTop = true
+                        }
+                    },
+                )
             }
             composable(ROUTE_SERVICES) { PlaceholderTabScreen("Services") }
             composable(ROUTE_KUDI) { PlaceholderTabScreen("Kudi AI") }
@@ -454,8 +484,8 @@ private fun PassengerHomeTopBar(onProfileClick: () -> Unit) {
 private fun AppLogoBadge() {
     Surface(modifier = Modifier.size(32.dp), shape = CircleShape, color = Color.Transparent) {
         Image(
-            painter = painterResource(Res.drawable.logo),
-            contentDescription = "Esk Transport",
+            painter = painterResource(Res.drawable.logo_nobg),
+            contentDescription = "eSK0Transport",
             modifier = Modifier.fillMaxSize(),
         )
     }

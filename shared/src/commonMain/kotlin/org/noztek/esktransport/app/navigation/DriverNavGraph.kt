@@ -8,7 +8,9 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.composable
 import androidx.navigation.navigation
 import androidx.savedstate.read
+import kotlinx.coroutines.flow.collectLatest
 import org.koin.compose.koinInject
+import org.koin.compose.viewmodel.koinViewModel
 import org.noztek.esktransport.core.map.MapboxConfig
 import org.noztek.esktransport.feature.common.presence.domain.lifecycle.UserPresenceCoordinator
 import org.noztek.esktransport.feature.common.presence.domain.model.UserPresenceContext
@@ -20,6 +22,8 @@ import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverRequ
 import org.noztek.esktransport.feature.driver.onboarding.presentation.DriverIdentityVerificationScreen
 import org.noztek.esktransport.feature.driver.onboarding.presentation.DriverServiceZoneScreen
 import org.noztek.esktransport.feature.driver.onboarding.presentation.DriverVehicleRegistrationScreen
+import org.noztek.esktransport.feature.driver.session.presentation.DriverSessionUiEvent
+import org.noztek.esktransport.feature.driver.session.presentation.DriverSessionViewModel
 import org.noztek.esktransport.feature.driver.trip_navigation.presentation.TripNavigationScreen
 
 private const val ROUTE_DRIVER_TRIP_TRACKING = "driver-trip-tracking"
@@ -40,11 +44,31 @@ fun NavGraphBuilder.driverNavGraph(navController: NavHostController) {
             },
         ) {
             val userPresenceCoordinator: UserPresenceCoordinator = koinInject()
+            val driverSessionViewModel: DriverSessionViewModel = koinViewModel()
             LaunchedEffect(Unit) {
                 userPresenceCoordinator.updateContext(
                     role = UserPresenceRole.Driver,
                     context = UserPresenceContext.DriverHome,
                 )
+            }
+            LaunchedEffect(driverSessionViewModel) {
+                driverSessionViewModel.uiEvents.collectLatest { event ->
+                    when (event) {
+                        DriverSessionUiEvent.NavigateToGoScreen -> {
+                            navController.navigate(DriverRoute.GO) {
+                                launchSingleTop = true
+                            }
+                        }
+                        is DriverSessionUiEvent.NavigateToTripNavigation -> {
+                            navController.navigate("$ROUTE_DRIVER_TRIP_TRACKING/${event.bookingPublicId}") {
+                                launchSingleTop = true
+                            }
+                        }
+                    }
+                }
+            }
+            LaunchedEffect(Unit) {
+                driverSessionViewModel.restoreActiveBooking()
             }
             HomeScreen(
                 onSetupClick = { status ->
@@ -142,8 +166,20 @@ fun NavGraphBuilder.driverNavGraph(navController: NavHostController) {
             TripNavigationScreen(
                 bookingPublicId = bookingId,
                 mapboxConfig = mapboxConfig,
+                onCancelled = {
+                    navController.navigateToDriverModeAfterTrip()
+                },
             )
         }
+    }
+}
+
+private fun NavHostController.navigateToDriverModeAfterTrip() {
+    navigate(DriverRoute.GO) {
+        popUpTo(DriverRoute.HOME) {
+            inclusive = false
+        }
+        launchSingleTop = true
     }
 }
 

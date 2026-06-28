@@ -15,14 +15,21 @@ class DriverAvailabilityLifecycleCoordinator(
 ) {
     private val scope = CoroutineScope(SupervisorJob() + ioDispatcher)
     private var isUpdatingOffline = false
+    private var isDriverAvailable = false
+
+    fun updateAvailability(isAvailable: Boolean) {
+        isDriverAvailable = isAvailable
+    }
 
     fun markOfflineOnAppBackground() {
-        if (isUpdatingOffline) return
+        if (isUpdatingOffline || !isDriverAvailable) return
         scope.launch {
             if (!isCurrentUserDriver()) return@launch
             isUpdatingOffline = true
             try {
-                setDriverAvailabilityUseCase(isAvailable = false)
+                setDriverAvailabilityUseCase(isAvailable = false).onSuccess {
+                    isDriverAvailable = false
+                }
             } finally {
                 isUpdatingOffline = false
             }

@@ -6,7 +6,6 @@ import androidx.compose.animation.core.spring
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -47,7 +46,6 @@ import com.composables.icons.heroicons.Heroicons
 import com.composables.icons.heroicons.outline.MagnifyingGlass
 import com.composables.icons.heroicons.outline.MapPin
 import esktransport.shared.generated.resources.Res
-import esktransport.shared.generated.resources.map_pin_black
 import esktransport.shared.generated.resources.map_pin_red
 import org.jetbrains.compose.resources.painterResource
 import org.koin.compose.koinInject
@@ -75,7 +73,6 @@ fun LocationSearchScreen(
     var cameraCenter by remember { mutableStateOf(MapPoint(selectedPoint.latitude, selectedPoint.longitude)) }
     val mapCameraDefaults = remember { MapCameraDefaults(zoom = 15.5, pitch = 30.0) }
     val selectedLabel = state.tappedLocationLabel ?: "Move or search to pick a location"
-    val mapPin = if (isSystemInDarkTheme()) Res.drawable.map_pin_red else Res.drawable.map_pin_black
     val pinLift by animateDpAsState(
         targetValue = if (state.isMapMoving) (-12).dp else 0.dp,
         animationSpec = if (state.isMapMoving) {
@@ -167,13 +164,13 @@ fun LocationSearchScreen(
                 },
             )
             Image(
-                painter = painterResource(mapPin),
+                painter = painterResource(Res.drawable.map_pin_red),
                 contentDescription = "Selected location",
                 modifier = Modifier
                     .align(Alignment.Center)
-                    .padding(bottom = 44.dp)
+                    .padding(bottom = 38.dp)
                     .offset(y = pinLift)
-                    .size(64.dp),
+                    .size(48.dp),
             )
         }
 
@@ -199,7 +196,7 @@ fun LocationSearchScreen(
                 )
                 Text(
                     selectedLabel,
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onBackground,
                     maxLines = 2,

@@ -24,6 +24,7 @@ import org.koin.compose.koinInject
 import org.noztek.esktransport.core.lifecycle.setPlatformDriverOfflineCallback
 import org.noztek.esktransport.core.lifecycle.setPlatformUserOfflineCallback
 import org.noztek.esktransport.core.realtime.BaseRealtimeCoordinator
+import org.noztek.esktransport.core.realtime.driver.DriverBookingOfferRealtime
 import org.noztek.esktransport.core.session.domain.SessionUser
 import org.noztek.esktransport.core.session.domain.usecase.MarkStarterSeenUseCase
 import org.noztek.esktransport.core.session.domain.usecase.ObserveCurrentSessionUseCase
@@ -37,6 +38,7 @@ import org.noztek.esktransport.feature.driver.go.domain.lifecycle.DriverAvailabi
 fun RootNavHost(
     startupViewModel: StartupViewModel = koinInject(),
     realtimeCoordinator: BaseRealtimeCoordinator = koinInject(),
+    driverBookingOfferRealtime: DriverBookingOfferRealtime = koinInject(),
     driverAvailabilityLifecycleCoordinator: DriverAvailabilityLifecycleCoordinator = koinInject(),
     userPresenceCoordinator: UserPresenceCoordinator = koinInject(),
     markStarterSeenUseCase: MarkStarterSeenUseCase = koinInject(),
@@ -105,6 +107,17 @@ fun RootNavHost(
             userPresenceCoordinator.stop()
             setPlatformUserOfflineCallback(null)
             lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
+
+    DisposableEffect(authenticatedRoute, session.userId, driverBookingOfferRealtime) {
+        if (authenticatedRoute == RootRoute.DRIVER && session.userId != null) {
+            driverBookingOfferRealtime.subscribeDriverBookingOffers()
+            onDispose {
+                driverBookingOfferRealtime.unsubscribeDriverBookingOffers()
+            }
+        } else {
+            onDispose {}
         }
     }
 

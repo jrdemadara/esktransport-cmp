@@ -1,5 +1,6 @@
 package org.noztek.esktransport.feature.passenger.trip_tracking.data.impl
 
+import org.noztek.esktransport.core.network.ApiErrorParser
 import org.noztek.esktransport.feature.passenger.trip_tracking.data.remote.TripTrackingApi
 import org.noztek.esktransport.feature.passenger.trip_tracking.domain.model.LatestLocation
 import org.noztek.esktransport.feature.passenger.trip_tracking.domain.model.RiderTripInfo
@@ -41,5 +42,15 @@ class TripTrackingRepositoryImpl(
                 )
             }
         )
+    }
+
+    override suspend fun cancelTrip(bookingPublicId: String): Result<Unit> {
+        return try {
+            api.cancelTrip(bookingPublicId)
+            Result.success(Unit)
+        } catch (throwable: Throwable) {
+            val message = ApiErrorParser.parse(throwable, "Cancel trip failed.")
+            Result.failure(IllegalStateException(message))
+        }
     }
 }

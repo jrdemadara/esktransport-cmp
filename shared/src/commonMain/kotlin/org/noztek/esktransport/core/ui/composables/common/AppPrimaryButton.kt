@@ -21,7 +21,7 @@ fun AppPrimaryButton(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     fillWidth: Boolean = true,
-    height: Dp = 54.dp,
+    height: Dp = 48.dp,
     contentPadding: PaddingValues = PaddingValues(horizontal = 18.dp),
     trailingIcon: (@Composable () -> Unit)? = null,
 ) {
@@ -30,7 +30,7 @@ fun AppPrimaryButton(
         modifier = modifier
             .then(if (fillWidth) Modifier.fillMaxWidth() else Modifier)
             .height(height),
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(10.dp),
         contentPadding = contentPadding,
         enabled = enabled,
     ) {

@@ -32,6 +32,7 @@ import org.noztek.esktransport.feature.passenger.ride_planner.presentation.RideP
 import org.noztek.esktransport.feature.passenger.trip_tracking.data.impl.TripTrackingRepositoryImpl
 import org.noztek.esktransport.feature.passenger.trip_tracking.data.remote.TripTrackingApi
 import org.noztek.esktransport.feature.passenger.trip_tracking.domain.repository.TripTrackingRepository
+import org.noztek.esktransport.feature.passenger.trip_tracking.domain.usecase.CancelPassengerTripUseCase
 import org.noztek.esktransport.feature.passenger.trip_tracking.domain.usecase.TripTrackingUseCase
 import org.noztek.esktransport.feature.passenger.trip_tracking.presentation.TripTrackingViewModel
 import org.noztek.esktransport.feature.passenger.session.presentation.PassengerSessionViewModel
@@ -87,9 +88,11 @@ val passengerModule = module {
     single { TripTrackingApi(client = get(), baseUrl = get(named(API_BASE_URL_QUALIFIER))) }
     single<TripTrackingRepository> { TripTrackingRepositoryImpl(api = get()) }
     single { TripTrackingUseCase(repository = get()) }
+    single { CancelPassengerTripUseCase(repository = get()) }
     factory {
         TripTrackingViewModel(
             tripTrackingUseCase = get(),
+            cancelPassengerTripUseCase = get(),
             mapboxDirectionsClient = get(),
             ioDispatcher = get(named(IO_DISPATCHER_QUALIFIER)),
         )

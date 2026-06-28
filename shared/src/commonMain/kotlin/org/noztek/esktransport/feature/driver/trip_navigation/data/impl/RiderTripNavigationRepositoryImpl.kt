@@ -61,6 +61,16 @@ class RiderTripNavigationRepositoryImpl(
         }
     }
 
+    override suspend fun cancelBooking(bookingPublicId: String): Result<Unit> {
+        return try {
+            api.cancelBooking(bookingPublicId)
+            Result.success(Unit)
+        } catch (throwable: Throwable) {
+            val message = ApiErrorParser.parse(throwable, "Failed to cancel trip.")
+            Result.failure(IllegalStateException(message))
+        }
+    }
+
     override suspend fun updateTripLocation(
         bookingPublicId: String,
         latitude: Double,

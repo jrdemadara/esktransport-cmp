@@ -1,21 +1,14 @@
 package org.noztek.esktransport.feature.driver.trip_navigation.presentation
 
-import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.EaseInOutSine
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -39,29 +32,16 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.StrokeJoin
-import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.composables.icons.heroicons.Heroicons
@@ -69,17 +49,18 @@ import com.composables.icons.heroicons.outline.Check
 import com.composables.icons.heroicons.outline.ChatBubbleOvalLeft
 import com.composables.icons.heroicons.outline.MapPin
 import com.composables.icons.heroicons.outline.ShieldCheck
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.collectLatest
 import org.koin.compose.viewmodel.koinViewModel
+import org.noztek.esktransport.core.ui.composables.common.HoldToCancelButton
 import org.noztek.esktransport.core.map.MapPoint
 import org.noztek.esktransport.core.map.MapboxConfig
 import org.noztek.esktransport.feature.rider.trip_navigation.domain.model.RiderTripPhase
-import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TripNavigationScreen(
     bookingPublicId: String,
+    onCancelled: () -> Unit,
     viewModel: TripNavigationViewModel = koinViewModel(),
     mapboxConfig: MapboxConfig,
 ) {
@@ -87,6 +68,19 @@ fun TripNavigationScreen(
 
     LaunchedEffect(bookingPublicId) {
         viewModel.load(bookingPublicId)
+    }
+
+    DisposableEffect(viewModel, bookingPublicId) {
+        viewModel.startRealtime(bookingPublicId)
+        onDispose { viewModel.stopRealtime() }
+    }
+
+    LaunchedEffect(viewModel) {
+        viewModel.uiEvents.collectLatest { event ->
+            when (event) {
+                TripNavigationUiEvent.NavigateToGoScreen -> onCancelled()
+            }
+        }
     }
 
     Surface(modifier = Modifier.fillMaxSize()) {
@@ -134,7 +128,8 @@ fun TripNavigationScreen(
                             destinationLabel = session.destinationLabel,
                             durationLabel = formatDuration(uiState.durationSeconds),
                             distanceLabel = formatDistance(uiState.distanceMeters),
-                            onCancel = {},
+                            isCancelling = uiState.isCancelling,
+                            onCancel = { viewModel.cancelTrip(bookingPublicId) },
                         )
                     },
                 ) {
@@ -227,6 +222,7 @@ private fun TripNavigationBottomSheet(
     destinationLabel: String,
     durationLabel: String,
     distanceLabel: String,
+    isCancelling: Boolean,
     onCancel: () -> Unit,
 ) {
     val isPickupPhase = phase == RiderTripPhase.TO_PICKUP
@@ -270,8 +266,15 @@ private fun TripNavigationBottomSheet(
             isPickupPhase = isPickupPhase,
         )
         Spacer(modifier = Modifier.height(2.dp))
-        SwipeToCancelButton(
+        Text(
+            text = "The passenger will be notified.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        HoldToCancelButton(
+            isCancelling = isCancelling,
             onCancel = onCancel,
+            text = "Hold 3s to cancel trip",
             modifier = Modifier
                 .fillMaxWidth()
                 .height(54.dp),
@@ -369,148 +372,6 @@ private fun StageRow(
     }
 }
 
-@Composable
-private fun SwipeToCancelButton(
-    onCancel: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    // Apple System Red (#FF3B30)
-    val cancelRed = Color(0xFFFF3B30)
-    val haptic = LocalHapticFeedback.current
-    val coroutineScope = rememberCoroutineScope()
-    // Smooth breathing animation for the swipe instruction text
-    val infiniteTransition = rememberInfiniteTransition(label = "CancelTextPulse")
-    val textPulseAlpha by infiniteTransition.animateFloat(
-        initialValue = 0.52f,
-        targetValue = 1.0f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 1400, easing = EaseInOutSine),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "cancelTextPulseAlpha"
-    )
-    BoxWithConstraints(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(54.dp)
-            .clip(CircleShape)
-            // Premium semi-translucent iOS red container track
-            .background(cancelRed.copy(alpha = 0.08f))
-            .padding(4.dp),
-        contentAlignment = Alignment.CenterStart // Start handle on the left side
-    ) {
-        val density = LocalDensity.current
-        val containerWidthPx = with(density) { maxWidth.toPx() }
-        val handleSizePx = with(density) { 46.dp.toPx() }
-        val paddingPx = with(density) { 4.dp.toPx() }
-
-        // Max distance the handle can travel to the right
-        val maxDragDistance = (containerWidthPx - handleSizePx - paddingPx * 2f).coerceAtLeast(0f)
-        val dragOffset = remember { Animatable(0f) }
-        var isTriggered by remember { mutableStateOf(false) }
-        // Track how far the handle has been swiped to fade out the label
-        val dragFraction = if (maxDragDistance > 0f) (dragOffset.value / maxDragDistance).coerceIn(0f, 1f) else 0f
-        val textAlpha = ((1f - dragFraction * 2.2f) * textPulseAlpha).coerceIn(0f, 1f)
-        // Centered instruction text inside the track
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 52.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.alpha(textAlpha)
-            ) {
-                Text(
-                    text = "Swipe right to cancel",
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = cancelRed.copy(alpha = 0.85f),
-                    letterSpacing = (-0.2).sp
-                )
-                // Chevron pointing to the right
-                Text(
-                    text = "→",
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = cancelRed.copy(alpha = 0.85f)
-                )
-            }
-        }
-        // Swipe Handle
-        Box(
-            modifier = Modifier
-                .offset { IntOffset(dragOffset.value.roundToInt(), 0) }
-                .size(46.dp)
-                .clip(CircleShape)
-                .background(cancelRed)
-                .pointerInput(maxDragDistance) {
-                    detectDragGestures(
-                        onDragEnd = {
-                            if (isTriggered) return@detectDragGestures
-
-                            val threshold = maxDragDistance * 0.80f
-                            if (dragOffset.value >= threshold) {
-                                isTriggered = true
-                                coroutineScope.launch {
-                                    // Core iOS confirmation feel (medium/long press vibration)
-                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                    // Complete lock-in to the right edge
-                                    dragOffset.animateTo(maxDragDistance, spring(stiffness = Spring.StiffnessMedium))
-                                    onCancel()
-                                }
-                            } else {
-                                coroutineScope.launch {
-                                    // Rebounds with standard iOS spring feel if released early
-                                    dragOffset.animateTo(0f, spring(dampingRatio = 0.75f, stiffness = Spring.StiffnessMedium))
-                                }
-                            }
-                        },
-                        onDragCancel = {
-                            coroutineScope.launch {
-                                dragOffset.animateTo(0f, spring(dampingRatio = 0.75f, stiffness = Spring.StiffnessMedium))
-                            }
-                        },
-                        onDrag = { change, dragAmount ->
-                            change.consume()
-                            if (isTriggered) return@detectDragGestures
-                            val originalValue = dragOffset.value
-                            val newValue = (originalValue + dragAmount.x).coerceIn(0f, maxDragDistance)
-                            coroutineScope.launch {
-                                dragOffset.snapTo(newValue)
-                            }
-                            // Tactile "tick" when user reaches the trigger threshold
-                            val threshold = maxDragDistance * 0.80f
-                            if (newValue >= threshold && originalValue < threshold) {
-                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                            }
-                        }
-                    )
-                },
-            contentAlignment = Alignment.Center
-        ) {
-            // Elegant white chevron vector pointing right
-            Canvas(modifier = Modifier.size(16.dp)) {
-                val path = Path().apply {
-                    moveTo(size.width * 0.38f, size.height * 0.22f)
-                    lineTo(size.width * 0.62f, size.height * 0.50f)
-                    lineTo(size.width * 0.38f, size.height * 0.78f)
-                }
-                drawPath(
-                    path = path,
-                    color = Color.White,
-                    style = Stroke(
-                        width = 3.dp.toPx(),
-                        cap = StrokeCap.Round,
-                        join = StrokeJoin.Round
-                    )
-                )
-            }
-        }
-    }
-}
 @Composable
 private fun TripStageTimeline(
     pickupTitle: String,

@@ -3,26 +3,42 @@ package org.noztek.esktransport.feature.driver.trip_navigation.presentation
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.noztek.esktransport.core.map.MapboxDirectionsClient
+import org.noztek.esktransport.core.realtime.driver.DriverBookingOfferRealtime
 import org.noztek.esktransport.feature.rider.trip_navigation.domain.model.RiderTripPhase
+import org.noztek.esktransport.feature.rider.trip_navigation.domain.usecase.CancelRiderTripUseCase
 import org.noztek.esktransport.feature.rider.trip_navigation.domain.usecase.ConfirmRiderPickupUseCase
 import org.noztek.esktransport.feature.rider.trip_navigation.domain.usecase.GetRiderTripSessionUseCase
 import org.noztek.esktransport.feature.rider.trip_navigation.domain.usecase.UpdateRiderTripLocationUseCase
 
+sealed class TripNavigationUiEvent {
+    data object NavigateToGoScreen : TripNavigationUiEvent()
+}
+
 class TripNavigationViewModel(
     private val getRiderTripSessionUseCase: GetRiderTripSessionUseCase,
     private val confirmRiderPickupUseCase: ConfirmRiderPickupUseCase,
+    private val cancelRiderTripUseCase: CancelRiderTripUseCase,
     private val updateRiderTripLocationUseCase: UpdateRiderTripLocationUseCase,
+    private val realtimeCoordinator: DriverBookingOfferRealtime,
     private val mapboxDirectionsClient: MapboxDirectionsClient,
     private val ioDispatcher: CoroutineDispatcher,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(TripNavigationUiState())
     val uiState: StateFlow<TripNavigationUiState> = _uiState.asStateFlow()
+
+    private val _uiEvents = MutableSharedFlow<TripNavigationUiEvent>(extraBufferCapacity = 1)
+    val uiEvents: SharedFlow<TripNavigationUiEvent> = _uiEvents.asSharedFlow()
+    private var realtimeJob: Job? = null
 
     fun load(bookingPublicId: String) {
         if (bookingPublicId.isBlank()) {
@@ -126,6 +142,22 @@ class TripNavigationViewModel(
         }
     }
 
+    fun startRealtime(bookingPublicId: String) {
+        if (bookingPublicId.isBlank() || realtimeJob?.isActive == true) return
+        realtimeJob = viewModelScope.launch {
+            realtimeCoordinator.subscribeDriverBookingOffers()
+            realtimeCoordinator.driverBookingCancelled().collect { event ->
+                if (event.bookingPublicId != bookingPublicId || event.cancelledBy == "rider") return@collect
+                _uiEvents.tryEmit(TripNavigationUiEvent.NavigateToGoScreen)
+            }
+        }
+    }
+
+    fun stopRealtime() {
+        realtimeJob?.cancel()
+        realtimeJob = null
+    }
+
     fun confirmPickup(bookingPublicId: String) {
         if (bookingPublicId.isBlank()) return
         viewModelScope.launch {
@@ -146,6 +178,25 @@ class TripNavigationViewModel(
                 _uiState.value = _uiState.value.copy(
                     isSubmittingPickup = false,
                     message = error.message ?: "Failed to confirm pickup.",
+                )
+            }
+        }
+    }
+
+    fun cancelTrip(bookingPublicId: String) {
+        if (bookingPublicId.isBlank() || _uiState.value.isCancelling) return
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isCancelling = true, message = null)
+            val result = withContext(ioDispatcher) {
+                cancelRiderTripUseCase(bookingPublicId)
+            }
+            result.onSuccess {
+                _uiState.value = _uiState.value.copy(isCancelling = false)
+                _uiEvents.tryEmit(TripNavigationUiEvent.NavigateToGoScreen)
+            }.onFailure { error ->
+                _uiState.value = _uiState.value.copy(
+                    isCancelling = false,
+                    message = error.message ?: "Failed to cancel trip.",
                 )
             }
         }
@@ -176,6 +227,11 @@ class TripNavigationViewModel(
                 }
             }
         }
+    }
+
+    override fun onCleared() {
+        stopRealtime()
+        super.onCleared()
     }
 }
 

@@ -42,9 +42,11 @@ class BookingReviewViewModel(
     private var pendingBookingPublicId: String? = null
     private var searchCountdownJob: Job? = null
     private var fareQuoteJob: Job? = null
+    private var realtimeJob: Job? = null
 
     fun startRealtime() {
-        viewModelScope.launch {
+        if (realtimeJob?.isActive == true) return
+        realtimeJob = viewModelScope.launch {
             realtimeCoordinator.subscribePassengerDriverAssigned()
             launch {
                 realtimeCoordinator.passengerDriverAssigned().collect { event ->
@@ -100,7 +102,8 @@ class BookingReviewViewModel(
     }
 
     fun stopRealtime() {
-        realtimeCoordinator.unsubscribePassengerDriverAssigned()
+        realtimeJob?.cancel()
+        realtimeJob = null
     }
 
     fun setInput(input: BookingReviewInput) {
@@ -220,6 +223,18 @@ class BookingReviewViewModel(
     fun retryFareQuote() {
         val input = _uiState.value.input ?: return
         requestFareQuote(input)
+    }
+
+    fun showReviewSheet() {
+        pendingBookingPublicId = null
+        stopSearchCountdown()
+        _uiState.value = _uiState.value.copy(
+            isCreatingBooking = false,
+            isSearchingForRider = false,
+            isCancellingBooking = false,
+            isSearchExpired = false,
+            searchSecondsRemaining = SEARCH_TIMEOUT_SECONDS,
+        )
     }
 
     private fun requestFareQuote(input: BookingReviewInput) {

@@ -33,6 +33,7 @@ import com.composables.icons.heroicons.outline.Bell
 import com.composables.icons.heroicons.outline.User
 import esktransport.shared.generated.resources.Res
 import esktransport.shared.generated.resources.logo
+import esktransport.shared.generated.resources.logo_nobg
 import org.jetbrains.compose.resources.painterResource
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -89,7 +90,7 @@ private fun DriverLogoBadge() {
         color = Color.Transparent,
     ) {
         Image(
-            painter = painterResource(Res.drawable.logo),
+            painter = painterResource(Res.drawable.logo_nobg),
             contentDescription = "Esk Transport",
             modifier = Modifier.fillMaxSize(),
             contentScale = ContentScale.Fit,

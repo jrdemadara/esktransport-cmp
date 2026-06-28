@@ -35,6 +35,7 @@ import com.composables.icons.heroicons.Heroicons
 import com.composables.icons.heroicons.outline.MapPin
 import com.composables.icons.heroicons.outline.Phone
 import com.composables.icons.heroicons.outline.User
+import kotlinx.coroutines.flow.collectLatest
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 import org.noztek.esktransport.core.map.MapCameraDefaults
@@ -43,12 +44,13 @@ import org.noztek.esktransport.core.map.MapPoint
 import org.noztek.esktransport.core.map.MapRouteLine
 import org.noztek.esktransport.core.map.MapboxConfig
 import org.noztek.esktransport.core.map.PlatformMapView
-import org.noztek.esktransport.core.ui.composables.common.AppPrimaryButton
+import org.noztek.esktransport.core.ui.composables.common.HoldToCancelButton
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TripTrackingScreen(
     bookingId: String,
+    onCancelled: () -> Unit,
     viewModel: TripTrackingViewModel = koinViewModel(),
     mapboxConfig: MapboxConfig = koinInject(),
 ) {
@@ -56,6 +58,14 @@ fun TripTrackingScreen(
     val session = uiState.tripSession
 
     LaunchedEffect(bookingId) { viewModel.loadTripData(bookingId) }
+
+    LaunchedEffect(viewModel) {
+        viewModel.uiEvents.collectLatest { event ->
+            when (event) {
+                TripTrackingUiEvent.NavigateToBookingReview -> onCancelled()
+            }
+        }
+    }
 
     BottomSheetScaffold(
         sheetPeekHeight = 196.dp,
@@ -70,6 +80,8 @@ fun TripTrackingScreen(
                     pickupLabel = it.pickupPoint.label,
                     destinationLabel = it.destinationPoint.label,
                     status = it.status,
+                    isCancelling = uiState.isCancelling,
+                    onCancel = { viewModel.cancelTrip(bookingId) },
                 )
             } ?: LoadingSheet(isLoading = uiState.isLoading)
         },
@@ -157,6 +169,8 @@ private fun TripTrackingSheet(
     pickupLabel: String,
     destinationLabel: String,
     status: String,
+    isCancelling: Boolean,
+    onCancel: () -> Unit,
 ) {
     Column(
         modifier = Modifier
@@ -226,9 +240,15 @@ private fun TripTrackingSheet(
                 .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.10f), RoundedCornerShape(999.dp))
                 .padding(horizontal = 10.dp, vertical = 5.dp),
         )
-        AppPrimaryButton(
-            text = "Cancel booking",
-            onClick = {},
+        Text(
+            text = "Your driver will be notified.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        HoldToCancelButton(
+            isCancelling = isCancelling,
+            onCancel = onCancel,
+            text = "Hold 3s to cancel ride",
             modifier = Modifier.fillMaxWidth(),
         )
     }
