@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -21,11 +22,15 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navOptions
 import org.koin.compose.koinInject
 import org.noztek.esktransport.core.lifecycle.setPlatformDriverOfflineCallback
+import org.noztek.esktransport.core.lifecycle.setPlatformUserOfflineCallback
 import org.noztek.esktransport.core.realtime.BaseRealtimeCoordinator
 import org.noztek.esktransport.core.session.domain.SessionUser
 import org.noztek.esktransport.core.session.domain.usecase.MarkStarterSeenUseCase
 import org.noztek.esktransport.core.session.domain.usecase.ObserveCurrentSessionUseCase
 import org.noztek.esktransport.feature.common.map_preview.presentation.MapPreviewScreen
+import org.noztek.esktransport.feature.common.presence.domain.lifecycle.UserPresenceCoordinator
+import org.noztek.esktransport.feature.common.presence.domain.model.UserPresenceContext
+import org.noztek.esktransport.feature.common.presence.domain.model.UserPresenceRole
 import org.noztek.esktransport.feature.driver.go.domain.lifecycle.DriverAvailabilityLifecycleCoordinator
 
 @Composable
@@ -33,6 +38,7 @@ fun RootNavHost(
     startupViewModel: StartupViewModel = koinInject(),
     realtimeCoordinator: BaseRealtimeCoordinator = koinInject(),
     driverAvailabilityLifecycleCoordinator: DriverAvailabilityLifecycleCoordinator = koinInject(),
+    userPresenceCoordinator: UserPresenceCoordinator = koinInject(),
     markStarterSeenUseCase: MarkStarterSeenUseCase = koinInject(),
     observeCurrentSessionUseCase: ObserveCurrentSessionUseCase = koinInject(),
 ) {
@@ -80,6 +86,39 @@ fun RootNavHost(
         onDispose {
             setPlatformDriverOfflineCallback(null)
             lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
+
+    DisposableEffect(lifecycleOwner, userPresenceCoordinator) {
+        setPlatformUserOfflineCallback {
+            userPresenceCoordinator.markOffline()
+        }
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_START -> userPresenceCoordinator.markForeground()
+                Lifecycle.Event.ON_STOP -> userPresenceCoordinator.markOffline()
+                else -> Unit
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            userPresenceCoordinator.stop()
+            setPlatformUserOfflineCallback(null)
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
+
+    LaunchedEffect(authenticatedRoute, session.userId, session.roles) {
+        when (authenticatedRoute) {
+            RootRoute.PASSENGER -> userPresenceCoordinator.markForeground(
+                role = UserPresenceRole.Passenger,
+                context = UserPresenceContext.PassengerHome,
+            )
+            RootRoute.DRIVER -> userPresenceCoordinator.markForeground(
+                role = UserPresenceRole.Driver,
+                context = UserPresenceContext.DriverHome,
+            )
+            else -> userPresenceCoordinator.stop()
         }
     }
 

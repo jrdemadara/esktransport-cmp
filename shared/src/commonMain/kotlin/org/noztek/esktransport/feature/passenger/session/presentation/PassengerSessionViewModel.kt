@@ -11,7 +11,6 @@ import org.noztek.esktransport.feature.common.active_booking.domain.model.Active
 import org.noztek.esktransport.feature.common.active_booking.domain.usecase.GetPassengerActiveBookingUseCase
 
 sealed class PassengerSessionUiEvent {
-    data class NavigateToBookingStatus(val bookingPublicId: String) : PassengerSessionUiEvent()
     data class NavigateToTripTracking(val bookingPublicId: String) : PassengerSessionUiEvent()
 }
 
@@ -30,11 +29,7 @@ class PassengerSessionViewModel(
             result.onSuccess { activeBooking ->
                 when (activeBooking?.status) {
                     ActiveBookingStatus.SEARCHING,
-                    ActiveBookingStatus.OFFERED -> {
-                        _uiEvents.emit(
-                            PassengerSessionUiEvent.NavigateToBookingStatus(activeBooking.bookingPublicId),
-                        )
-                    }
+                    ActiveBookingStatus.OFFERED -> Unit
                     ActiveBookingStatus.ACCEPTED,
                     ActiveBookingStatus.ARRIVING_PICKUP,
                     ActiveBookingStatus.IN_PROGRESS -> {

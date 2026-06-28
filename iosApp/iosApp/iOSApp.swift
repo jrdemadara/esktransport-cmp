@@ -5,6 +5,7 @@ import UIKit
 final class AppDelegate: NSObject, UIApplicationDelegate {
     func applicationWillTerminate(_ application: UIApplication) {
         DriverLifecycleBridge_iosKt.markDriverOfflineFromIosLifecycle()
+        UserLifecycleBridge_iosKt.markUserOfflineFromIosLifecycle()
     }
 }
 
@@ -35,6 +36,7 @@ struct iOSApp: App {
         .onChange(of: scenePhase) { _, newPhase in
             if newPhase == .background {
                 DriverLifecycleBridge_iosKt.markDriverOfflineFromIosLifecycle()
+                UserLifecycleBridge_iosKt.markUserOfflineFromIosLifecycle()
             }
         }
     }

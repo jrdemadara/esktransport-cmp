@@ -16,6 +16,15 @@ import org.noztek.esktransport.core.realtime.driver.PusherDriverOnboardingRealti
 import org.noztek.esktransport.core.realtime.passenger.PusherPassengerRealtimeCoordinator
 import org.noztek.esktransport.core.realtime.passenger.PassengerRealtimeCoordinator
 import org.noztek.esktransport.core.session.SessionManager
+import org.noztek.esktransport.feature.common.presence.data.impl.UserPresenceRepositoryImpl
+import org.noztek.esktransport.feature.common.presence.data.remote.UserPresenceApi
+import org.noztek.esktransport.feature.common.presence.domain.lifecycle.UserPresenceCoordinator
+import org.noztek.esktransport.feature.common.presence.domain.repository.UserPresenceRepository
+import org.noztek.esktransport.feature.common.presence.domain.usecase.GetUserPresenceUseCase
+import org.noztek.esktransport.feature.common.presence.domain.usecase.MarkUserBackgroundUseCase
+import org.noztek.esktransport.feature.common.presence.domain.usecase.MarkUserForegroundUseCase
+import org.noztek.esktransport.feature.common.presence.domain.usecase.MarkUserOfflineUseCase
+import org.noztek.esktransport.feature.common.presence.domain.usecase.SendUserHeartbeatUseCase
 
 const val IO_DISPATCHER_QUALIFIER = "io_dispatcher"
 
@@ -53,6 +62,21 @@ val coreModule = module {
             sessionManager = get(),
             ioDispatcher = get(named(IO_DISPATCHER_QUALIFIER)),
             json = get(),
+        )
+    }
+    single { UserPresenceApi(client = get(), baseUrl = get(named(API_BASE_URL_QUALIFIER))) }
+    single<UserPresenceRepository> { UserPresenceRepositoryImpl(api = get()) }
+    single { GetUserPresenceUseCase(repository = get()) }
+    single { SendUserHeartbeatUseCase(repository = get()) }
+    single { MarkUserForegroundUseCase(repository = get()) }
+    single { MarkUserBackgroundUseCase(repository = get()) }
+    single { MarkUserOfflineUseCase(repository = get()) }
+    single {
+        UserPresenceCoordinator(
+            sessionManager = get(),
+            markUserForegroundUseCase = get(),
+            markUserOfflineUseCase = get(),
+            ioDispatcher = get(named(IO_DISPATCHER_QUALIFIER)),
         )
     }
 }

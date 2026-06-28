@@ -70,7 +70,9 @@ import org.jetbrains.compose.resources.painterResource
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 import org.noztek.esktransport.core.realtime.passenger.PassengerRealtimeCoordinator
-import org.noztek.esktransport.feature.passenger.booking_status.presentation.PassengerBookingStatusScreen
+import org.noztek.esktransport.feature.common.presence.domain.lifecycle.UserPresenceCoordinator
+import org.noztek.esktransport.feature.common.presence.domain.model.UserPresenceContext
+import org.noztek.esktransport.feature.common.presence.domain.model.UserPresenceRole
 import org.noztek.esktransport.feature.passenger.booking_review.domain.model.BookingReviewInput
 import org.noztek.esktransport.feature.passenger.booking_review.presentation.BookingReviewScreen
 import org.noztek.esktransport.feature.passenger.booking_review.presentation.BookingReviewUiEvent
@@ -98,7 +100,6 @@ private const val ROUTE_KUDI = "kudi"
 private const val ROUTE_ACTIVITY = "activity"
 private const val ROUTE_PROFILE = "profile"
 private const val ROUTE_TRIP_TRACKING = "trip-tracking"
-private const val ROUTE_BOOKING_STATUS = "booking-status"
 
 fun NavGraphBuilder.passengerNavGraph(navController: NavHostController) {
     navigation(startDestination = PassengerRoute.HOME, route = RootRoute.PASSENGER) {
@@ -116,6 +117,8 @@ private fun PassengerShell(onLogout: () -> Unit) {
     val bookingReviewViewModel: BookingReviewViewModel = koinViewModel()
     val passengerSessionViewModel: PassengerSessionViewModel = koinViewModel()
     val passengerRealtimeCoordinator: PassengerRealtimeCoordinator = koinInject()
+    val userPresenceCoordinator: UserPresenceCoordinator = koinInject()
+    val bookingReviewUiState by bookingReviewViewModel.uiState.collectAsState()
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
     val tabs = passengerTabs
@@ -127,9 +130,17 @@ private fun PassengerShell(onLogout: () -> Unit) {
         currentRoute == ROUTE_RIDE_PLANNER_WITH_VEHICLE
     val showChrome = !isRidePlannerRoute &&
         currentRoute != ROUTE_BOOKING_REVIEW &&
-        currentRoute?.startsWith(ROUTE_BOOKING_STATUS) != true &&
         currentRoute?.startsWith(ROUTE_TRIP_TRACKING) != true &&
         currentRoute?.startsWith("location-search/") != true
+
+    LaunchedEffect(currentRoute, bookingReviewUiState.isSearchingForRider) {
+        userPresenceCoordinator.updateContext(
+            role = UserPresenceRole.Passenger,
+            context = currentRoute.toUserPresenceContext(
+                isSearchingForRider = bookingReviewUiState.isSearchingForRider,
+            ),
+        )
+    }
 
     LaunchedEffect(Unit) {
         ridePlannerViewModel.uiEvents.collectLatest { event ->
@@ -167,12 +178,6 @@ private fun PassengerShell(onLogout: () -> Unit) {
         launch {
             passengerSessionViewModel.uiEvents.collectLatest { event ->
                 when (event) {
-                    is PassengerSessionUiEvent.NavigateToBookingStatus -> {
-                        navController.navigate("$ROUTE_BOOKING_STATUS/${event.bookingPublicId}") {
-                            popUpTo(ROUTE_HOME) { inclusive = false }
-                            launchSingleTop = true
-                        }
-                    }
                     is PassengerSessionUiEvent.NavigateToTripTracking -> {
                         navController.navigate("$ROUTE_TRIP_TRACKING/${event.bookingPublicId}") {
                             popUpTo(ROUTE_HOME) { inclusive = false }
@@ -192,7 +197,6 @@ private fun PassengerShell(onLogout: () -> Unit) {
             when {
                 isRidePlannerRoute -> PassengerBackTopBar("Plan your trip") { navController.popBackStack() }
                 currentRoute == ROUTE_BOOKING_REVIEW -> PassengerBackTopBar("Review Booking") { navController.popBackStack() }
-                currentRoute?.startsWith(ROUTE_BOOKING_STATUS) == true -> PassengerBackTopBar("Booking Status") { navController.popBackStack() }
                 currentRoute?.startsWith(ROUTE_TRIP_TRACKING) == true -> PassengerBackTopBar("Trip Tracking") { navController.popBackStack() }
                 currentRoute?.startsWith("location-search/") == true -> {
                     PassengerBackTopBar(if (locationMode == "pickup") "Search Pickup" else "Search Destination") {
@@ -361,15 +365,6 @@ private fun PassengerShell(onLogout: () -> Unit) {
                 }
             }
             composable(
-                route = "$ROUTE_BOOKING_STATUS/{bookingId}",
-                arguments = listOf(navArgument("bookingId") { type = NavType.StringType }),
-            ) { backStackEntry ->
-                PassengerBookingStatusScreen(
-                    bookingPublicId = backStackEntry.arguments?.read { getStringOrNull("bookingId") }.orEmpty(),
-                    contentPadding = innerPadding,
-                )
-            }
-            composable(
                 route = "$ROUTE_TRIP_TRACKING/{bookingId}",
                 arguments = listOf(navArgument("bookingId") { type = NavType.StringType }),
             ) { backStackEntry ->
@@ -486,6 +481,22 @@ private val passengerTabs = listOf(
     PassengerTab(ROUTE_ACTIVITY, "Activity", Heroicons.Outline.RectangleStack),
     PassengerTab(ROUTE_PROFILE, "Profile", Heroicons.Outline.User),
 )
+
+private fun String?.toUserPresenceContext(isSearchingForRider: Boolean): UserPresenceContext {
+    return when {
+        this == ROUTE_BOOKING_REVIEW && isSearchingForRider -> UserPresenceContext.BookingSearch
+        this == ROUTE_BOOKING_REVIEW -> UserPresenceContext.BookingReview
+        this == ROUTE_HOME -> UserPresenceContext.PassengerHome
+        this == ROUTE_RIDE_PLANNER || this == ROUTE_RIDE_PLANNER_WITH_VEHICLE -> UserPresenceContext.RidePlanner
+        this?.startsWith("location-search/") == true -> UserPresenceContext.LocationSearch
+        this?.startsWith(ROUTE_TRIP_TRACKING) == true -> UserPresenceContext.TripTracking
+        this == ROUTE_SERVICES -> UserPresenceContext.Services
+        this == ROUTE_KUDI -> UserPresenceContext.Kudi
+        this == ROUTE_ACTIVITY -> UserPresenceContext.Activity
+        this == ROUTE_PROFILE -> UserPresenceContext.Profile
+        else -> UserPresenceContext.PassengerHome
+    }
+}
 
 
 private fun NavHostController.navigatePassengerRoot(route: String) {

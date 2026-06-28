@@ -2,6 +2,7 @@ package org.noztek.esktransport.app.navigation
 
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
+import androidx.compose.runtime.LaunchedEffect
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.composable
@@ -9,6 +10,9 @@ import androidx.navigation.navigation
 import androidx.savedstate.read
 import org.koin.compose.koinInject
 import org.noztek.esktransport.core.map.MapboxConfig
+import org.noztek.esktransport.feature.common.presence.domain.lifecycle.UserPresenceCoordinator
+import org.noztek.esktransport.feature.common.presence.domain.model.UserPresenceContext
+import org.noztek.esktransport.feature.common.presence.domain.model.UserPresenceRole
 import org.noztek.esktransport.feature.driver.go.presentation.GoScreen
 import org.noztek.esktransport.feature.driver.home.presentation.HomeScreen
 import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverOnboardingStatus
@@ -35,6 +39,13 @@ fun NavGraphBuilder.driverNavGraph(navController: NavHostController) {
                 }
             },
         ) {
+            val userPresenceCoordinator: UserPresenceCoordinator = koinInject()
+            LaunchedEffect(Unit) {
+                userPresenceCoordinator.updateContext(
+                    role = UserPresenceRole.Driver,
+                    context = UserPresenceContext.DriverHome,
+                )
+            }
             HomeScreen(
                 onSetupClick = { status ->
                     navController.navigate(status.nextSetupRoute()) {
@@ -55,6 +66,13 @@ fun NavGraphBuilder.driverNavGraph(navController: NavHostController) {
             popEnterTransition = { EnterTransition.None },
             popExitTransition = { ExitTransition.None },
         ) {
+            val userPresenceCoordinator: UserPresenceCoordinator = koinInject()
+            LaunchedEffect(Unit) {
+                userPresenceCoordinator.updateContext(
+                    role = UserPresenceRole.Driver,
+                    context = UserPresenceContext.DriverGo,
+                )
+            }
             GoScreen(
                 onNavigateHome = {
                     navController.popBackStack(DriverRoute.HOME, inclusive = false)
@@ -67,6 +85,13 @@ fun NavGraphBuilder.driverNavGraph(navController: NavHostController) {
             )
         }
         composable(ROUTE_DRIVER_IDENTITY_VERIFICATION) {
+            val userPresenceCoordinator: UserPresenceCoordinator = koinInject()
+            LaunchedEffect(Unit) {
+                userPresenceCoordinator.updateContext(
+                    role = UserPresenceRole.Driver,
+                    context = UserPresenceContext.DriverIdentityVerification,
+                )
+            }
             DriverIdentityVerificationScreen(
                 onBack = { navController.popBackStack() },
                 onContinue = {
@@ -75,6 +100,13 @@ fun NavGraphBuilder.driverNavGraph(navController: NavHostController) {
             )
         }
         composable(ROUTE_DRIVER_VEHICLE_REGISTRATION) {
+            val userPresenceCoordinator: UserPresenceCoordinator = koinInject()
+            LaunchedEffect(Unit) {
+                userPresenceCoordinator.updateContext(
+                    role = UserPresenceRole.Driver,
+                    context = UserPresenceContext.DriverVehicleRegistration,
+                )
+            }
             DriverVehicleRegistrationScreen(
                 onBack = { navController.popBackStack() },
                 onContinue = {
@@ -83,6 +115,13 @@ fun NavGraphBuilder.driverNavGraph(navController: NavHostController) {
             )
         }
         composable(ROUTE_DRIVER_SERVICE_ZONE) {
+            val userPresenceCoordinator: UserPresenceCoordinator = koinInject()
+            LaunchedEffect(Unit) {
+                userPresenceCoordinator.updateContext(
+                    role = UserPresenceRole.Driver,
+                    context = UserPresenceContext.DriverServiceZone,
+                )
+            }
             DriverServiceZoneScreen(
                 onBack = { navController.popBackStack() },
                 onContinue = {
@@ -91,6 +130,13 @@ fun NavGraphBuilder.driverNavGraph(navController: NavHostController) {
             )
         }
         composable("$ROUTE_DRIVER_TRIP_TRACKING/{bookingId}") { backStackEntry ->
+            val userPresenceCoordinator: UserPresenceCoordinator = koinInject()
+            LaunchedEffect(Unit) {
+                userPresenceCoordinator.updateContext(
+                    role = UserPresenceRole.Driver,
+                    context = UserPresenceContext.DriverTripTracking,
+                )
+            }
             val bookingId = backStackEntry.arguments?.read { getStringOrNull("bookingId") }.orEmpty()
             val mapboxConfig: MapboxConfig = koinInject()
             TripNavigationScreen(

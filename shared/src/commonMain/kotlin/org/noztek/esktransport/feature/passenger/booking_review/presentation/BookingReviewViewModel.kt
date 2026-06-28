@@ -294,23 +294,13 @@ class BookingReviewViewModel(
                 delay(1000)
             }
             if (_uiState.value.isSearchingForRider && pendingBookingPublicId != null) {
-                expirePendingSearchLocally()
+                markSearchExpiredLocally()
             }
         }
     }
 
-    private suspend fun expirePendingSearchLocally() {
-        val bookingPublicId = pendingBookingPublicId
+    private fun markSearchExpiredLocally() {
         pendingBookingPublicId = null
-
-        if (bookingPublicId != null) {
-            withContext(ioDispatcher) {
-                cancelBookingUseCase(bookingPublicId)
-            }.onFailure { error ->
-                println("BookingReviewVM local search timeout cancel failed: ${error.message}")
-            }
-        }
-
         _uiState.value = _uiState.value.copy(
             isSearchingForRider = false,
             isCancellingBooking = false,
