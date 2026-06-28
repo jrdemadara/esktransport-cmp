@@ -51,6 +51,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -59,6 +60,7 @@ import com.composables.icons.heroicons.outline.MagnifyingGlass
 import com.composables.icons.heroicons.outline.Map
 import com.composables.icons.heroicons.outline.MapPin
 import com.composables.icons.heroicons.outline.Clock
+import com.composables.icons.heroicons.outline.ExclamationTriangle
 import com.composables.icons.heroicons.outline.Users
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
@@ -225,7 +227,7 @@ private fun SearchingSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 10.dp),
+                .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             Row(
@@ -260,7 +262,7 @@ private fun SearchingSheet(
                     )
                     Text(
                         text = "Request sent. Matching nearby online drivers.",
-                        style = MaterialTheme.typography.bodySmall,
+                        style = MaterialTheme.typography.bodyMedium,
                         color = secondaryTextColor,
                         lineHeight = 14.sp
                     )
@@ -278,14 +280,41 @@ private fun SearchingSheet(
                     )
                 }
             }
-            Text(
-                text = "$vehicleLabel • $seatCount ${if (seatCount == 1) "seat" else "seats"} • $distanceLabel • $etaLabel",
-                style = MaterialTheme.typography.bodySmall,
-                color = secondaryTextColor,
-            )
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    RideMetaPill(
+                        icon = { Icon(Heroicons.Outline.Map, contentDescription = null, modifier = Modifier.size(18.dp)) },
+                        label = vehicleLabel,
+                        modifier = Modifier.weight(1f),
+                    )
+                    RideMetaPill(
+                        icon = { Icon(Heroicons.Outline.Users, contentDescription = null, modifier = Modifier.size(18.dp)) },
+                        label = "$seatCount ${if (seatCount == 1) "seat" else "seats"}",
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    RideMetaPill(
+                        icon = { Icon(Heroicons.Outline.MapPin, contentDescription = null, modifier = Modifier.size(18.dp)) },
+                        label = distanceLabel,
+                        modifier = Modifier.weight(1f),
+                    )
+                    RideMetaPill(
+                        icon = { Icon(Heroicons.Outline.Clock, contentDescription = null, modifier = Modifier.size(18.dp)) },
+                        label = etaLabel,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+            }
             Text(
                 text = "To: $destinationLocation",
-                style = MaterialTheme.typography.bodySmall,
+                style = MaterialTheme.typography.bodyMedium,
                 color = secondaryTextColor,
                 maxLines = 1,
             )
@@ -320,6 +349,7 @@ private fun SearchingSheet(
                 isCancelling = isCancelling,
                 onCancel = onCancel,
             )
+            Spacer(modifier = Modifier.height(4.dp))
         }
     }
 }
@@ -337,26 +367,47 @@ private fun SearchExpiredSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
+                .padding(horizontal = 20.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            Surface(
+                modifier = Modifier.size(38.dp),
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.errorContainer,
+                contentColor = MaterialTheme.colorScheme.error,
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = Heroicons.Outline.ExclamationTriangle,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp),
+                    )
+                }
+            }
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
                 Text(
                     text = "No drivers found",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurface,
+                    textAlign = TextAlign.Center,
                 )
                 Text(
                     text = "No online driver accepted within 60 seconds. Try again when you are ready.",
-                    style = MaterialTheme.typography.bodySmall,
+                    style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     lineHeight = 16.sp,
+                    textAlign = TextAlign.Center,
                 )
             }
             AppPrimaryButton(
                 text = "Try Again",
                 onClick = onTryAgain,
+                modifier = Modifier.fillMaxWidth(),
             )
             Spacer(modifier = Modifier.height(4.dp))
         }
