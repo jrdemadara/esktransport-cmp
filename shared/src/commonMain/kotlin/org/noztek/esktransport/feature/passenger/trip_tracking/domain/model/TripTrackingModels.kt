@@ -6,7 +6,7 @@ data class TripTrackingSession(
     val pickupPoint: TripPoint,
     val destinationPoint: TripPoint,
     val riderInfo: RiderTripInfo,
-    val latestLocation: LatestLocation
+    val latestLocation: LatestLocation?
 )
 
 data class TripPoint(

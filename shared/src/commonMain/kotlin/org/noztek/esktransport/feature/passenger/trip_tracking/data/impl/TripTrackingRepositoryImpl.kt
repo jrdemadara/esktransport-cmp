@@ -32,12 +32,14 @@ class TripTrackingRepositoryImpl(
                 vehicleLabel = dto.rider.vehicleLabel,
                 vehiclePlate = dto.rider.vehiclePlate
             ),
-            latestLocation = LatestLocation(
-                latitude = dto.latestLocation.lat,
-                longitude = dto.latestLocation.lng,
-                bearing = dto.latestLocation.bearing,
-                speedKph = dto.latestLocation.speedKph
-            )
+            latestLocation = dto.latestLocation?.let { latestLocation ->
+                LatestLocation(
+                    latitude = latestLocation.lat,
+                    longitude = latestLocation.lng,
+                    bearing = latestLocation.bearing,
+                    speedKph = latestLocation.speedKph
+                )
+            }
         )
     }
 }

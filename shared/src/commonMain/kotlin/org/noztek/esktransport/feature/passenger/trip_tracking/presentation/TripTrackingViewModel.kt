@@ -38,17 +38,19 @@ class TripTrackingViewModel(
     }
 
     private suspend fun fetchRoutes(session: TripTrackingSession) {
-        val riderToPickup = mapboxDirectionsClient.getRoutePoints(
-            originLongitude = session.latestLocation.longitude,
-            originLatitude = session.latestLocation.latitude,
-            destinationLongitude = session.pickupPoint.longitude,
-            destinationLatitude = session.pickupPoint.latitude,
-        ).getOrElse {
-            listOf(
-                MapPoint(session.latestLocation.latitude, session.latestLocation.longitude),
-                MapPoint(session.pickupPoint.latitude, session.pickupPoint.longitude),
-            )
-        }
+        val riderToPickup = session.latestLocation?.let { latestLocation ->
+            mapboxDirectionsClient.getRoutePoints(
+                originLongitude = latestLocation.longitude,
+                originLatitude = latestLocation.latitude,
+                destinationLongitude = session.pickupPoint.longitude,
+                destinationLatitude = session.pickupPoint.latitude,
+            ).getOrElse {
+                listOf(
+                    MapPoint(latestLocation.latitude, latestLocation.longitude),
+                    MapPoint(session.pickupPoint.latitude, session.pickupPoint.longitude),
+                )
+            }
+        }.orEmpty()
 
         val pickupToDestination = mapboxDirectionsClient.getRoutePoints(
             originLongitude = session.pickupPoint.longitude,

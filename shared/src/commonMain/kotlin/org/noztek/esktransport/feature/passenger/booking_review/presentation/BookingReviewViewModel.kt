@@ -14,7 +14,9 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.noztek.esktransport.core.realtime.passenger.PassengerRealtimeCoordinator
+import org.noztek.esktransport.feature.passenger.booking_review.domain.model.Booking
 import org.noztek.esktransport.feature.passenger.booking_review.domain.model.BookingReviewInput
+import org.noztek.esktransport.feature.passenger.booking_review.domain.model.FareQuote
 import org.noztek.esktransport.feature.passenger.booking_review.domain.usecase.CancelBookingUseCase
 import org.noztek.esktransport.feature.passenger.booking_review.domain.usecase.CreateBookingUseCase
 import org.noztek.esktransport.feature.passenger.booking_review.domain.usecase.CreateFareQuoteUseCase
@@ -135,13 +137,22 @@ class BookingReviewViewModel(
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isCreatingBooking = true)
             
-            val result = withContext(ioDispatcher) {
-                createBookingUseCase(payload, fareQuote.id)
+            val submission = withContext(ioDispatcher) {
+                createBookingWithQuoteRefresh(
+                    input = payload,
+                    quoteId = fareQuote.id,
+                )
             }
             
+            submission.refreshedQuote?.let { refreshedQuote ->
+                _uiState.value = _uiState.value.copy(
+                    fareQuote = refreshedQuote,
+                    fareQuoteError = null,
+                )
+            }
             _uiState.value = _uiState.value.copy(isCreatingBooking = false)
 
-            result.onSuccess { booking ->
+            submission.bookingResult.onSuccess { booking ->
                 println("Booking created: booking_public_id=${booking.publicId}")
                 pendingBookingPublicId = booking.publicId
                 println("BookingReviewVM pending booking set to ${booking.publicId}")
@@ -243,6 +254,37 @@ class BookingReviewViewModel(
         }
     }
 
+    private suspend fun createBookingWithQuoteRefresh(
+        input: BookingReviewInput,
+        quoteId: Long,
+    ): BookingSubmissionResult {
+        val firstAttempt = createBookingUseCase(input, quoteId)
+        if (!firstAttempt.isInvalidFareQuoteFailure()) {
+            return BookingSubmissionResult(
+                bookingResult = firstAttempt,
+                refreshedQuote = null,
+            )
+        }
+
+        val refreshedQuote = createFareQuoteUseCase(input).getOrElse { error ->
+            return BookingSubmissionResult(
+                bookingResult = Result.failure(error),
+                refreshedQuote = null,
+            )
+        }
+
+        return BookingSubmissionResult(
+            bookingResult = createBookingUseCase(input, refreshedQuote.id),
+            refreshedQuote = refreshedQuote,
+        )
+    }
+
+    private fun Result<Booking>.isInvalidFareQuoteFailure(): Boolean {
+        val message = exceptionOrNull()?.message.orEmpty()
+        return message.contains("Fare quote is no longer valid", ignoreCase = true) ||
+            message.contains("refresh the fare", ignoreCase = true)
+    }
+
     private fun startSearchCountdown() {
         searchCountdownJob?.cancel()
         searchCountdownJob = viewModelScope.launch {
@@ -293,3 +335,8 @@ class BookingReviewViewModel(
         const val SEARCH_TIMEOUT_SECONDS = 60
     }
 }
+
+private data class BookingSubmissionResult(
+    val bookingResult: Result<Booking>,
+    val refreshedQuote: FareQuote?,
+)

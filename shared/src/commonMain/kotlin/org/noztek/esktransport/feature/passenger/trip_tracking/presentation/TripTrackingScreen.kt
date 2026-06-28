@@ -76,19 +76,23 @@ fun TripTrackingScreen(
     ) { contentPadding ->
         Box(modifier = Modifier.fillMaxSize().padding(contentPadding)) {
             val center = session?.latestLocation?.let { MapPoint(it.latitude, it.longitude) }
+                ?: session?.pickupPoint?.let { MapPoint(it.latitude, it.longitude) }
                 ?: MapPoint(6.6920431660391095, 124.68050838312321)
+            val markers = session?.let { tripSession ->
+                buildList {
+                    tripSession.latestLocation?.let { latestLocation ->
+                        add(MapMarker("driver", MapPoint(latestLocation.latitude, latestLocation.longitude), Color(0xFF2563EB), 8.0))
+                    }
+                    add(MapMarker("pickup", MapPoint(tripSession.pickupPoint.latitude, tripSession.pickupPoint.longitude), Color(0xFFF59E0B), 7.0))
+                    add(MapMarker("destination", MapPoint(tripSession.destinationPoint.latitude, tripSession.destinationPoint.longitude), Color(0xFFEF4444), 7.0))
+                }
+            }.orEmpty()
             PlatformMapView(
                 modifier = Modifier.fillMaxSize(),
                 config = mapboxConfig,
                 cameraCenter = center,
                 cameraDefaults = MapCameraDefaults(zoom = 14.0, pitch = 30.0),
-                markers = session?.let {
-                    listOf(
-                        MapMarker("driver", MapPoint(it.latestLocation.latitude, it.latestLocation.longitude), Color(0xFF2563EB), 8.0),
-                        MapMarker("pickup", MapPoint(it.pickupPoint.latitude, it.pickupPoint.longitude), Color(0xFFF59E0B), 7.0),
-                        MapMarker("destination", MapPoint(it.destinationPoint.latitude, it.destinationPoint.longitude), Color(0xFFEF4444), 7.0),
-                    )
-                }.orEmpty(),
+                markers = markers,
                 routeLines = listOf(
                     MapRouteLine("driver-pickup", uiState.riderToPickupRoute, Color(0xFF2563EB), 5.0),
                     MapRouteLine("pickup-destination", uiState.pickupToDestinationRoute, Color(0xFF10B981), 5.0),

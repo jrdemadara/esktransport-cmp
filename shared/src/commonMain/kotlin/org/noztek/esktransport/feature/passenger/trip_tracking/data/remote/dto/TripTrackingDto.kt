@@ -21,7 +21,7 @@ data class TripTrackingDataDto(
     val destination: TripLocationDto,
     val rider: RiderTripInfoDto,
     @SerialName("latest_location")
-    val latestLocation: LatestLocationDto,
+    val latestLocation: LatestLocationDto? = null,
 )
 
 @Serializable
