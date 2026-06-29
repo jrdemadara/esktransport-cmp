@@ -94,6 +94,7 @@ val passengerModule = module {
             tripTrackingUseCase = get(),
             cancelPassengerTripUseCase = get(),
             mapboxDirectionsClient = get(),
+            realtimeCoordinator = get(),
             ioDispatcher = get(named(IO_DISPATCHER_QUALIFIER)),
         )
     }

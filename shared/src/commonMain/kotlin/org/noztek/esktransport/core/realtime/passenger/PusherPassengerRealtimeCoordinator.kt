@@ -21,6 +21,7 @@ import org.noztek.esktransport.core.realtime.model.PassengerBookingCancelledEven
 import org.noztek.esktransport.core.realtime.model.PassengerBookingOfferExpiredEvent
 import org.noztek.esktransport.core.realtime.model.PassengerBookingSearchExpiredEvent
 import org.noztek.esktransport.core.realtime.model.PassengerDriverAssignedEvent
+import org.noztek.esktransport.core.realtime.model.PassengerTripLocationUpdatedEvent
 import org.noztek.esktransport.core.session.SessionManager
 
 class PusherPassengerRealtimeCoordinator(
@@ -36,6 +37,7 @@ class PusherPassengerRealtimeCoordinator(
     private val bookingCancelled = MutableSharedFlow<PassengerBookingCancelledEvent>(extraBufferCapacity = 32)
     private val offerExpired = MutableSharedFlow<PassengerBookingOfferExpiredEvent>(extraBufferCapacity = 32)
     private val searchExpired = MutableSharedFlow<PassengerBookingSearchExpiredEvent>(extraBufferCapacity = 32)
+    private val tripLocationUpdated = MutableSharedFlow<PassengerTripLocationUpdatedEvent>(extraBufferCapacity = 64)
     private var driverAssignedChannel: String? = null
 
     override fun subscribePassengerDriverAssigned() {
@@ -65,6 +67,9 @@ class PusherPassengerRealtimeCoordinator(
             realtimeClient.subscribePrivateChannel(channel, "booking.search_expired") { _, payload ->
                 parseSearchExpired(payload)?.let { searchExpired.tryEmit(it) }
             }
+            realtimeClient.subscribePrivateChannel(channel, "trip.driver_location_updated") { _, payload ->
+                parseTripLocationUpdated(payload)?.let { tripLocationUpdated.tryEmit(it) }
+            }
             driverAssignedChannel = channel
         }
     }
@@ -79,6 +84,7 @@ class PusherPassengerRealtimeCoordinator(
     override fun passengerBookingCancelled() = bookingCancelled.asSharedFlow()
     override fun passengerBookingOfferExpired() = offerExpired.asSharedFlow()
     override fun passengerBookingSearchExpired() = searchExpired.asSharedFlow()
+    override fun passengerTripLocationUpdated() = tripLocationUpdated.asSharedFlow()
 
     private fun parseDriverAssigned(payload: String): PassengerDriverAssignedEvent? {
         return runCatching {
@@ -142,6 +148,26 @@ class PusherPassengerRealtimeCoordinator(
             val root = parsed.unwrapRealtimeData(json)
             val bookingPublicId = root.string("booking_public_id") ?: return null
             PassengerBookingSearchExpiredEvent(bookingPublicId = bookingPublicId)
+        }.getOrNull()
+    }
+
+    private fun parseTripLocationUpdated(payload: String): PassengerTripLocationUpdatedEvent? {
+        return runCatching {
+            val parsed = json.parseToJsonElement(payload).jsonObject
+            val root = parsed.unwrapRealtimeData(json)
+            val bookingPublicId = root.string("booking_public_id") ?: return null
+            val lat = root.double("lat") ?: return null
+            val lng = root.double("lng") ?: return null
+            PassengerTripLocationUpdatedEvent(
+                bookingPublicId = bookingPublicId,
+                latitude = lat,
+                longitude = lng,
+                bearing = root.double("bearing"),
+                speedKph = root.double("speed_kph"),
+                accuracyM = root.double("accuracy_m"),
+                recordedAt = root.string("recorded_at"),
+                phase = root.string("phase"),
+            )
         }.getOrNull()
     }
 }

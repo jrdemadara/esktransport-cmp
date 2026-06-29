@@ -11,13 +11,14 @@ data class TripTrackingSession(
 
 data class TripPoint(
     val label: String,
-    val latitude: Double,
-    val longitude: Double
+    val latitude: Double?,
+    val longitude: Double?
 )
 
 data class RiderTripInfo(
     val publicId: String,
     val name: String,
+    val rating: Double?,
     val vehicleType: String,
     val vehicleLabel: String,
     val vehiclePlate: String
@@ -26,6 +27,6 @@ data class RiderTripInfo(
 data class LatestLocation(
     val latitude: Double,
     val longitude: Double,
-    val bearing: Double,
-    val speedKph: Double
+    val bearing: Double?,
+    val speedKph: Double?
 )

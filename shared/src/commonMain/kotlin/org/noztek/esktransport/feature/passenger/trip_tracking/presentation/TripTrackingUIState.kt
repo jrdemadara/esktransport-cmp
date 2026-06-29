@@ -7,7 +7,16 @@ data class TripTrackingUIState(
     val isLoading: Boolean = false,
     val isCancelling: Boolean = false,
     val tripSession: TripTrackingSession? = null,
+    val stage: TripTrackingStage = TripTrackingStage.ToPickup,
     val riderToPickupRoute: List<MapPoint> = emptyList(),
+    val driverToDestinationRoute: List<MapPoint> = emptyList(),
     val pickupToDestinationRoute: List<MapPoint> = emptyList(),
     val error: String? = null,
 )
+
+enum class TripTrackingStage {
+    ToPickup,
+    ArrivedPickup,
+    ToDropoff,
+    Completed,
+}

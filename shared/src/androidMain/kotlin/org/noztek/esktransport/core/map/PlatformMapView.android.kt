@@ -1,9 +1,11 @@
 package org.noztek.esktransport.core.map
 
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.Color as AndroidColor
 import android.graphics.Paint
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
@@ -27,12 +29,15 @@ import com.mapbox.geojson.LineString
 import com.mapbox.geojson.Point
 import com.mapbox.maps.CameraOptions
 import com.mapbox.maps.ImageHolder
+import com.mapbox.maps.Style
 import com.mapbox.maps.extension.compose.MapEffect
 import com.mapbox.maps.extension.compose.MapboxMap
 import com.mapbox.maps.extension.compose.animation.viewport.rememberMapViewportState
 import com.mapbox.maps.extension.compose.annotation.generated.CircleAnnotation
-import com.mapbox.maps.extension.compose.annotation.generated.PolylineAnnotation
 import com.mapbox.maps.extension.compose.style.MapStyle
+import com.mapbox.maps.extension.style.layers.properties.generated.IconAnchor
+import com.mapbox.maps.extension.style.layers.properties.generated.LineCap
+import com.mapbox.maps.extension.style.layers.properties.generated.LineJoin
 import com.mapbox.maps.extension.style.layers.addLayer
 import com.mapbox.maps.extension.style.layers.generated.LineLayer
 import com.mapbox.maps.extension.style.sources.addSource
@@ -40,6 +45,9 @@ import com.mapbox.maps.extension.style.sources.generated.GeoJsonSource
 import com.mapbox.maps.extension.style.sources.generated.geoJsonSource
 import com.mapbox.maps.extension.style.sources.getSourceAs
 import com.mapbox.maps.plugin.LocationPuck2D
+import com.mapbox.maps.plugin.annotation.annotations
+import com.mapbox.maps.plugin.annotation.generated.PointAnnotationOptions
+import com.mapbox.maps.plugin.annotation.generated.createPointAnnotationManager
 import com.mapbox.maps.plugin.locationcomponent.OnIndicatorPositionChangedListener
 import com.mapbox.maps.plugin.locationcomponent.location
 import com.mapbox.maps.plugin.gestures.OnMoveListener
@@ -91,6 +99,12 @@ actual fun PlatformMapView(
     val currentOnCameraMoving = rememberUpdatedState(onCameraMoving)
     val currentOnCameraIdle = rememberUpdatedState(onCameraIdle)
     val userLocationColor = Color(0xFF2563EB).toArgb()
+    val context = LocalContext.current
+    val markerIconBitmaps = remember(context) {
+        MapMarkerIcon.values().associateWith { icon ->
+            context.loadComposeBitmap(icon.assetFileName)
+        }
+    }
 
     MapboxMap(
         modifier = modifier,
@@ -156,14 +170,69 @@ actual fun PlatformMapView(
                 mapView.gestures.removeOnMoveListener(moveListener)
             }
         }
-        MapEffect(routeLines) { mapView ->
-            val antRoute = routeLines.firstOrNull { it.animatedAntPath && it.points.size >= 2 } ?: return@MapEffect
-            val linePoints = antRoute.points.map(MapPoint::toPoint)
-            val antColorHex = antRoute.color.toHexColorString()
+        MapEffect(routeLines, adaptiveStyle) { mapView ->
+            val style = mapView.mapboxMap.awaitStyle()
+            val staticLines = routeLines.filter { !it.animatedAntPath && it.points.size >= 2 }
+            val styleIds = staticLines.map { line ->
+                val sourceId = "route-line-${line.id}-source"
+                val layerId = "route-line-${line.id}-layer"
+                val linePoints = line.points.map(MapPoint::toPoint)
+                val featureCollection = FeatureCollection.fromFeatures(
+                    listOf(Feature.fromGeometry(LineString.fromLngLats(linePoints))),
+                )
+
+                if (style.styleSourceExists(sourceId)) {
+                    style.getSourceAs<GeoJsonSource>(sourceId)?.featureCollection(featureCollection)
+                } else {
+                    style.addSource(
+                        geoJsonSource(sourceId) {
+                            featureCollection(featureCollection)
+                        },
+                    )
+                }
+
+                if (style.styleLayerExists(layerId)) {
+                    style.removeStyleLayer(layerId)
+                }
+                val layer = LineLayer(layerId, sourceId)
+                    .lineColor(line.color.toHexColorString())
+                    .lineWidth(line.width)
+                    .lineOpacity(line.opacity)
+                    .lineCap(LineCap.ROUND)
+                    .lineJoin(LineJoin.ROUND)
+                if (line.dashPattern.isNotEmpty()) {
+                    layer.lineDasharray(line.dashPattern)
+                }
+                style.addLayer(layer)
+                layerId to sourceId
+            }
+
+            try {
+                kotlinx.coroutines.awaitCancellation()
+            } finally {
+                styleIds.forEach { (layerId, sourceId) ->
+                    if (style.styleLayerExists(layerId)) {
+                        style.removeStyleLayer(layerId)
+                    }
+                    if (style.styleSourceExists(sourceId)) {
+                        style.removeStyleSource(sourceId)
+                    }
+                }
+            }
+        }
+        MapEffect(routeLines, adaptiveStyle) { mapView ->
             val sourceId = "ant-path-source"
             val bgLayerId = "ant-path-bg"
             val dashLayerId = "ant-path-dash"
-            val style = mapView.mapboxMap.getStyle() ?: return@MapEffect
+            val style = mapView.mapboxMap.awaitStyle()
+            val antRoute = routeLines.firstOrNull { it.animatedAntPath && it.points.size >= 2 }
+            if (antRoute == null) {
+                removeAntPathLayers(style, bgLayerId, dashLayerId, sourceId)
+                return@MapEffect
+            }
+
+            val linePoints = antRoute.points.map(MapPoint::toPoint)
+            val antColorHex = antRoute.color.toHexColorString()
 
             if (!style.styleSourceExists(sourceId)) {
                 style.addSource(
@@ -236,32 +305,55 @@ actual fun PlatformMapView(
                 }
             } catch (_: Throwable) {
                 // map recomposed/disposed; stop animation loop
+            } finally {
+                removeAntPathLayers(style, bgLayerId, dashLayerId, sourceId)
             }
         }
 
-        routeLines.forEach { routeLine ->
-            if (routeLine.animatedAntPath) return@forEach
-            val points = remember(routeLine.points) {
-                routeLine.points.map(MapPoint::toPoint)
-            }
-            if (points.size >= 2) {
-                PolylineAnnotation(points = points) {
-                    lineColor = routeLine.color
-                    lineWidth = routeLine.width
-                    lineOpacity = 1.0
+        MapEffect(markers, markerIconBitmaps) { mapView ->
+            mapView.mapboxMap.awaitStyle()
+            val iconMarkers = markers.filter { it.icon != null }
+            val manager = mapView.annotations.createPointAnnotationManager()
+            manager.deleteAll()
+            iconMarkers.forEach { marker ->
+                val icon = marker.icon ?: return@forEach
+                val bitmap = markerIconBitmaps[icon]
+                if (bitmap != null) {
+                    manager.create(
+                        PointAnnotationOptions()
+                            .withPoint(marker.point.toPoint())
+                            .withIconImage(bitmap)
+                            .withIconAnchor(IconAnchor.BOTTOM)
+                            .withIconSize(icon.androidIconSize()),
+                    )
                 }
+            }
+            try {
+                kotlinx.coroutines.awaitCancellation()
+            } finally {
+                manager.deleteAll()
+                mapView.annotations.removeAnnotationManager(manager)
             }
         }
 
         markers.forEach { marker ->
+            if (marker.icon != null) return@forEach
             CircleAnnotation(point = marker.point.toPoint()) {
                 circleColor = marker.color
                 circleRadius = marker.radius
-                circleStrokeColor = androidx.compose.ui.graphics.Color.White
+                circleStrokeColor = Color.White
                 circleStrokeWidth = 2.0
             }
         }
     }
+}
+
+private const val ComposeResourceAssetRoot = "composeResources/esktransport.shared.generated.resources"
+
+private fun android.content.Context.loadComposeBitmap(fileName: String): Bitmap? {
+    return runCatching {
+        assets.open("$ComposeResourceAssetRoot/drawable/$fileName").use(BitmapFactory::decodeStream)
+    }.getOrNull()
 }
 
 @Composable
@@ -280,6 +372,36 @@ private fun MissingMapToken(modifier: Modifier) {
 }
 
 private fun MapPoint.toPoint(): Point = Point.fromLngLat(longitude, latitude)
+
+private suspend fun com.mapbox.maps.MapboxMap.awaitStyle(): Style {
+    while (true) {
+        style?.let { return it }
+        delay(50L)
+    }
+}
+
+private fun MapMarkerIcon.androidIconSize(): Double = when (this) {
+    MapMarkerIcon.DriverLocation -> 0.22
+    MapMarkerIcon.PickupPassenger -> 0.22
+    MapMarkerIcon.DestinationFlag -> 0.22
+}
+
+private fun removeAntPathLayers(
+    style: com.mapbox.maps.Style,
+    bgLayerId: String,
+    dashLayerId: String,
+    sourceId: String,
+) {
+    if (style.styleLayerExists(dashLayerId)) {
+        style.removeStyleLayer(dashLayerId)
+    }
+    if (style.styleLayerExists(bgLayerId)) {
+        style.removeStyleLayer(bgLayerId)
+    }
+    if (style.styleSourceExists(sourceId)) {
+        style.removeStyleSource(sourceId)
+    }
+}
 
 private fun createDriverLocationPuck(color: Int): LocationPuck2D {
     return LocationPuck2D(

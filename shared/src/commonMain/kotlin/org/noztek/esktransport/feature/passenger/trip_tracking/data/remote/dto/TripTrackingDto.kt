@@ -29,6 +29,7 @@ data class RiderTripInfoDto(
     @SerialName("public_id")
     val publicId: String,
     val name: String,
+    val rating: Double? = null,
     @SerialName("vehicle_type_code")
     val vehicleTypeCode: String,
     @SerialName("vehicle_label")
@@ -41,9 +42,9 @@ data class RiderTripInfoDto(
 data class LatestLocationDto(
     val lat: Double,
     val lng: Double,
-    val bearing: Double,
+    val bearing: Double? = null,
     @SerialName("speed_kph")
-    val speedKph: Double,
+    val speedKph: Double? = null,
     @SerialName("recorded_at")
     val recordedAt: String,
 )

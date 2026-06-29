@@ -39,12 +39,24 @@ actual fun PlatformMapView(
                 pitch = cameraDefaults.pitch,
                 bearing = cameraDefaults.bearing,
                 routePoints = antRoute?.points ?: emptyList(),
+                routeLines = routeLines.map { routeLine ->
+                    IosMapRouteLineRequest(
+                        id = routeLine.id,
+                        points = routeLine.points,
+                        colorHex = routeLine.color.toHexColorString(),
+                        width = routeLine.width,
+                        opacity = routeLine.opacity,
+                        dashPattern = routeLine.dashPattern,
+                        animated = routeLine.animatedAntPath,
+                    )
+                },
                 markers = markers.map { marker ->
                     IosMapMarkerRequest(
                         id = marker.id,
                         point = marker.point,
                         colorHex = marker.color.toHexColorString(),
                         radius = marker.radius,
+                        iconName = marker.icon?.iosIconName(),
                     )
                 },
                 antPathEnabled = antRoute != null,
@@ -81,6 +93,8 @@ actual fun PlatformMapView(
         )
     }
 }
+
+private fun MapMarkerIcon.iosIconName(): String = assetFileName.substringBeforeLast(".")
 
 private fun Color.toHexColorString(): String {
     val r = (red * 255f).toInt().coerceIn(0, 255)

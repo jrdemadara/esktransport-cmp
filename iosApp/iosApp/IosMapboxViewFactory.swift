@@ -17,7 +17,9 @@ final class IosMapboxViewFactory: NSObject, Shared.IosMapboxViewFactory {
         var userLocationCancelable: Cancelable?
         var hasCenteredOnUserLocation = false
         var markerManager: CircleAnnotationManager?
-        var destinationMarkerManager: PointAnnotationManager?
+        var iconMarkerManager: PointAnnotationManager?
+        var staticRouteLayerIds: [String] = []
+        var staticRouteSourceIds: [String] = []
 
         init(mapView: MapView) {
             self.mapView = mapView
@@ -78,6 +80,7 @@ final class IosMapboxViewFactory: NSObject, Shared.IosMapboxViewFactory {
         }
         container.styleLoadedCancelable = mapView.mapboxMap.onStyleLoaded.observeNext { [weak self, weak mapView, weak container] _ in
             guard let self, let mapView, let container else { return }
+            self.applyStaticRoutes(to: mapView, container: container, request: request)
             self.applyAntPath(to: mapView, container: container, request: request)
             self.applyMarkers(to: mapView, container: container, request: request)
         }
@@ -99,6 +102,7 @@ final class IosMapboxViewFactory: NSObject, Shared.IosMapboxViewFactory {
         container.panObserver?.onCameraIdle = request.onCameraIdle
         configureUserLocation(in: mapView, container: container, request: request)
         applyCamera(to: mapView, request: request, lastCenter: container.lastCameraCenter)
+        applyStaticRoutes(to: mapView, container: container, request: request)
         applyAntPath(to: mapView, container: container, request: request)
         applyMarkers(to: mapView, container: container, request: request)
         container.lastCameraCenter = CLLocationCoordinate2D(latitude: request.latitude, longitude: request.longitude)
@@ -146,9 +150,9 @@ final class IosMapboxViewFactory: NSObject, Shared.IosMapboxViewFactory {
                 mapView.annotations.removeAnnotationManager(withId: "ios-map-markers")
                 container.markerManager = nil
             }
-            if container.destinationMarkerManager != nil {
-                mapView.annotations.removeAnnotationManager(withId: "ios-destination-marker")
-                container.destinationMarkerManager = nil
+            if container.iconMarkerManager != nil {
+                mapView.annotations.removeAnnotationManager(withId: "ios-icon-markers")
+                container.iconMarkerManager = nil
             }
             return
         }
@@ -157,17 +161,17 @@ final class IosMapboxViewFactory: NSObject, Shared.IosMapboxViewFactory {
         if container.markerManager != nil {
             mapView.annotations.removeAnnotationManager(withId: "ios-map-markers")
         }
-        if container.destinationMarkerManager != nil {
-            mapView.annotations.removeAnnotationManager(withId: "ios-destination-marker")
+        if container.iconMarkerManager != nil {
+            mapView.annotations.removeAnnotationManager(withId: "ios-icon-markers")
         }
 
-        let pickupManager = mapView.annotations.makeCircleAnnotationManager(id: "ios-map-markers")
-        let destinationManager = mapView.annotations.makePointAnnotationManager(id: "ios-destination-marker")
-        container.markerManager = pickupManager
-        container.destinationMarkerManager = destinationManager
+        let circleManager = mapView.annotations.makeCircleAnnotationManager(id: "ios-map-markers")
+        let iconManager = mapView.annotations.makePointAnnotationManager(id: "ios-icon-markers")
+        container.markerManager = circleManager
+        container.iconMarkerManager = iconManager
 
-        pickupManager.annotations = request.markers.flatMap { marker -> [CircleAnnotation] in
-            guard marker.id == "pickup" else { return [] }
+        circleManager.annotations = request.markers.flatMap { marker -> [CircleAnnotation] in
+            guard marker.iconName == nil else { return [] }
             let coordinate = CLLocationCoordinate2D(
                 latitude: marker.point.latitude,
                 longitude: marker.point.longitude
@@ -190,30 +194,92 @@ final class IosMapboxViewFactory: NSObject, Shared.IosMapboxViewFactory {
             return [outerGlow, innerGlow, core]
         }
 
-        destinationManager.annotations = request.markers.compactMap { marker in
-            guard marker.id == "destination" else { return nil }
+        iconManager.annotations = request.markers.compactMap { marker in
+            guard let iconName = marker.iconName else { return nil }
             let coordinate = CLLocationCoordinate2D(
                 latitude: marker.point.latitude,
                 longitude: marker.point.longitude
             )
-            guard let image = UIImage.composeResourceImage(named: "map_pin_red", type: "png") else { return nil }
+            guard let image = UIImage.composeResourceImage(named: iconName, type: "png") else { return nil }
 
             var annotation = PointAnnotation(coordinate: coordinate)
-            annotation.image = .init(image: image, name: "map-pin-red")
+            annotation.image = .init(image: image, name: iconName)
             annotation.iconAnchor = .bottom
-            annotation.iconSize = 0.14
+            annotation.iconSize = iconSize(for: iconName)
             return annotation
         }
+    }
+
+    private func iconSize(for iconName: String) -> Double {
+        switch iconName {
+        case "flag":
+            return 0.12
+        case "driver_marker", "passenger_marker":
+            return 0.13
+        default:
+            return 0.13
+        }
+    }
+
+    private func applyStaticRoutes(to mapView: MapView, container: MapContainerView, request: IosMapboxViewRequest) {
+        removeStaticRoutes(from: mapView, container: container)
+
+        request.routeLines
+            .filter { !$0.animated && $0.points.count >= 2 }
+            .forEach { route in
+                let sourceId = "ios-route-\(route.id)-source"
+                let layerId = "ios-route-\(route.id)-layer"
+                let coordinates = route.points.map { CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude) }
+                let line = LineString(coordinates)
+                let feature = Feature(geometry: .lineString(line))
+                let featureCollection = FeatureCollection(features: [feature])
+
+                var source = GeoJSONSource(id: sourceId)
+                source.data = .featureCollection(featureCollection)
+                try? mapView.mapboxMap.addSource(source)
+
+                var layer = LineLayer(id: layerId, source: sourceId)
+                layer.lineColor = .constant(StyleColor(UIColor(hex: route.colorHex) ?? driverPrimaryColor))
+                layer.lineWidth = .constant(route.width)
+                layer.lineOpacity = .constant(route.opacity)
+                layer.lineCap = .constant(.round)
+                layer.lineJoin = .constant(.round)
+                if !route.dashPattern.isEmpty {
+                    layer.lineDasharray = .constant(route.dashPattern.map { Double(truncating: $0) })
+                }
+                try? mapView.mapboxMap.addLayer(layer)
+
+                container.staticRouteSourceIds.append(sourceId)
+                container.staticRouteLayerIds.append(layerId)
+            }
+    }
+
+    private func removeStaticRoutes(from mapView: MapView, container: MapContainerView) {
+        container.staticRouteLayerIds.forEach { layerId in
+            if mapView.mapboxMap.layerExists(withId: layerId) {
+                try? mapView.mapboxMap.removeLayer(withId: layerId)
+            }
+        }
+        container.staticRouteSourceIds.forEach { sourceId in
+            if mapView.mapboxMap.sourceExists(withId: sourceId) {
+                try? mapView.mapboxMap.removeSource(withId: sourceId)
+            }
+        }
+        container.staticRouteLayerIds.removeAll()
+        container.staticRouteSourceIds.removeAll()
     }
 
     private func applyAntPath(to mapView: MapView, container: MapContainerView, request: IosMapboxViewRequest) {
         container.antTimer?.invalidate()
         container.antTimer = nil
-        guard request.antPathEnabled, request.routePoints.count >= 2 else { return }
-
         let sourceId = "ios-ant-source"
         let bgLayerId = "ios-ant-bg"
         let dashLayerId = "ios-ant-dash"
+        guard request.antPathEnabled, request.routePoints.count >= 2 else {
+            removeAntPath(from: mapView, sourceId: sourceId, bgLayerId: bgLayerId, dashLayerId: dashLayerId)
+            return
+        }
+
         let coordinates = request.routePoints.map { CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude) }
         let line = LineString(coordinates)
         let feature = Feature(geometry: .lineString(line))
@@ -271,6 +337,18 @@ final class IosMapboxViewFactory: NSObject, Shared.IosMapboxViewFactory {
                 // ignore transient style/layer update errors during lifecycle changes
             }
             step = (step + 1) % sequence.count
+        }
+    }
+
+    private func removeAntPath(from mapView: MapView, sourceId: String, bgLayerId: String, dashLayerId: String) {
+        if mapView.mapboxMap.layerExists(withId: dashLayerId) {
+            try? mapView.mapboxMap.removeLayer(withId: dashLayerId)
+        }
+        if mapView.mapboxMap.layerExists(withId: bgLayerId) {
+            try? mapView.mapboxMap.removeLayer(withId: bgLayerId)
+        }
+        if mapView.mapboxMap.sourceExists(withId: sourceId) {
+            try? mapView.mapboxMap.removeSource(withId: sourceId)
         }
     }
 

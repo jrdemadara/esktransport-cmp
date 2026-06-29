@@ -18,17 +18,18 @@ class TripTrackingRepositoryImpl(
             status = dto.status,
             pickupPoint = TripPoint(
                 label = dto.pickup.label ?: "",
-                latitude = dto.pickup.lat ?: 0.0,
-                longitude = dto.pickup.lng ?: 0.0
+                latitude = dto.pickup.lat,
+                longitude = dto.pickup.lng
             ),
             destinationPoint = TripPoint(
                 label = dto.destination.label ?: "",
-                latitude = dto.destination.lat ?: 0.0,
-                longitude = dto.destination.lng ?: 0.0
+                latitude = dto.destination.lat,
+                longitude = dto.destination.lng
             ),
             riderInfo = RiderTripInfo(
                 publicId = dto.rider.publicId,
                 name = dto.rider.name,
+                rating = dto.rider.rating,
                 vehicleType = dto.rider.vehicleTypeCode,
                 vehicleLabel = dto.rider.vehicleLabel,
                 vehiclePlate = dto.rider.vehiclePlate

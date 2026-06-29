@@ -39,7 +39,16 @@ data class MapMarker(
     val point: MapPoint,
     val color: Color = Color(0xFF2563EB),
     val radius: Double = 7.0,
+    val icon: MapMarkerIcon? = null,
 )
+
+enum class MapMarkerIcon(
+    val assetFileName: String,
+) {
+    DriverLocation("driver_marker.png"),
+    PickupPassenger("passenger_marker.png"),
+    DestinationFlag("flag.png"),
+}
 
 data class MapRouteLine(
     val id: String,
@@ -47,4 +56,6 @@ data class MapRouteLine(
     val color: Color = Color(0xFF2563EB),
     val width: Double = 5.0,
     val animatedAntPath: Boolean = false,
+    val opacity: Double = 1.0,
+    val dashPattern: List<Double> = emptyList(),
 )

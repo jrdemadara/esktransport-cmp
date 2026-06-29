@@ -6,6 +6,7 @@ import org.noztek.esktransport.core.realtime.model.PassengerBookingCancelledEven
 import org.noztek.esktransport.core.realtime.model.PassengerBookingOfferExpiredEvent
 import org.noztek.esktransport.core.realtime.model.PassengerBookingSearchExpiredEvent
 import org.noztek.esktransport.core.realtime.model.PassengerDriverAssignedEvent
+import org.noztek.esktransport.core.realtime.model.PassengerTripLocationUpdatedEvent
 
 interface PassengerRealtimeCoordinator {
     fun subscribePassengerDriverAssigned()
@@ -15,4 +16,5 @@ interface PassengerRealtimeCoordinator {
     fun passengerBookingCancelled(): SharedFlow<PassengerBookingCancelledEvent>
     fun passengerBookingOfferExpired(): SharedFlow<PassengerBookingOfferExpiredEvent>
     fun passengerBookingSearchExpired(): SharedFlow<PassengerBookingSearchExpiredEvent>
+    fun passengerTripLocationUpdated(): SharedFlow<PassengerTripLocationUpdatedEvent>
 }

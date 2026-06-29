@@ -41,7 +41,7 @@ val driverHomeModule = module {
     single { SubmitDriverIdentityVerificationUseCase(repository = get()) }
     single { SubmitDriverVehicleRegistrationUseCase(repository = get()) }
     single { SubmitDriverServiceZonesUseCase(repository = get()) }
-    single { AcceptOfferUseCase(api = get()) }
+    single { AcceptOfferUseCase(api = get(), currentLocationProvider = get()) }
     single { ExpireOfferUseCase(api = get()) }
     single {
         DriverAvailabilityLifecycleCoordinator(
