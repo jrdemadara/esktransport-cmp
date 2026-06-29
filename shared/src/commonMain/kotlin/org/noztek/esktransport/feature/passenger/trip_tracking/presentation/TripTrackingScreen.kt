@@ -55,7 +55,13 @@ import org.noztek.esktransport.core.map.PlatformMapView
 import org.noztek.esktransport.core.ui.composables.common.HoldToCancelButton
 import org.noztek.esktransport.feature.passenger.trip_tracking.domain.model.LatestLocation
 import org.noztek.esktransport.feature.passenger.trip_tracking.domain.model.TripPoint
+import org.noztek.esktransport.feature.passenger.trip_tracking.domain.model.TripTrackingSession
+import kotlin.math.PI
+import kotlin.math.atan2
+import kotlin.math.cos
 import kotlin.math.roundToInt
+import kotlin.math.sin
+import kotlin.math.sqrt
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -111,9 +117,8 @@ fun TripTrackingScreen(
         },
     ) { contentPadding ->
         Box(modifier = Modifier.fillMaxSize().padding(contentPadding)) {
-            val center = session?.latestLocation?.toMapPoint()
-                ?: session?.pickupPoint?.toMapPoint()
-                ?: session?.destinationPoint?.toMapPoint()
+            val center = session?.tripMarkerCenter()
+            val zoom = session?.tripMarkerZoom() ?: 13.5
             val markers = session?.let { buildTripMarkers(it, uiState.stage) }.orEmpty()
             val routeLines = buildTripRouteLines(uiState)
             if (center != null) {
@@ -121,7 +126,7 @@ fun TripTrackingScreen(
                     modifier = Modifier.fillMaxSize(),
                     config = mapboxConfig,
                     cameraCenter = center,
-                    cameraDefaults = MapCameraDefaults(zoom = 14.0, pitch = 30.0),
+                    cameraDefaults = MapCameraDefaults(zoom = zoom, pitch = 0.0),
                     markers = markers,
                     routeLines = routeLines,
                 )
@@ -395,8 +400,70 @@ private fun TripPointText(label: String, value: String) {
     }
 }
 
+private fun TripTrackingSession.tripMarkerCenter(): MapPoint? {
+    val points = tripMarkerPoints()
+    if (points.isEmpty()) return null
+
+    val minLatitude = points.minOf { it.latitude }
+    val maxLatitude = points.maxOf { it.latitude }
+    val minLongitude = points.minOf { it.longitude }
+    val maxLongitude = points.maxOf { it.longitude }
+
+    return MapPoint(
+        latitude = (minLatitude + maxLatitude) / 2.0,
+        longitude = (minLongitude + maxLongitude) / 2.0,
+    )
+}
+
+private fun TripTrackingSession.tripMarkerZoom(): Double {
+    val points = tripMarkerPoints()
+    if (points.size <= 1) return 15.0
+
+    val maxDistanceKm = points.maxPairDistanceKm()
+    return when {
+        maxDistanceKm <= 0.4 -> 15.0
+        maxDistanceKm <= 1.0 -> 14.2
+        maxDistanceKm <= 2.0 -> 13.6
+        maxDistanceKm <= 5.0 -> 12.8
+        maxDistanceKm <= 10.0 -> 12.1
+        maxDistanceKm <= 20.0 -> 11.4
+        maxDistanceKm <= 50.0 -> 10.5
+        else -> 9.4
+    }
+}
+
+private fun TripTrackingSession.tripMarkerPoints(): List<MapPoint> = listOfNotNull(
+    latestLocation?.toMapPoint(),
+    pickupPoint.toMapPoint(),
+    destinationPoint.toMapPoint(),
+)
+
+private fun List<MapPoint>.maxPairDistanceKm(): Double {
+    var maxDistance = 0.0
+    for (startIndex in indices) {
+        for (endIndex in startIndex + 1 until size) {
+            maxDistance = maxOf(maxDistance, this[startIndex].distanceToKm(this[endIndex]))
+        }
+    }
+    return maxDistance
+}
+
+private fun MapPoint.distanceToKm(other: MapPoint): Double {
+    val earthRadiusKm = 6371.0
+    val latitudeDelta = (other.latitude - latitude).toRadians()
+    val longitudeDelta = (other.longitude - longitude).toRadians()
+    val startLatitude = latitude.toRadians()
+    val endLatitude = other.latitude.toRadians()
+    val haversine = sin(latitudeDelta / 2.0) * sin(latitudeDelta / 2.0) +
+        cos(startLatitude) * cos(endLatitude) * sin(longitudeDelta / 2.0) * sin(longitudeDelta / 2.0)
+    val centralAngle = 2.0 * atan2(sqrt(haversine), sqrt(1.0 - haversine))
+    return earthRadiusKm * centralAngle
+}
+
+private fun Double.toRadians(): Double = this * PI / 180.0
+
 private fun buildTripMarkers(
-    session: org.noztek.esktransport.feature.passenger.trip_tracking.domain.model.TripTrackingSession,
+    session: TripTrackingSession,
     stage: TripTrackingStage,
 ): List<MapMarker> = buildList {
     session.latestLocation?.let { latestLocation ->
