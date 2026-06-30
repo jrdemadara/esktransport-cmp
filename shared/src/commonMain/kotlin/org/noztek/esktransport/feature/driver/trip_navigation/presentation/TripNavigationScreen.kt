@@ -31,11 +31,16 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -115,8 +120,9 @@ fun TripNavigationScreen(
                 val session = uiState.tripSession ?: return@Surface
                 val pickup = MapPoint(session.pickupPoint.latitude, session.pickupPoint.longitude)
                 val destination = MapPoint(session.destinationPoint.latitude, session.destinationPoint.longitude)
-                val isNearPickup = (uiState.distanceMeters ?: Double.MAX_VALUE) <= 30.0
-                val showConfirmPickup = session.phase == RiderTripPhase.TO_PICKUP && isNearPickup
+                val showConfirmPickup = session.phase == RiderTripPhase.TO_PICKUP &&
+                    (uiState.isAtPickupPoint || session.status == "arriving_pickup")
+                var showPickupConfirmDialog by rememberSaveable(bookingPublicId) { mutableStateOf(false) }
                 BottomSheetScaffold(
                     sheetPeekHeight = 70.dp,
                     sheetShape = RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp),
@@ -191,7 +197,7 @@ fun TripNavigationScreen(
 
                         if (showConfirmPickup) {
                             FloatingActionButton(
-                                onClick = { viewModel.confirmPickup(bookingPublicId) },
+                                onClick = { showPickupConfirmDialog = true },
                                 containerColor = Color.Black,
                                 contentColor = Color.White,
                                 modifier = Modifier
@@ -209,11 +215,40 @@ fun TripNavigationScreen(
                                         contentDescription = null,
                                     )
                                     Text(
-                                        if (uiState.isSubmittingPickup) "..." else "Confirm Pickup",
+                                        if (uiState.isSubmittingPickup) "..." else "Passenger picked up",
                                         style = MaterialTheme.typography.labelMedium,
                                     )
                                 }
                             }
+                        }
+
+                        if (showPickupConfirmDialog) {
+                            AlertDialog(
+                                onDismissRequest = {
+                                    if (!uiState.isSubmittingPickup) showPickupConfirmDialog = false
+                                },
+                                title = { Text("Confirm pickup") },
+                                text = { Text("Is the passenger already onboard? This will start navigation to the destination.") },
+                                confirmButton = {
+                                    TextButton(
+                                        enabled = !uiState.isSubmittingPickup,
+                                        onClick = {
+                                            showPickupConfirmDialog = false
+                                            viewModel.confirmPickup(bookingPublicId)
+                                        },
+                                    ) {
+                                        Text("Start dropoff")
+                                    }
+                                },
+                                dismissButton = {
+                                    TextButton(
+                                        enabled = !uiState.isSubmittingPickup,
+                                        onClick = { showPickupConfirmDialog = false },
+                                    ) {
+                                        Text("Not yet")
+                                    }
+                                },
+                            )
                         }
                     }
                 }

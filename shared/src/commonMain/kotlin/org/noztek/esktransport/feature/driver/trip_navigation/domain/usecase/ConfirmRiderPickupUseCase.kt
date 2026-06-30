@@ -6,6 +6,6 @@ class ConfirmRiderPickupUseCase(
     private val repository: RiderTripNavigationRepository,
 ) {
     suspend operator fun invoke(bookingPublicId: String): Result<Unit> {
-        return repository.arrivePickup(bookingPublicId)
+        return repository.confirmPickup(bookingPublicId)
     }
 }

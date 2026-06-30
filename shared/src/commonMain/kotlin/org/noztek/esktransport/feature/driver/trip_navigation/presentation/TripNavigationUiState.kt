@@ -7,6 +7,7 @@ data class TripNavigationUiState(
     val isLoading: Boolean = true,
     val isSubmittingPickup: Boolean = false,
     val isCancelling: Boolean = false,
+    val isAtPickupPoint: Boolean = false,
     val tripSession: RiderTripSession? = null,
     val routePoints: List<MapPoint> = emptyList(),
     val distanceMeters: Double? = null,

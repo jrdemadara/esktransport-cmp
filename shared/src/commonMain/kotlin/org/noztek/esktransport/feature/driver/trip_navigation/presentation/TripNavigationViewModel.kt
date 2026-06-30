@@ -123,6 +123,7 @@ class TripNavigationViewModel(
                                 _uiState.value = TripNavigationUiState(
                                     isLoading = false,
                                     tripSession = session,
+                                    isAtPickupPoint = session.status == "arriving_pickup",
                                     routePoints = routePoints,
                                     distanceMeters = summary?.distanceMeters,
                                     durationSeconds = summary?.durationSeconds,
@@ -133,6 +134,7 @@ class TripNavigationViewModel(
                                 _uiState.value = TripNavigationUiState(
                                     isLoading = false,
                                     tripSession = session,
+                                    isAtPickupPoint = session.status == "arriving_pickup",
                                     message = "Route loaded with fallback map data only.",
                                 )
                                 publishCurrentLocationSnapshot(bookingPublicId)
@@ -141,6 +143,7 @@ class TripNavigationViewModel(
                             _uiState.value = TripNavigationUiState(
                                 isLoading = false,
                                 tripSession = session,
+                                isAtPickupPoint = session.status == "arriving_pickup",
                                 message = throwable.message ?: "Failed to load route.",
                             )
                             publishCurrentLocationSnapshot(bookingPublicId)
@@ -213,7 +216,10 @@ class TripNavigationViewModel(
                 val current = _uiState.value.tripSession
                 if (current != null) {
                     _uiState.value = _uiState.value.copy(
-                        tripSession = current.copy(phase = RiderTripPhase.TO_DESTINATION),
+                        tripSession = current.copy(
+                            status = "in_progress",
+                            phase = RiderTripPhase.TO_DESTINATION,
+                        ),
                     )
                 }
                 load(bookingPublicId)
@@ -250,7 +256,9 @@ class TripNavigationViewModel(
         bookingPublicId: String,
         location: DriverNavigationLocation,
     ) {
-        if (bookingPublicId.isBlank() || isPublishingLocation) return
+        if (bookingPublicId.isBlank()) return
+        updatePickupProximity(location)
+        if (isPublishingLocation) return
         val previousLocation = lastPublishedLocation
         if (previousLocation != null && previousLocation.distanceToMeters(location) < LOCATION_PUBLISH_DISTANCE_METERS) return
 
@@ -285,6 +293,28 @@ class TripNavigationViewModel(
             } finally {
                 isPublishingLocation = false
             }
+        }
+    }
+
+    private fun updatePickupProximity(location: DriverNavigationLocation) {
+        val session = _uiState.value.tripSession ?: return
+        if (session.phase != RiderTripPhase.TO_PICKUP) {
+            if (_uiState.value.isAtPickupPoint) {
+                _uiState.value = _uiState.value.copy(isAtPickupPoint = false)
+            }
+            return
+        }
+
+        val pickupLocation = DriverNavigationLocation(
+            latitude = session.pickupPoint.latitude,
+            longitude = session.pickupPoint.longitude,
+            bearing = null,
+            speedKph = null,
+            accuracyM = null,
+        )
+        val isAtPickup = location.distanceToMeters(pickupLocation) <= PICKUP_CONFIRM_DISTANCE_METERS
+        if (_uiState.value.isAtPickupPoint != isAtPickup) {
+            _uiState.value = _uiState.value.copy(isAtPickupPoint = isAtPickup)
         }
     }
 
@@ -355,6 +385,7 @@ private data class StageRoute(
 )
 
 private const val LOCATION_PUBLISH_DISTANCE_METERS = 10.0
+private const val PICKUP_CONFIRM_DISTANCE_METERS = 40.0
 private const val ENABLE_MOCK_DRIVER_LOCATION_UPDATES = false
 private const val MOCK_DRIVER_LOCATION_INTERVAL_MS = 5_000L
 

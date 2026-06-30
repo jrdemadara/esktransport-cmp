@@ -25,13 +25,14 @@ class RiderTripNavigationRepositoryImpl(
             }
 
             val phase = when (data.status) {
-                "arriving_pickup", "in_progress" -> RiderTripPhase.TO_DESTINATION
+                "in_progress" -> RiderTripPhase.TO_DESTINATION
                 else -> RiderTripPhase.TO_PICKUP
             }
 
             Result.success(
                 RiderTripSession(
                     bookingPublicId = data.bookingPublicId,
+                    status = data.status,
                     phase = phase,
                     finalFare = data.finalFare,
                     currency = data.currency,
@@ -53,9 +54,9 @@ class RiderTripNavigationRepositoryImpl(
         }
     }
 
-    override suspend fun arrivePickup(bookingPublicId: String): Result<Unit> {
+    override suspend fun confirmPickup(bookingPublicId: String): Result<Unit> {
         return try {
-            api.arrivePickup(bookingPublicId)
+            api.confirmPickup(bookingPublicId)
             Result.success(Unit)
         } catch (throwable: Throwable) {
             val message = ApiErrorParser.parse(throwable, "Failed to confirm pickup.")

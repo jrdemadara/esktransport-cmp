@@ -286,7 +286,7 @@ private fun stageFor(status: String, phase: String?): TripTrackingStage {
     return when {
         phase == "to_destination" -> TripTrackingStage.ToDropoff
         status == "in_progress" -> TripTrackingStage.ToDropoff
-        status == "arrived" || status == "arrived_pickup" || status == "waiting_pickup" -> TripTrackingStage.ArrivedPickup
+        status == "arriving_pickup" || status == "arrived" || status == "arrived_pickup" || status == "waiting_pickup" -> TripTrackingStage.ArrivedPickup
         status == "completed" -> TripTrackingStage.Completed
         else -> TripTrackingStage.ToPickup
     }

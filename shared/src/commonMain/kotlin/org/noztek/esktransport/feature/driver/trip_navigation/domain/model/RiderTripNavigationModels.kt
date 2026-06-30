@@ -12,6 +12,7 @@ data class RiderTripPoint(
 
 data class RiderTripSession(
     val bookingPublicId: String,
+    val status: String,
     val phase: RiderTripPhase,
     val finalFare: Double?,
     val currency: String?,
