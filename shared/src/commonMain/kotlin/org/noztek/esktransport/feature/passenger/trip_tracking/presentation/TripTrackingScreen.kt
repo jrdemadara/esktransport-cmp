@@ -22,19 +22,15 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.BottomSheetScaffold
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
-import androidx.compose.material3.FilledTonalIconButton
-import androidx.compose.material3.FloatingToolbarDefaults
-import androidx.compose.material3.FloatingToolbarHorizontalFabPosition
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.HorizontalFloatingToolbar
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberBottomSheetScaffoldState
 import androidx.compose.material3.rememberStandardBottomSheetState
 import androidx.compose.runtime.Composable
@@ -53,12 +49,8 @@ import androidx.compose.ui.unit.dp
 import com.composables.icons.heroicons.Heroicons
 import com.composables.icons.heroicons.outline.ChatBubbleOvalLeft
 import com.composables.icons.heroicons.outline.EllipsisVertical
-import com.composables.icons.heroicons.outline.HandRaised
 import com.composables.icons.heroicons.outline.Phone
-import com.composables.icons.heroicons.outline.PhoneXMark
 import com.composables.icons.heroicons.outline.User
-import com.composables.icons.heroicons.outline.XCircle
-import com.composables.icons.heroicons.outline.XMark
 import com.composables.icons.heroicons.solid.Star
 import kotlinx.coroutines.flow.collectLatest
 import org.koin.compose.koinInject
@@ -171,9 +163,8 @@ fun TripTrackingScreen(
                 }
             }
 
-            TripTrackingFloatingToolbar(
-                isCancelling = uiState.isCancelling,
-                onCancel = { viewModel.cancelTrip(bookingId) },
+            TripTrackingTopAppBar(
+                statusLabel = sessionStatusLabel(uiState.stage),
                 modifier = Modifier.align(Alignment.TopCenter),
             )
 
@@ -311,50 +302,37 @@ private fun TripTrackingSheet(
     }
 }
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun TripTrackingFloatingToolbar(
-    isCancelling: Boolean,
-    onCancel: () -> Unit,
+private fun TripTrackingTopAppBar(
+    statusLabel: String,
     modifier: Modifier = Modifier,
 ) {
-    Box(
+    TopAppBar(
         modifier = modifier
-            .fillMaxWidth()
-            .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Top))
-            .padding(horizontal = 18.dp, vertical = 12.dp),
-        contentAlignment = Alignment.CenterEnd,
-    ) {
-        val toolbarColors = FloatingToolbarDefaults.standardFloatingToolbarColors(
-            toolbarContainerColor = MaterialTheme.colorScheme.surface,
-            toolbarContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-            fabContainerColor = MaterialTheme.colorScheme.errorContainer,
-            fabContentColor = MaterialTheme.colorScheme.error,
-        )
-
-        HorizontalFloatingToolbar(
-            expanded = true,
-            colors = toolbarColors,
-            shape = RoundedCornerShape(35.dp),
-            floatingActionButtonPosition = FloatingToolbarHorizontalFabPosition.End,
-            floatingActionButton = {
-                FloatingToolbarDefaults.StandardFloatingActionButton(
-                    onClick = {
-                        if (!isCancelling) {
-                            onCancel()
-                        }
-                    },
-                    shape = RoundedCornerShape(16.dp),
-                    containerColor = MaterialTheme.colorScheme.errorContainer,
-                    contentColor = MaterialTheme.colorScheme.error,
-                ) {
-                    Icon(
-                        Heroicons.Outline.XCircle,
-                        contentDescription = "Cancel trip",
-                    )
-                }
-            },
-        ) {
+            .fillMaxWidth(),
+        windowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top),
+        colors = TopAppBarDefaults.topAppBarColors(
+            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
+            titleContentColor = MaterialTheme.colorScheme.onSurface,
+            actionIconContentColor = MaterialTheme.colorScheme.onSurface,
+        ),
+        title = {
+            Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
+                Text(
+                    text = "Session Status",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Text(
+                    text = statusLabel,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+            }
+        },
+        actions = {
             IconButton(
                 onClick = {},
             ) {
@@ -375,20 +353,12 @@ private fun TripTrackingFloatingToolbar(
                 onClick = {},
             ) {
                 Icon(
-                    Heroicons.Outline.HandRaised,
-                    contentDescription = "Help",
-                )
-            }
-            IconButton(
-                onClick = {},
-            ) {
-                Icon(
                     Heroicons.Outline.EllipsisVertical,
                     contentDescription = "More options",
                 )
             }
-        }
-    }
+        },
+    )
 }
 
 @Composable
@@ -628,6 +598,13 @@ private fun TripTrackingSession.fareLabel(): String? {
         else -> "${currencyCode.uppercase()} "
     }
     return "$prefix$whole.$fraction"
+}
+
+private fun sessionStatusLabel(stage: TripTrackingStage): String = when (stage) {
+    TripTrackingStage.ToPickup -> "Driver is on the way"
+    TripTrackingStage.ArrivedPickup -> "Driver has arrived"
+    TripTrackingStage.ToDropoff -> "On the way to destination"
+    TripTrackingStage.Completed -> "Trip completed"
 }
 
 private fun formatRating(rating: Double): String {
