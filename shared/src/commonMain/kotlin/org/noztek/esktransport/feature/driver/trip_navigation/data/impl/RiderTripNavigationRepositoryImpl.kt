@@ -33,6 +33,8 @@ class RiderTripNavigationRepositoryImpl(
                 RiderTripSession(
                     bookingPublicId = data.bookingPublicId,
                     phase = phase,
+                    finalFare = data.finalFare,
+                    currency = data.currency,
                     passengerName = data.passengerName,
                     pickupLabel = data.pickup.label ?: "Pickup",
                     destinationLabel = data.destination.label ?: "Destination",

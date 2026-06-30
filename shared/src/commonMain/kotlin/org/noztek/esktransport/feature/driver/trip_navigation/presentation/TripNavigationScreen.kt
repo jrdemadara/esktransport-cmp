@@ -55,6 +55,8 @@ import org.noztek.esktransport.core.ui.composables.common.HoldToCancelButton
 import org.noztek.esktransport.core.map.MapPoint
 import org.noztek.esktransport.core.map.MapboxConfig
 import org.noztek.esktransport.feature.rider.trip_navigation.domain.model.RiderTripPhase
+import org.noztek.esktransport.feature.rider.trip_navigation.domain.model.RiderTripSession
+import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -119,10 +121,10 @@ fun TripNavigationScreen(
                     sheetPeekHeight = 70.dp,
                     sheetShape = RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp),
                     sheetContainerColor = MaterialTheme.colorScheme.background,
-                    sheetDragHandle = null,
                     sheetContent = {
                         TripNavigationBottomSheet(
                             passengerName = session.passengerName,
+                            fareLabel = session.fareLabel(),
                             phase = session.phase,
                             pickupLabel = session.pickupLabel,
                             destinationLabel = session.destinationLabel,
@@ -223,6 +225,7 @@ fun TripNavigationScreen(
 @Composable
 private fun TripNavigationBottomSheet(
     passengerName: String,
+    fareLabel: String?,
     phase: RiderTripPhase,
     pickupLabel: String,
     destinationLabel: String,
@@ -243,25 +246,11 @@ private fun TripNavigationBottomSheet(
     ) {
         StageRow(
             currentStageTitle = currentStageTitle,
-            currentStageMetric = currentStageMetric,
+            fareLabel = fareLabel,
         )
 
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f))
-        
-        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text(
-                "Trip stages",
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-            Text(
-                "Follow the route in order.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-        Spacer(modifier = Modifier.height(2.dp))
+
         TripStageTimeline(
             pickupTitle = "Pickup $passengerName",
             pickupLabel = pickupLabel,
@@ -292,7 +281,7 @@ private fun TripNavigationBottomSheet(
 @Composable
 private fun StageRow(
     currentStageTitle: String,
-    currentStageMetric: String,
+    fareLabel: String?,
     modifier: Modifier = Modifier,
 ) {
     val primaryColor = MaterialTheme.colorScheme.primary
@@ -318,9 +307,7 @@ private fun StageRow(
 
     Row(
         modifier = modifier
-            .fillMaxWidth()
-            .heightIn(min = 56.dp)
-            .padding(vertical = 8.dp),
+            .fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
@@ -361,18 +348,14 @@ private fun StageRow(
             )
         }
 
-        Box(
-            modifier = Modifier
-                .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.04f))
-                .padding(horizontal = 10.dp, vertical = 5.dp),
+        Column(
+            horizontalAlignment = Alignment.End,
         ) {
             Text(
-                text = currentStageMetric,
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                letterSpacing = (-0.15).sp,
+                text = fareLabel ?: "Fare pending",
+                style = MaterialTheme.typography.titleLargeEmphasized,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
             )
         }
     }
@@ -501,4 +484,18 @@ private fun formatDuration(durationSeconds: Double?): String {
         minutes < 60 -> "$minutes min"
         else -> "${minutes / 60}h ${minutes % 60}m"
     }
+}
+
+private fun RiderTripSession.fareLabel(): String? {
+    val amount = finalFare ?: return null
+    val currencyCode = currency ?: "PHP"
+    val cents = (amount * 100).roundToInt().coerceAtLeast(0)
+    val whole = cents / 100
+    val fraction = (cents % 100).toString().padStart(2, '0')
+    val prefix = when (currencyCode.uppercase()) {
+        "PHP" -> "₱"
+        "USD" -> "\$"
+        else -> "${currencyCode.uppercase()} "
+    }
+    return "$prefix$whole.$fraction"
 }

@@ -13,6 +13,9 @@ data class RiderTripSessionDataDto(
     @SerialName("booking_public_id")
     val bookingPublicId: String,
     val status: String,
+    @SerialName("final_fare")
+    val finalFare: Double? = null,
+    val currency: String? = null,
     @SerialName("passenger_name")
     val passengerName: String,
     val pickup: RiderTripLocationDto,

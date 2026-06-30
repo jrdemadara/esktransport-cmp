@@ -13,6 +13,8 @@ data class RiderTripPoint(
 data class RiderTripSession(
     val bookingPublicId: String,
     val phase: RiderTripPhase,
+    val finalFare: Double?,
+    val currency: String?,
     val passengerName: String,
     val pickupLabel: String,
     val destinationLabel: String,

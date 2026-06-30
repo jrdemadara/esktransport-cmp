@@ -276,22 +276,12 @@ private fun TripTrackingSheet(
 
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f))
 
-        Row(
+        PassengerRouteTimeline(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            RouteTimeline(
-                modifier = Modifier.padding(top = 2.dp),
-                lineColor = MaterialTheme.colorScheme.outlineVariant,
-            )
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                TripPointText("Pickup", pickupLabel)
-                TripPointText("Drop-off", destinationLabel)
-            }
-        }
+            pickupLabel = pickupLabel,
+            destinationLabel = destinationLabel,
+            lineColor = MaterialTheme.colorScheme.outlineVariant,
+        )
 
         HoldToCancelButton(
             isCancelling = isCancelling,
@@ -313,7 +303,7 @@ private fun TripTrackingTopAppBar(
             .fillMaxWidth(),
         windowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top),
         colors = TopAppBarDefaults.topAppBarColors(
-            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
+            containerColor = MaterialTheme.colorScheme.surface,
             titleContentColor = MaterialTheme.colorScheme.onSurface,
             actionIconContentColor = MaterialTheme.colorScheme.onSurface,
         ),
@@ -326,7 +316,7 @@ private fun TripTrackingTopAppBar(
                 )
                 Text(
                     text = statusLabel,
-                    style = MaterialTheme.typography.titleSmall,
+                    style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
@@ -403,33 +393,69 @@ private fun RiderRatingLabel(rating: Double) {
 }
 
 @Composable
-private fun RouteTimeline(
+private fun PassengerRouteTimeline(
+    pickupLabel: String,
+    destinationLabel: String,
     modifier: Modifier = Modifier,
     lineColor: Color,
 ) {
-    Column(
-        modifier = modifier.width(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
+    Row(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Box(
-            modifier = Modifier
-                .size(9.dp)
-                .background(MaterialTheme.colorScheme.primary, CircleShape),
-        )
-        Box(
-            modifier = Modifier
-                .width(2.dp)
-                .height(58.dp)
-                .background(lineColor, RoundedCornerShape(999.dp)),
-        )
-        Box(
-            modifier = Modifier
-                .size(9.dp)
-                .background(MaterialTheme.colorScheme.error, CircleShape),
-        )
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.padding(top = 4.dp),
+        ) {
+            RouteTimelineDot(
+                outerColor = MaterialTheme.colorScheme.primary,
+                innerColor = MaterialTheme.colorScheme.onPrimary,
+            )
+            Box(
+                modifier = Modifier
+                    .size(width = 1.dp, height = 42.dp)
+                    .padding(vertical = 4.dp),
+            ) {
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = lineColor,
+                ) {}
+            }
+            RouteTimelineDot(
+                outerColor = MaterialTheme.colorScheme.errorContainer,
+                innerColor = MaterialTheme.colorScheme.error,
+            )
+        }
+
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            TripPointText("Pickup", pickupLabel)
+            TripPointText("Drop-off", destinationLabel)
+        }
     }
 }
 
+@Composable
+private fun RouteTimelineDot(
+    outerColor: Color,
+    innerColor: Color,
+) {
+    Surface(
+        shape = RoundedCornerShape(999.dp),
+        color = outerColor,
+        modifier = Modifier.size(18.dp),
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Surface(
+                shape = RoundedCornerShape(999.dp),
+                color = innerColor,
+                modifier = Modifier.size(6.dp),
+            ) {}
+        }
+    }
+}
 @Composable
 private fun TripPointText(label: String, value: String) {
     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
