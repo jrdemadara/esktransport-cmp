@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -12,13 +13,20 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.noztek.esktransport.core.location.CurrentLocationProvider
 import org.noztek.esktransport.core.map.MapboxDirectionsClient
 import org.noztek.esktransport.core.realtime.driver.DriverBookingOfferRealtime
 import org.noztek.esktransport.feature.rider.trip_navigation.domain.model.RiderTripPhase
+import org.noztek.esktransport.feature.rider.trip_navigation.domain.model.RiderTripSession
 import org.noztek.esktransport.feature.rider.trip_navigation.domain.usecase.CancelRiderTripUseCase
 import org.noztek.esktransport.feature.rider.trip_navigation.domain.usecase.ConfirmRiderPickupUseCase
 import org.noztek.esktransport.feature.rider.trip_navigation.domain.usecase.GetRiderTripSessionUseCase
 import org.noztek.esktransport.feature.rider.trip_navigation.domain.usecase.UpdateRiderTripLocationUseCase
+import kotlin.math.PI
+import kotlin.math.atan2
+import kotlin.math.cos
+import kotlin.math.sin
+import kotlin.math.sqrt
 
 sealed class TripNavigationUiEvent {
     data object NavigateToGoScreen : TripNavigationUiEvent()
@@ -30,6 +38,7 @@ class TripNavigationViewModel(
     private val cancelRiderTripUseCase: CancelRiderTripUseCase,
     private val updateRiderTripLocationUseCase: UpdateRiderTripLocationUseCase,
     private val realtimeCoordinator: DriverBookingOfferRealtime,
+    private val currentLocationProvider: CurrentLocationProvider,
     private val mapboxDirectionsClient: MapboxDirectionsClient,
     private val ioDispatcher: CoroutineDispatcher,
 ) : ViewModel() {
@@ -39,6 +48,9 @@ class TripNavigationViewModel(
     private val _uiEvents = MutableSharedFlow<TripNavigationUiEvent>(extraBufferCapacity = 1)
     val uiEvents: SharedFlow<TripNavigationUiEvent> = _uiEvents.asSharedFlow()
     private var realtimeJob: Job? = null
+    private var mockLocationJob: Job? = null
+    private var lastPublishedLocation: DriverNavigationLocation? = null
+    private var isPublishingLocation = false
 
     fun load(bookingPublicId: String) {
         if (bookingPublicId.isBlank()) {
@@ -56,6 +68,10 @@ class TripNavigationViewModel(
                     getRiderTripSessionUseCase(bookingPublicId)
                 }
                 result.onSuccess { session ->
+                    startMockLocationUpdates(
+                        bookingPublicId = bookingPublicId,
+                        session = session,
+                    )
                     viewModelScope.launch {
                         runCatching {
                             val stageRoute = when (session.phase) {
@@ -112,12 +128,14 @@ class TripNavigationViewModel(
                                     durationSeconds = summary?.durationSeconds,
                                     nextInstruction = "Continue on route",
                                 )
+                                publishCurrentLocationSnapshot(bookingPublicId)
                             }.onFailure {
                                 _uiState.value = TripNavigationUiState(
                                     isLoading = false,
                                     tripSession = session,
                                     message = "Route loaded with fallback map data only.",
                                 )
+                                publishCurrentLocationSnapshot(bookingPublicId)
                             }
                         }.onFailure { throwable ->
                             _uiState.value = TripNavigationUiState(
@@ -125,6 +143,7 @@ class TripNavigationViewModel(
                                 tripSession = session,
                                 message = throwable.message ?: "Failed to load route.",
                             )
+                            publishCurrentLocationSnapshot(bookingPublicId)
                         }
                     }
                 }.onFailure { error ->
@@ -142,6 +161,29 @@ class TripNavigationViewModel(
         }
     }
 
+    private fun publishCurrentLocationSnapshot(bookingPublicId: String) {
+        if (bookingPublicId.isBlank()) return
+        viewModelScope.launch {
+            val currentLocation = withContext(ioDispatcher) {
+                runCatching { currentLocationProvider.getLastKnownLocation() }.getOrNull()
+            }
+            if (currentLocation == null) {
+                println("Driver trip current location snapshot unavailable.")
+                return@launch
+            }
+            publishLocationIfNeeded(
+                bookingPublicId = bookingPublicId,
+                location = DriverNavigationLocation(
+                    latitude = currentLocation.latitude,
+                    longitude = currentLocation.longitude,
+                    bearing = null,
+                    speedKph = null,
+                    accuracyM = null,
+                ),
+            )
+        }
+    }
+
     fun startRealtime(bookingPublicId: String) {
         if (bookingPublicId.isBlank() || realtimeJob?.isActive == true) return
         realtimeJob = viewModelScope.launch {
@@ -156,6 +198,8 @@ class TripNavigationViewModel(
     fun stopRealtime() {
         realtimeJob?.cancel()
         realtimeJob = null
+        mockLocationJob?.cancel()
+        mockLocationJob = null
     }
 
     fun confirmPickup(bookingPublicId: String) {
@@ -202,30 +246,98 @@ class TripNavigationViewModel(
         }
     }
 
-    fun publishLocation(
+    fun publishLocationIfNeeded(
         bookingPublicId: String,
-        latitude: Double,
-        longitude: Double,
-        bearing: Double?,
-        speedKph: Double?,
-        accuracyM: Double?,
-        phase: String,
+        location: DriverNavigationLocation,
     ) {
-        if (bookingPublicId.isBlank()) return
+        if (bookingPublicId.isBlank() || isPublishingLocation) return
+        val previousLocation = lastPublishedLocation
+        if (previousLocation != null && previousLocation.distanceToMeters(location) < LOCATION_PUBLISH_DISTANCE_METERS) return
+
+        val phase = when (_uiState.value.tripSession?.phase) {
+            RiderTripPhase.TO_DESTINATION -> "to_destination"
+            RiderTripPhase.TO_PICKUP,
+            null -> "to_pickup"
+        }
+
         viewModelScope.launch {
-            runCatching {
-                withContext(ioDispatcher) {
+            isPublishingLocation = true
+            try {
+                val result = withContext(ioDispatcher) {
                     updateRiderTripLocationUseCase(
                         bookingPublicId = bookingPublicId,
-                        latitude = latitude,
-                        longitude = longitude,
-                        bearing = bearing,
-                        speedKph = speedKph,
-                        accuracyM = accuracyM,
+                        latitude = location.latitude,
+                        longitude = location.longitude,
+                        bearing = location.bearing,
+                        speedKph = location.speedKph,
+                        accuracyM = location.accuracyM,
                         phase = phase,
                     )
                 }
+                result.onSuccess {
+                    println(
+                        "Driver trip location published bookingId=$bookingPublicId lat=${location.latitude} lng=${location.longitude} phase=$phase",
+                    )
+                    lastPublishedLocation = location
+                }.onFailure { error ->
+                    println("Driver trip location publish failed: ${error.message}")
+                }
+            } finally {
+                isPublishingLocation = false
             }
+        }
+    }
+
+    private fun startMockLocationUpdates(
+        bookingPublicId: String,
+        session: RiderTripSession,
+    ) {
+        if (!ENABLE_MOCK_DRIVER_LOCATION_UPDATES || bookingPublicId.isBlank()) return
+        mockLocationJob?.cancel()
+        mockLocationJob = viewModelScope.launch {
+            var tick = 0
+            while (true) {
+                val activeSession = _uiState.value.tripSession ?: session
+                publishMockLocation(
+                    bookingPublicId = bookingPublicId,
+                    location = activeSession.mockDriverLocation(tick),
+                    phase = activeSession.phase,
+                    tick = tick,
+                )
+                tick += 1
+                delay(MOCK_DRIVER_LOCATION_INTERVAL_MS)
+            }
+        }
+    }
+
+    private suspend fun publishMockLocation(
+        bookingPublicId: String,
+        location: DriverNavigationLocation,
+        phase: RiderTripPhase,
+        tick: Int,
+    ) {
+        val phaseValue = when (phase) {
+            RiderTripPhase.TO_DESTINATION -> "to_destination"
+            RiderTripPhase.TO_PICKUP -> "to_pickup"
+        }
+        val result = withContext(ioDispatcher) {
+            updateRiderTripLocationUseCase(
+                bookingPublicId = bookingPublicId,
+                latitude = location.latitude,
+                longitude = location.longitude,
+                bearing = location.bearing,
+                speedKph = location.speedKph,
+                accuracyM = location.accuracyM,
+                phase = phaseValue,
+            )
+        }
+        result.onSuccess {
+            println(
+                "Mock driver trip location published tick=$tick bookingId=$bookingPublicId lat=${location.latitude} lng=${location.longitude} phase=$phaseValue",
+            )
+            lastPublishedLocation = location
+        }.onFailure { error ->
+            println("Mock driver trip location publish failed tick=$tick: ${error.message}")
         }
     }
 
@@ -241,3 +353,43 @@ private data class StageRoute(
     val destinationLng: Double,
     val destinationLat: Double,
 )
+
+private const val LOCATION_PUBLISH_DISTANCE_METERS = 10.0
+private const val ENABLE_MOCK_DRIVER_LOCATION_UPDATES = false
+private const val MOCK_DRIVER_LOCATION_INTERVAL_MS = 5_000L
+
+private fun RiderTripSession.mockDriverLocation(tick: Int): DriverNavigationLocation {
+    val source = when (phase) {
+        RiderTripPhase.TO_DESTINATION -> destinationPoint
+        RiderTripPhase.TO_PICKUP -> pickupPoint
+    }
+    val step = tick % 12
+    val latitudeOffset = -0.00055 + (step * 0.00010)
+    val longitudeOffset = when (step % 4) {
+        0 -> -0.00018
+        1 -> -0.00006
+        2 -> 0.00006
+        else -> 0.00018
+    }
+    return DriverNavigationLocation(
+        latitude = source.latitude + latitudeOffset,
+        longitude = source.longitude + longitudeOffset,
+        bearing = null,
+        speedKph = 18.0,
+        accuracyM = 6.0,
+    )
+}
+
+private fun DriverNavigationLocation.distanceToMeters(other: DriverNavigationLocation): Double {
+    val earthRadiusMeters = 6_371_000.0
+    val latitudeDelta = (other.latitude - latitude).toRadians()
+    val longitudeDelta = (other.longitude - longitude).toRadians()
+    val startLatitude = latitude.toRadians()
+    val endLatitude = other.latitude.toRadians()
+    val haversine = sin(latitudeDelta / 2.0) * sin(latitudeDelta / 2.0) +
+        cos(startLatitude) * cos(endLatitude) * sin(longitudeDelta / 2.0) * sin(longitudeDelta / 2.0)
+    val centralAngle = 2.0 * atan2(sqrt(haversine), sqrt(1.0 - haversine))
+    return earthRadiusMeters * centralAngle
+}
+
+private fun Double.toRadians(): Double = this * PI / 180.0

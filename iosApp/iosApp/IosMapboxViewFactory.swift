@@ -16,6 +16,7 @@ final class IosMapboxViewFactory: NSObject, Shared.IosMapboxViewFactory {
         var styleLoadedCancelable: Cancelable?
         var userLocationCancelable: Cancelable?
         var hasCenteredOnUserLocation = false
+        var lastAppliedCameraKey: String?
         var markerManager: CircleAnnotationManager?
         var iconMarkerManager: PointAnnotationManager?
         var staticRouteLayerIds: [String] = []
@@ -85,7 +86,7 @@ final class IosMapboxViewFactory: NSObject, Shared.IosMapboxViewFactory {
             self.applyMarkers(to: mapView, container: container, request: request)
         }
         configureUserLocation(in: mapView, container: container, request: request)
-        applyCamera(to: mapView, request: request, lastCenter: nil)
+        applyCamera(to: mapView, container: container, request: request, force: true)
         container.lastCameraCenter = CLLocationCoordinate2D(latitude: request.latitude, longitude: request.longitude)
         return container
     }
@@ -101,7 +102,7 @@ final class IosMapboxViewFactory: NSObject, Shared.IosMapboxViewFactory {
         container.panObserver?.onCameraMoving = request.onCameraMoving
         container.panObserver?.onCameraIdle = request.onCameraIdle
         configureUserLocation(in: mapView, container: container, request: request)
-        applyCamera(to: mapView, request: request, lastCenter: container.lastCameraCenter)
+        applyCamera(to: mapView, container: container, request: request, force: false)
         applyStaticRoutes(to: mapView, container: container, request: request)
         applyAntPath(to: mapView, container: container, request: request)
         applyMarkers(to: mapView, container: container, request: request)
@@ -354,9 +355,15 @@ final class IosMapboxViewFactory: NSObject, Shared.IosMapboxViewFactory {
 
     private func applyCamera(
         to mapView: MapView,
+        container: MapContainerView,
         request: IosMapboxViewRequest,
-        lastCenter: CLLocationCoordinate2D?
+        force: Bool
     ) {
+        let cameraKey = cameraKey(for: request)
+        if !force && container.lastAppliedCameraKey == cameraKey {
+            return
+        }
+
         if request.routePoints.count >= 2 {
             let coordinates = request.routePoints.map {
                 CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude)
@@ -376,16 +383,12 @@ final class IosMapboxViewFactory: NSObject, Shared.IosMapboxViewFactory {
                 var adjustedCamera = routeCamera
                 adjustedCamera.zoom = (routeCamera.zoom ?? request.zoom) + 0.35
                 mapView.mapboxMap.setCamera(to: adjustedCamera)
+                container.lastAppliedCameraKey = cameraKey
                 return
             }
         }
 
         let newCenter = CLLocationCoordinate2D(latitude: request.latitude, longitude: request.longitude)
-        if let lastCenter {
-            let sameCenter = abs(lastCenter.latitude - newCenter.latitude) < 0.0000001 &&
-                abs(lastCenter.longitude - newCenter.longitude) < 0.0000001
-            if sameCenter { return }
-        }
         let center = CLLocationCoordinate2D(
             latitude: request.latitude,
             longitude: request.longitude
@@ -398,6 +401,12 @@ final class IosMapboxViewFactory: NSObject, Shared.IosMapboxViewFactory {
                 pitch: request.pitch
             )
         )
+        container.lastAppliedCameraKey = cameraKey
+    }
+
+    private func cameraKey(for request: IosMapboxViewRequest) -> String {
+        let routeKey = request.routePoints.map { "\($0.latitude),\($0.longitude)" }.joined(separator: "|")
+        return "\(request.latitude),\(request.longitude),\(request.zoom),\(request.pitch),\(request.bearing),\(routeKey)"
     }
 }
 

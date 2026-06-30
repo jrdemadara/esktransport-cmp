@@ -30,6 +30,7 @@ val driverTripNavigationModule = module {
             cancelRiderTripUseCase = get(),
             updateRiderTripLocationUseCase = get(),
             realtimeCoordinator = get(),
+            currentLocationProvider = get(),
             mapboxDirectionsClient = get(),
             ioDispatcher = get(named(IO_DISPATCHER_QUALIFIER)),
         )

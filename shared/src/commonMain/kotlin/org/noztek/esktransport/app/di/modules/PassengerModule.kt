@@ -93,6 +93,7 @@ val passengerModule = module {
         TripTrackingViewModel(
             tripTrackingUseCase = get(),
             cancelPassengerTripUseCase = get(),
+            getPassengerActiveBookingUseCase = get(),
             mapboxDirectionsClient = get(),
             realtimeCoordinator = get(),
             ioDispatcher = get(named(IO_DISPATCHER_QUALIFIER)),

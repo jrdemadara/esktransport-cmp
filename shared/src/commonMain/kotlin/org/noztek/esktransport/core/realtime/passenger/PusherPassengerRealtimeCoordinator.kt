@@ -68,7 +68,13 @@ class PusherPassengerRealtimeCoordinator(
                 parseSearchExpired(payload)?.let { searchExpired.tryEmit(it) }
             }
             realtimeClient.subscribePrivateChannel(channel, "trip.driver_location_updated") { _, payload ->
-                parseTripLocationUpdated(payload)?.let { tripLocationUpdated.tryEmit(it) }
+                println("Passenger realtime raw trip.driver_location_updated payload: $payload")
+                val event = parseTripLocationUpdated(payload)
+                if (event == null) {
+                    println("Passenger realtime dropped trip.driver_location_updated payload.")
+                } else {
+                    tripLocationUpdated.tryEmit(event)
+                }
             }
             driverAssignedChannel = channel
         }
@@ -168,6 +174,8 @@ class PusherPassengerRealtimeCoordinator(
                 recordedAt = root.string("recorded_at"),
                 phase = root.string("phase"),
             )
+        }.onFailure {
+            println("Passenger realtime failed parsing trip.driver_location_updated: ${it.message}")
         }.getOrNull()
     }
 }

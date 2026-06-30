@@ -37,8 +37,10 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -101,7 +103,6 @@ private const val ROUTE_SERVICES = "services"
 private const val ROUTE_KUDI = "kudi"
 private const val ROUTE_ACTIVITY = "activity"
 private const val ROUTE_PROFILE = "profile"
-private const val ROUTE_TRIP_TRACKING = "trip-tracking"
 
 fun NavGraphBuilder.passengerNavGraph(navController: NavHostController) {
     navigation(startDestination = PassengerRoute.HOME, route = RootRoute.PASSENGER) {
@@ -123,6 +124,7 @@ private fun PassengerShell(onLogout: () -> Unit) {
     val bookingReviewUiState by bookingReviewViewModel.uiState.collectAsState()
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
+    var activeTripTrackingBookingId by remember { mutableStateOf<String?>(null) }
     val tabs = passengerTabs
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
@@ -130,17 +132,22 @@ private fun PassengerShell(onLogout: () -> Unit) {
     val locationMode = navBackStackEntry?.arguments?.read { getStringOrNull(ARG_MODE) } ?: "destination"
     val isRidePlannerRoute = currentRoute == ROUTE_RIDE_PLANNER ||
         currentRoute == ROUTE_RIDE_PLANNER_WITH_VEHICLE
-    val showChrome = !isRidePlannerRoute &&
+    val isTripTrackingActive = activeTripTrackingBookingId != null
+    val showChrome = !isTripTrackingActive &&
+        !isRidePlannerRoute &&
         currentRoute != ROUTE_BOOKING_REVIEW &&
-        currentRoute?.startsWith(ROUTE_TRIP_TRACKING) != true &&
         currentRoute?.startsWith("location-search/") != true
 
-    LaunchedEffect(currentRoute, bookingReviewUiState.isSearchingForRider) {
+    LaunchedEffect(currentRoute, bookingReviewUiState.isSearchingForRider, activeTripTrackingBookingId) {
         userPresenceCoordinator.updateContext(
             role = UserPresenceRole.Passenger,
-            context = currentRoute.toUserPresenceContext(
-                isSearchingForRider = bookingReviewUiState.isSearchingForRider,
-            ),
+            context = if (activeTripTrackingBookingId != null) {
+                UserPresenceContext.TripTracking
+            } else {
+                currentRoute.toUserPresenceContext(
+                    isSearchingForRider = bookingReviewUiState.isSearchingForRider,
+                )
+            },
         )
     }
 
@@ -158,9 +165,7 @@ private fun PassengerShell(onLogout: () -> Unit) {
             when (event) {
                 is BookingReviewUiEvent.ShowSnackbar -> snackbarHostState.showSnackbar(event.message)
                 is BookingReviewUiEvent.NavigateToTripTracking -> {
-                    navController.navigate("$ROUTE_TRIP_TRACKING/${event.bookingId}") {
-                        popUpTo(ROUTE_HOME) { inclusive = false }
-                    }
+                    activeTripTrackingBookingId = event.bookingId
                 }
             }
         }
@@ -170,21 +175,28 @@ private fun PassengerShell(onLogout: () -> Unit) {
         passengerRealtimeCoordinator.subscribePassengerDriverAssigned()
         launch {
             passengerRealtimeCoordinator.passengerBookingAccepted().collectLatest { event ->
-                navController.navigate("$ROUTE_TRIP_TRACKING/${event.bookingPublicId}") {
-                    popUpTo(ROUTE_HOME) { inclusive = false }
-                    launchSingleTop = true
-                }
+                activeTripTrackingBookingId = event.bookingPublicId
             }
         }
         launch {
             passengerRealtimeCoordinator.passengerBookingCancelled().collectLatest { event ->
                 if (event.cancelledBy == "passenger") return@collectLatest
                 bookingReviewViewModel.showReviewSheet()
+                activeTripTrackingBookingId = null
                 navController.navigate(ROUTE_BOOKING_REVIEW) {
                     popUpTo(ROUTE_HOME) { inclusive = false }
                     launchSingleTop = true
                 }
                 snackbarHostState.showSnackbar("Trip cancelled by driver.")
+            }
+        }
+        launch {
+            passengerRealtimeCoordinator.passengerTripLocationUpdated().collectLatest { event ->
+                if (event.bookingPublicId == activeTripTrackingBookingId) {
+                    snackbarHostState.showSnackbar(
+                        "Driver location received: ${event.latitude.formatCoordinate()}, ${event.longitude.formatCoordinate()}",
+                    )
+                }
             }
         }
     }
@@ -200,10 +212,7 @@ private fun PassengerShell(onLogout: () -> Unit) {
             passengerSessionViewModel.uiEvents.collectLatest { event ->
                 when (event) {
                     is PassengerSessionUiEvent.NavigateToTripTracking -> {
-                        navController.navigate("$ROUTE_TRIP_TRACKING/${event.bookingPublicId}") {
-                            popUpTo(ROUTE_HOME) { inclusive = false }
-                            launchSingleTop = true
-                        }
+                        activeTripTrackingBookingId = event.bookingPublicId
                     }
                 }
             }
@@ -216,9 +225,9 @@ private fun PassengerShell(onLogout: () -> Unit) {
         contentWindowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal),
         topBar = {
             when {
+                isTripTrackingActive -> Unit
                 isRidePlannerRoute -> PassengerBackTopBar("Plan your trip") { navController.popBackStack() }
                 currentRoute == ROUTE_BOOKING_REVIEW -> PassengerBackTopBar("Review Booking") { navController.popBackStack() }
-                currentRoute?.startsWith(ROUTE_TRIP_TRACKING) == true -> PassengerBackTopBar("Trip Tracking") { navController.popBackStack() }
                 currentRoute?.startsWith("location-search/") == true -> {
                     PassengerBackTopBar(if (locationMode == "pickup") "Search Pickup" else "Search Destination") {
                         navController.popBackStack()
@@ -267,23 +276,24 @@ private fun PassengerShell(onLogout: () -> Unit) {
             }
         },
     ) { innerPadding ->
-        NavHost(
-            navController = navController,
-            startDestination = ROUTE_HOME,
-            enterTransition = { fadeIn(animationSpec = tween(180)) },
-            exitTransition = { fadeOut(animationSpec = tween(120)) },
-            popEnterTransition = { fadeIn(animationSpec = tween(180)) },
-            popExitTransition = { fadeOut(animationSpec = tween(120)) },
-        ) {
-            composable(ROUTE_HOME) {
-                PassengerHomeScreen(
-                    onWhereToClick = { navController.navigate(ROUTE_RIDE_PLANNER) },
-                    onSuggestionClick = { vehicleTypeIndex ->
-                        navController.navigate("ride-planner/$vehicleTypeIndex")
-                    },
-                    contentPadding = innerPadding,
-                )
-            }
+        Box(modifier = Modifier.fillMaxSize()) {
+            NavHost(
+                navController = navController,
+                startDestination = ROUTE_HOME,
+                enterTransition = { fadeIn(animationSpec = tween(180)) },
+                exitTransition = { fadeOut(animationSpec = tween(120)) },
+                popEnterTransition = { fadeIn(animationSpec = tween(180)) },
+                popExitTransition = { fadeOut(animationSpec = tween(120)) },
+            ) {
+                composable(ROUTE_HOME) {
+                    PassengerHomeScreen(
+                        onWhereToClick = { navController.navigate(ROUTE_RIDE_PLANNER) },
+                        onSuggestionClick = { vehicleTypeIndex ->
+                            navController.navigate("ride-planner/$vehicleTypeIndex")
+                        },
+                        contentPadding = innerPadding,
+                    )
+                }
             composable(ROUTE_RIDE_PLANNER) {
                 val pickupLocation by ridePlannerViewModel.pickupLocation.collectAsState()
                 val destinationLocation by ridePlannerViewModel.destinationLocation.collectAsState()
@@ -385,13 +395,17 @@ private fun PassengerShell(onLogout: () -> Unit) {
                     }
                 }
             }
-            composable(
-                route = "$ROUTE_TRIP_TRACKING/{bookingId}",
-                arguments = listOf(navArgument("bookingId") { type = NavType.StringType }),
-            ) { backStackEntry ->
+            composable(ROUTE_SERVICES) { PlaceholderTabScreen("Services") }
+            composable(ROUTE_KUDI) { PlaceholderTabScreen("Kudi AI") }
+            composable(ROUTE_ACTIVITY) { PlaceholderTabScreen("Activity") }
+                composable(ROUTE_PROFILE) { PassengerProfileScreen(onLogout = onLogout, contentPadding = innerPadding) }
+            }
+
+            activeTripTrackingBookingId?.let { bookingId ->
                 TripTrackingScreen(
-                    bookingId = backStackEntry.arguments?.read { getStringOrNull("bookingId") }.orEmpty(),
+                    bookingId = bookingId,
                     onCancelled = {
+                        activeTripTrackingBookingId = null
                         bookingReviewViewModel.showReviewSheet()
                         navController.navigate(ROUTE_BOOKING_REVIEW) {
                             popUpTo(ROUTE_HOME) { inclusive = false }
@@ -400,10 +414,6 @@ private fun PassengerShell(onLogout: () -> Unit) {
                     },
                 )
             }
-            composable(ROUTE_SERVICES) { PlaceholderTabScreen("Services") }
-            composable(ROUTE_KUDI) { PlaceholderTabScreen("Kudi AI") }
-            composable(ROUTE_ACTIVITY) { PlaceholderTabScreen("Activity") }
-            composable(ROUTE_PROFILE) { PassengerProfileScreen(onLogout = onLogout, contentPadding = innerPadding) }
         }
     }
 }
@@ -519,13 +529,17 @@ private fun String?.toUserPresenceContext(isSearchingForRider: Boolean): UserPre
         this == ROUTE_HOME -> UserPresenceContext.PassengerHome
         this == ROUTE_RIDE_PLANNER || this == ROUTE_RIDE_PLANNER_WITH_VEHICLE -> UserPresenceContext.RidePlanner
         this?.startsWith("location-search/") == true -> UserPresenceContext.LocationSearch
-        this?.startsWith(ROUTE_TRIP_TRACKING) == true -> UserPresenceContext.TripTracking
         this == ROUTE_SERVICES -> UserPresenceContext.Services
         this == ROUTE_KUDI -> UserPresenceContext.Kudi
         this == ROUTE_ACTIVITY -> UserPresenceContext.Activity
         this == ROUTE_PROFILE -> UserPresenceContext.Profile
         else -> UserPresenceContext.PassengerHome
     }
+}
+
+private fun Double.formatCoordinate(): String {
+    val scaled = kotlin.math.round(this * 100_000.0) / 100_000.0
+    return scaled.toString()
 }
 
 

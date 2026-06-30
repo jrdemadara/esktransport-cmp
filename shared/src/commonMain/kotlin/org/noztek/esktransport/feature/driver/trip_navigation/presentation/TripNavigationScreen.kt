@@ -141,6 +141,12 @@ fun TripNavigationScreen(
                             destinationPoint = destination,
                             routePoints = uiState.routePoints,
                             pickupConfirmed = session.phase != RiderTripPhase.TO_PICKUP,
+                            onLocationChanged = { location ->
+                                viewModel.publishLocationIfNeeded(
+                                    bookingPublicId = bookingPublicId,
+                                    location = location,
+                                )
+                            },
                         )
 
                         Column(

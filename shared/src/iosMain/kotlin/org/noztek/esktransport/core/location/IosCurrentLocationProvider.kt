@@ -19,6 +19,7 @@ import kotlin.coroutines.resume
 @OptIn(ExperimentalForeignApi::class)
 class IosCurrentLocationProvider : CurrentLocationProvider {
     private val locationManager = CLLocationManager()
+    private var singleLocationDelegate: SingleLocationDelegate? = null
 
     override suspend fun getLastKnownLocation(): GeoPoint? {
         val location = resolveLocation() ?: return null
@@ -54,14 +55,18 @@ class IosCurrentLocationProvider : CurrentLocationProvider {
     private suspend fun requestSingleLocation(): CLLocation? = suspendCancellableCoroutine { continuation ->
         val delegate = SingleLocationDelegate(
             onLocation = { location ->
+                singleLocationDelegate = null
                 if (continuation.isActive) continuation.resume(location)
             },
             onFailure = {
+                singleLocationDelegate = null
                 if (continuation.isActive) continuation.resume(null)
             },
         )
+        singleLocationDelegate = delegate
         locationManager.delegate = delegate
         continuation.invokeOnCancellation {
+            singleLocationDelegate = null
             locationManager.delegate = null
         }
         locationManager.requestLocation()

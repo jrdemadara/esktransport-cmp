@@ -23,6 +23,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
@@ -90,10 +91,16 @@ actual fun DriverTurnByTurnHost(
     destinationPoint: MapPoint,
     routePoints: List<MapPoint>,
     pickupConfirmed: Boolean,
+    onLocationChanged: (DriverNavigationLocation) -> Unit,
 ) {
     val context = LocalContext.current
+    val currentOnLocationChanged = rememberUpdatedState(onLocationChanged)
     val host = remember(context, mapboxConfig.accessToken) {
-        AndroidDriverTurnByTurnHost(context, mapboxConfig.accessToken)
+        AndroidDriverTurnByTurnHost(
+            context = context,
+            accessToken = mapboxConfig.accessToken,
+            onLocationChanged = { location -> currentOnLocationChanged.value(location) },
+        )
     }
 
     LaunchedEffect(pickupPoint, destinationPoint, routePoints, pickupConfirmed) {
@@ -118,6 +125,7 @@ actual fun DriverTurnByTurnHost(
 private class AndroidDriverTurnByTurnHost(
     private val context: Context,
     private val accessToken: String,
+    private val onLocationChanged: (DriverNavigationLocation) -> Unit,
 ) {
     val view: FrameLayout = FrameLayout(context)
 
@@ -242,6 +250,7 @@ private class AndroidDriverTurnByTurnHost(
 
         override fun onNewLocationMatcherResult(locationMatcherResult: LocationMatcherResult) {
             val enhancedLocation = locationMatcherResult.enhancedLocation
+            onLocationChanged(enhancedLocation.toDriverNavigationLocation())
             navigationLocationProvider.changePosition(
                 enhancedLocation,
                 locationMatcherResult.keyPoints,
@@ -672,6 +681,16 @@ private fun android.location.Location.toMapboxLocation(): Location {
         .speed(speed.toDouble())
         .source(provider)
         .build()
+}
+
+private fun Location.toDriverNavigationLocation(): DriverNavigationLocation {
+    return DriverNavigationLocation(
+        latitude = latitude,
+        longitude = longitude,
+        bearing = bearing,
+        speedKph = speed?.let { it * 3.6 },
+        accuracyM = horizontalAccuracy,
+    )
 }
 
 private val Int.dp: Int

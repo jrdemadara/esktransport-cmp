@@ -11,7 +11,12 @@ class IosDriverNavigationRequest(
     val destinationLongitude: Double,
     val routePoints: List<MapPoint>,
     val pickupConfirmed: Boolean,
+    val locationListener: IosDriverNavigationLocationListener,
 )
+
+interface IosDriverNavigationLocationListener {
+    fun onLocationChanged(location: DriverNavigationLocation)
+}
 
 interface IosDriverNavigationViewFactory {
     fun createNavigationView(request: IosDriverNavigationRequest): UIView

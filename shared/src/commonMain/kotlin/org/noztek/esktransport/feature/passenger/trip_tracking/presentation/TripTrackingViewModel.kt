@@ -11,12 +11,14 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.noztek.esktransport.core.map.MapPoint
 import org.noztek.esktransport.core.map.MapboxDirectionsClient
 import org.noztek.esktransport.core.realtime.model.PassengerTripLocationUpdatedEvent
 import org.noztek.esktransport.core.realtime.passenger.PassengerRealtimeCoordinator
+import org.noztek.esktransport.feature.common.active_booking.domain.usecase.GetPassengerActiveBookingUseCase
 import org.noztek.esktransport.feature.passenger.trip_tracking.domain.model.LatestLocation
 import org.noztek.esktransport.feature.passenger.trip_tracking.domain.model.TripPoint
 import org.noztek.esktransport.feature.passenger.trip_tracking.domain.model.TripTrackingSession
@@ -30,6 +32,7 @@ sealed class TripTrackingUiEvent {
 class TripTrackingViewModel(
     private val tripTrackingUseCase: TripTrackingUseCase,
     private val cancelPassengerTripUseCase: CancelPassengerTripUseCase,
+    private val getPassengerActiveBookingUseCase: GetPassengerActiveBookingUseCase,
     private val mapboxDirectionsClient: MapboxDirectionsClient,
     private val realtimeCoordinator: PassengerRealtimeCoordinator,
     private val ioDispatcher: CoroutineDispatcher,
@@ -40,17 +43,19 @@ class TripTrackingViewModel(
     private val _uiEvents = MutableSharedFlow<TripTrackingUiEvent>(extraBufferCapacity = 1)
     val uiEvents: SharedFlow<TripTrackingUiEvent> = _uiEvents.asSharedFlow()
     private var realtimeJob: Job? = null
+    private var refreshJob: Job? = null
 
     fun loadTripData(bookingId: String) {
         viewModelScope.launch(ioDispatcher) {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
             runCatching { tripTrackingUseCase(bookingId) }
                 .onSuccess { session ->
+                    val sessionWithFare = session.withActiveBookingFareFallback(bookingId)
                     val stage = stageFor(status = session.status, phase = null)
-                    val routes = buildRoutes(session = session, stage = stage)
+                    val routes = buildRoutes(session = sessionWithFare, stage = stage)
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
-                        tripSession = session,
+                        tripSession = sessionWithFare,
                         stage = stage,
                         riderToPickupRoute = routes.riderToPickupRoute,
                         driverToDestinationRoute = routes.driverToDestinationRoute,
@@ -66,6 +71,19 @@ class TripTrackingViewModel(
         }
     }
 
+    private suspend fun TripTrackingSession.withActiveBookingFareFallback(bookingId: String): TripTrackingSession {
+        if (finalFare != null) return this
+
+        val activeBooking = getPassengerActiveBookingUseCase().getOrNull()
+            ?.takeIf { it.bookingPublicId == bookingId }
+            ?: return this
+
+        return copy(
+            finalFare = activeBooking.finalFare,
+            currency = activeBooking.currency ?: currency,
+        )
+    }
+
     fun startRealtime(bookingId: String) {
         if (bookingId.isBlank() || realtimeJob?.isActive == true) return
 
@@ -73,7 +91,13 @@ class TripTrackingViewModel(
             realtimeCoordinator.subscribePassengerDriverAssigned()
             realtimeCoordinator.passengerTripLocationUpdated().collectLatest { event ->
                 if (event.bookingPublicId != bookingId) return@collectLatest
-                applyLocationUpdate(event)
+                applyLocationUpdate(bookingId, event)
+            }
+        }
+        refreshJob = viewModelScope.launch {
+            while (true) {
+                delay(TRIP_LOCATION_REFRESH_INTERVAL_MS)
+                refreshTripLocation(bookingId)
             }
         }
     }
@@ -81,6 +105,8 @@ class TripTrackingViewModel(
     fun stopRealtime() {
         realtimeJob?.cancel()
         realtimeJob = null
+        refreshJob?.cancel()
+        refreshJob = null
     }
 
     fun cancelTrip(bookingPublicId: String) {
@@ -103,7 +129,10 @@ class TripTrackingViewModel(
         }
     }
 
-    private suspend fun applyLocationUpdate(event: PassengerTripLocationUpdatedEvent) {
+    private fun applyLocationUpdate(
+        bookingId: String,
+        event: PassengerTripLocationUpdatedEvent,
+    ) {
         val currentSession = _uiState.value.tripSession ?: return
         val updatedSession = currentSession.copy(
             latestLocation = LatestLocation(
@@ -114,17 +143,64 @@ class TripTrackingViewModel(
             ),
         )
         val stage = stageFor(status = updatedSession.status, phase = event.phase)
-        val routes = withContext(ioDispatcher) {
-            buildRoutes(session = updatedSession, stage = stage)
-        }
-
+        val shouldRebuildRoutes = _uiState.value.shouldRebuildRoutesFor(stage)
         _uiState.value = _uiState.value.copy(
             tripSession = updatedSession,
             stage = stage,
-            riderToPickupRoute = routes.riderToPickupRoute,
-            driverToDestinationRoute = routes.driverToDestinationRoute,
-            pickupToDestinationRoute = routes.pickupToDestinationRoute,
         )
+        if (!shouldRebuildRoutes) return
+
+        viewModelScope.launch(ioDispatcher) {
+            val routes = buildRoutes(session = updatedSession, stage = stage)
+            val latestState = _uiState.value
+            if (latestState.tripSession?.bookingPublicId != bookingId) return@launch
+            val latestLocation = latestState.tripSession.latestLocation
+            if (latestLocation?.latitude != event.latitude || latestLocation.longitude != event.longitude) return@launch
+
+            _uiState.value = latestState.copy(
+                riderToPickupRoute = routes.riderToPickupRoute,
+                driverToDestinationRoute = routes.driverToDestinationRoute,
+                pickupToDestinationRoute = routes.pickupToDestinationRoute,
+            )
+        }
+    }
+
+    private suspend fun refreshTripLocation(bookingId: String) {
+        if (bookingId.isBlank()) return
+        runCatching {
+            withContext(ioDispatcher) {
+                tripTrackingUseCase(bookingId)
+            }
+        }.onSuccess { session ->
+            val current = _uiState.value.tripSession
+            val latestLocation = session.latestLocation ?: return@onSuccess
+            val updatedSession = (current ?: session).copy(
+                status = session.status,
+                latestLocation = latestLocation,
+                finalFare = current?.finalFare ?: session.finalFare,
+                currency = current?.currency ?: session.currency,
+            )
+            val stage = stageFor(status = updatedSession.status, phase = null)
+            val shouldRebuildRoutes = _uiState.value.shouldRebuildRoutesFor(stage)
+            _uiState.value = _uiState.value.copy(
+                tripSession = updatedSession,
+                stage = stage,
+            )
+            if (!shouldRebuildRoutes) return@onSuccess
+
+            viewModelScope.launch(ioDispatcher) {
+                val routes = buildRoutes(session = updatedSession, stage = stage)
+                val latestState = _uiState.value
+                val stateLocation = latestState.tripSession?.latestLocation
+                if (latestState.tripSession?.bookingPublicId != bookingId) return@launch
+                if (stateLocation?.latitude != latestLocation.latitude || stateLocation.longitude != latestLocation.longitude) return@launch
+                _uiState.value = latestState.copy(
+                    riderToPickupRoute = routes.riderToPickupRoute,
+                    driverToDestinationRoute = routes.driverToDestinationRoute,
+                    pickupToDestinationRoute = routes.pickupToDestinationRoute,
+                )
+            }
+        }
     }
 
     private suspend fun buildRoutes(session: TripTrackingSession, stage: TripTrackingStage): StageRoutes {
@@ -193,6 +269,18 @@ private data class StageRoutes(
     val driverToDestinationRoute: List<MapPoint>,
     val pickupToDestinationRoute: List<MapPoint>,
 )
+
+private const val TRIP_LOCATION_REFRESH_INTERVAL_MS = 5_000L
+
+private fun TripTrackingUIState.shouldRebuildRoutesFor(stage: TripTrackingStage): Boolean {
+    if (this.stage != stage) return true
+    return when (stage) {
+        TripTrackingStage.ToPickup -> riderToPickupRoute.isEmpty() || pickupToDestinationRoute.isEmpty()
+        TripTrackingStage.ArrivedPickup -> pickupToDestinationRoute.isEmpty()
+        TripTrackingStage.ToDropoff -> driverToDestinationRoute.isEmpty() || pickupToDestinationRoute.isEmpty()
+        TripTrackingStage.Completed -> pickupToDestinationRoute.isEmpty()
+    }
+}
 
 private fun stageFor(status: String, phase: String?): TripTrackingStage {
     return when {

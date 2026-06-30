@@ -17,6 +17,9 @@ data class TripTrackingDataDto(
     val requestedAt: String,
     @SerialName("updated_at")
     val updatedAt: String,
+    @SerialName("final_fare")
+    val finalFare: Double? = null,
+    val currency: String? = null,
     val pickup: TripLocationDto,
     val destination: TripLocationDto,
     val rider: RiderTripInfoDto,

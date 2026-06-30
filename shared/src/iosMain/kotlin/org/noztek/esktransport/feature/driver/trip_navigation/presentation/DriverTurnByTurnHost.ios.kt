@@ -2,6 +2,7 @@ package org.noztek.esktransport.feature.driver.trip_navigation.presentation
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.viewinterop.UIKitView
 import org.noztek.esktransport.core.map.MapPoint
@@ -16,7 +17,16 @@ actual fun DriverTurnByTurnHost(
     destinationPoint: MapPoint,
     routePoints: List<MapPoint>,
     pickupConfirmed: Boolean,
+    onLocationChanged: (DriverNavigationLocation) -> Unit,
 ) {
+    val currentOnLocationChanged = rememberUpdatedState(onLocationChanged)
+    val locationListener = remember {
+        object : IosDriverNavigationLocationListener {
+            override fun onLocationChanged(location: DriverNavigationLocation) {
+                currentOnLocationChanged.value(location)
+            }
+        }
+    }
     val request = remember(mapboxConfig, pickupPoint, destinationPoint, routePoints, pickupConfirmed) {
         IosDriverNavigationRequest(
             accessToken = mapboxConfig.accessToken,
@@ -26,6 +36,7 @@ actual fun DriverTurnByTurnHost(
             destinationLongitude = destinationPoint.longitude,
             routePoints = routePoints,
             pickupConfirmed = pickupConfirmed,
+            locationListener = locationListener,
         )
     }
 

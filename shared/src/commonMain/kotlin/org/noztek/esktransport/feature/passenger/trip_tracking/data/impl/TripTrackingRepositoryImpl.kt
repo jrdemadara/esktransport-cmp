@@ -41,7 +41,9 @@ class TripTrackingRepositoryImpl(
                     bearing = latestLocation.bearing,
                     speedKph = latestLocation.speedKph
                 )
-            }
+            },
+            finalFare = dto.finalFare,
+            currency = dto.currency,
         )
     }
 

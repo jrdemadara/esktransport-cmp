@@ -18,12 +18,36 @@ final class IosDriverNavigationViewFactory: NSObject, Shared.IosDriverNavigation
     @MainActor
     private static var sharedNavigationOptions: NavigationOptions?
 
+    private final class LocationDelegate: NSObject, CLLocationManagerDelegate {
+        private let onLocationChanged: (CLLocation) -> Void
+
+        init(onLocationChanged: @escaping (CLLocation) -> Void) {
+            self.onLocationChanged = onLocationChanged
+        }
+
+        func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+            guard let location = locations.last else { return }
+            onLocationChanged(location)
+        }
+
+        func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
+            switch manager.authorizationStatus {
+            case .authorizedAlways, .authorizedWhenInUse:
+                manager.startUpdatingLocation()
+            default:
+                break
+            }
+        }
+    }
+
     private final class Container: UIView {
         var currentRequest: IosDriverNavigationRequest
         var navigationController: NavigationViewController?
         var currentStageKey: String?
         var isFinalStage: Bool = false
         var routeTask: Task<Void, Never>?
+        let locationManager = CLLocationManager()
+        var locationDelegate: LocationDelegate?
         let loading = UIActivityIndicatorView(style: .large)
 
         init(request: IosDriverNavigationRequest) {
@@ -37,10 +61,46 @@ final class IosDriverNavigationViewFactory: NSObject, Shared.IosDriverNavigation
                 loading.centerXAnchor.constraint(equalTo: centerXAnchor),
                 loading.centerYAnchor.constraint(equalTo: centerYAnchor),
             ])
+            startLocationUpdates()
         }
 
         @available(*, unavailable)
         required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+
+        deinit {
+            locationManager.stopUpdatingLocation()
+            locationManager.delegate = nil
+        }
+
+        private func startLocationUpdates() {
+            locationDelegate = LocationDelegate { [weak self] location in
+                self?.publishLocation(location)
+            }
+            locationManager.delegate = locationDelegate
+            locationManager.desiredAccuracy = kCLLocationAccuracyBestForNavigation
+            locationManager.distanceFilter = 10
+            locationManager.requestWhenInUseAuthorization()
+            if locationManager.authorizationStatus == .authorizedAlways ||
+                locationManager.authorizationStatus == .authorizedWhenInUse {
+                locationManager.startUpdatingLocation()
+            }
+        }
+
+        private func publishLocation(_ location: CLLocation) {
+            print("iOS driver navigation location callback lat=\(location.coordinate.latitude) lng=\(location.coordinate.longitude)")
+            let bearing = location.course >= 0 ? KotlinDouble(value: location.course) : nil
+            let speedKph = location.speed >= 0 ? KotlinDouble(value: location.speed * 3.6) : nil
+            let accuracyM = location.horizontalAccuracy >= 0 ? KotlinDouble(value: location.horizontalAccuracy) : nil
+            currentRequest.locationListener.onLocationChanged(
+                location: DriverNavigationLocation(
+                    latitude: location.coordinate.latitude,
+                    longitude: location.coordinate.longitude,
+                    bearing: bearing,
+                    speedKph: speedKph,
+                    accuracyM: accuracyM
+                )
+            )
+        }
     }
 
     private static func parentViewController(for view: UIView) -> UIViewController? {
