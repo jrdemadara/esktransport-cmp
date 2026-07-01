@@ -71,6 +71,7 @@ import kotlin.math.roundToInt
 
 @Composable
 fun HomeScreen(
+    statsRefreshToken: Long = 0L,
     onNotificationClick: () -> Unit = {},
     onProfileClick: () -> Unit = {},
     onBottomBarNavigate: (String) -> Unit = {},
@@ -98,6 +99,12 @@ fun HomeScreen(
         uiState.statusMessage?.let { message ->
             snackbarHostState.showSnackbar(message)
             viewModel.clearStatusMessage()
+        }
+    }
+
+    LaunchedEffect(statsRefreshToken) {
+        if (statsRefreshToken > 0L) {
+            viewModel.refreshStats(showLoading = false)
         }
     }
 

@@ -3,6 +3,8 @@ package org.noztek.esktransport.app.navigation
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.composable
@@ -32,6 +34,7 @@ private const val ROUTE_DRIVER_TRIP_TRACKING = "driver-trip-tracking"
 private const val ROUTE_DRIVER_IDENTITY_VERIFICATION = "driver-onboarding/identity"
 private const val ROUTE_DRIVER_VEHICLE_REGISTRATION = "driver-onboarding/vehicle-registration"
 private const val ROUTE_DRIVER_SERVICE_ZONE = "driver-onboarding/service-zone"
+private const val DRIVER_HOME_STATS_REFRESH_TOKEN = "driver_home_stats_refresh_token"
 
 fun NavGraphBuilder.driverNavGraph(navController: NavHostController) {
     navigation(startDestination = DriverRoute.HOME, route = RootRoute.DRIVER) {
@@ -44,9 +47,12 @@ fun NavGraphBuilder.driverNavGraph(navController: NavHostController) {
                     null
                 }
             },
-        ) {
+        ) { backStackEntry ->
             val userPresenceCoordinator: UserPresenceCoordinator = koinInject()
             val driverSessionViewModel: DriverSessionViewModel = koinViewModel()
+            val statsRefreshToken by backStackEntry.savedStateHandle
+                .getStateFlow(DRIVER_HOME_STATS_REFRESH_TOKEN, 0L)
+                .collectAsState()
             LaunchedEffect(Unit) {
                 userPresenceCoordinator.updateContext(
                     role = UserPresenceRole.Driver,
@@ -73,6 +79,7 @@ fun NavGraphBuilder.driverNavGraph(navController: NavHostController) {
                 driverSessionViewModel.restoreActiveBooking()
             }
             HomeScreen(
+                statsRefreshToken = statsRefreshToken,
                 onBottomBarNavigate = { route ->
                     navController.navigateDriverBottomBarRoute(route)
                 },
@@ -111,6 +118,7 @@ fun NavGraphBuilder.driverNavGraph(navController: NavHostController) {
             }
             GoScreen(
                 onNavigateHome = {
+                    navController.requestDriverHomeStatsRefresh()
                     navController.popBackStack(DriverRoute.HOME, inclusive = false)
                 },
                 onNavigateToTrip = { bookingPublicId ->
@@ -184,6 +192,12 @@ fun NavGraphBuilder.driverNavGraph(navController: NavHostController) {
             )
         }
     }
+}
+
+private fun NavHostController.requestDriverHomeStatsRefresh() {
+    val savedStateHandle = getBackStackEntry(DriverRoute.HOME).savedStateHandle
+    val currentValue = savedStateHandle[DRIVER_HOME_STATS_REFRESH_TOKEN] ?: 0L
+    savedStateHandle[DRIVER_HOME_STATS_REFRESH_TOKEN] = currentValue + 1L
 }
 
 private fun NavHostController.navigateDriverBottomBarRoute(route: String) {
