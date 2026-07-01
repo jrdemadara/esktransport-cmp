@@ -11,10 +11,12 @@ import androidx.savedstate.read
 import kotlinx.coroutines.flow.collectLatest
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
+import org.noztek.esktransport.core.ui.composables.driver.DriverBottomBarRoute
 import org.noztek.esktransport.core.map.MapboxConfig
 import org.noztek.esktransport.feature.common.presence.domain.lifecycle.UserPresenceCoordinator
 import org.noztek.esktransport.feature.common.presence.domain.model.UserPresenceContext
 import org.noztek.esktransport.feature.common.presence.domain.model.UserPresenceRole
+import org.noztek.esktransport.feature.driver.earning.presentation.EarningsScreen
 import org.noztek.esktransport.feature.driver.go.presentation.GoScreen
 import org.noztek.esktransport.feature.driver.home.presentation.HomeScreen
 import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverOnboardingStatus
@@ -71,6 +73,9 @@ fun NavGraphBuilder.driverNavGraph(navController: NavHostController) {
                 driverSessionViewModel.restoreActiveBooking()
             }
             HomeScreen(
+                onBottomBarNavigate = { route ->
+                    navController.navigateDriverBottomBarRoute(route)
+                },
                 onSetupClick = { status ->
                     navController.navigate(status.nextSetupRoute()) {
                         launchSingleTop = true
@@ -80,6 +85,13 @@ fun NavGraphBuilder.driverNavGraph(navController: NavHostController) {
                     navController.navigate(DriverRoute.GO) {
                         launchSingleTop = true
                     }
+                },
+            )
+        }
+        composable(route = DriverBottomBarRoute.EARNINGS) {
+            EarningsScreen(
+                onBottomBarNavigate = { route ->
+                    navController.navigateDriverBottomBarRoute(route)
                 },
             )
         }
@@ -170,6 +182,24 @@ fun NavGraphBuilder.driverNavGraph(navController: NavHostController) {
                     navController.navigateToDriverModeAfterTrip()
                 },
             )
+        }
+    }
+}
+
+private fun NavHostController.navigateDriverBottomBarRoute(route: String) {
+    when (route) {
+        DriverBottomBarRoute.HOME -> {
+            navigate(DriverRoute.HOME) {
+                popUpTo(DriverRoute.HOME) {
+                    inclusive = false
+                }
+                launchSingleTop = true
+            }
+        }
+        DriverBottomBarRoute.EARNINGS -> {
+            navigate(DriverBottomBarRoute.EARNINGS) {
+                launchSingleTop = true
+            }
         }
     }
 }

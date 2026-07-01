@@ -1,6 +1,5 @@
 package org.noztek.esktransport.feature.driver.home.presentation
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -16,6 +15,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
@@ -35,8 +35,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -44,18 +45,21 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.composables.icons.heroicons.Heroicons
+import com.composables.icons.heroicons.outline.ArrowDown
+import com.composables.icons.heroicons.outline.ArrowUp
+import com.composables.icons.heroicons.outline.ArrowUpRight
+import com.composables.icons.heroicons.outline.ChartBarSquare
 import com.composables.icons.heroicons.outline.ChevronRight
-import esktransport.shared.generated.resources.Res
-import esktransport.shared.generated.resources.home_car
-import esktransport.shared.generated.resources.home_scooter
-import esktransport.shared.generated.resources.home_tricycle
-import org.jetbrains.compose.resources.DrawableResource
-import org.jetbrains.compose.resources.painterResource
+import com.composables.icons.heroicons.outline.PaperAirplane
+import com.composables.icons.heroicons.outline.Plus
+import com.composables.icons.heroicons.outline.QueueList
+import com.composables.icons.heroicons.solid.Star
 import org.koin.compose.viewmodel.koinViewModel
 import org.noztek.esktransport.core.ui.composables.common.AppPrimaryButton
 import org.noztek.esktransport.core.ui.composables.driver.DriverBottomBar
 import org.noztek.esktransport.core.ui.composables.driver.DriverBottomBarRoute
 import org.noztek.esktransport.core.ui.composables.driver.DriverTopBar
+import org.noztek.esktransport.feature.driver.home.domain.model.DriverHomeStats
 import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverOnboardingDocumentType
 import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverOnboardingState
 import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverOnboardingStatus
@@ -65,19 +69,8 @@ import org.noztek.esktransport.feature.driver.wallet.domain.model.DriverWalletDa
 import org.noztek.esktransport.feature.driver.wallet.domain.model.DriverWalletTopup
 import kotlin.math.roundToInt
 
-enum class DriverHomeVehicleType {
-    Motorcycle,
-    Tricycle,
-    Car,
-}
-
 @Composable
 fun HomeScreen(
-    todaysEarning: String = "PHP 0.00",
-    totalTrips: Int = 0,
-    onlineTime: String = "0h 00m",
-    ratingLabel: String = "New",
-    vehicleType: DriverHomeVehicleType = DriverHomeVehicleType.Motorcycle,
     onNotificationClick: () -> Unit = {},
     onProfileClick: () -> Unit = {},
     onBottomBarNavigate: (String) -> Unit = {},
@@ -93,6 +86,8 @@ fun HomeScreen(
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
                 viewModel.refreshOnboardingStatus(showLoading = false)
+                viewModel.refreshStats(showLoading = false)
+                viewModel.refreshWallet(showLoading = false)
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
@@ -132,17 +127,6 @@ fun HomeScreen(
                 .padding(horizontal = 16.dp, vertical = 10.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            EarningsSummaryCard(
-                todaysEarning = todaysEarning,
-                totalTrips = totalTrips,
-                vehicleType = vehicleType,
-                status = uiState.onboardingStatus,
-            )
-            TodayStatsPanel(
-                totalTrips = totalTrips,
-                onlineTime = onlineTime,
-                ratingLabel = ratingLabel,
-            )
             DriverWalletCard(
                 isLoading = uiState.isLoadingWallet,
                 isCreatingTopup = uiState.isCreatingTopup,
@@ -153,7 +137,12 @@ fun HomeScreen(
                 onClearSelectedTopup = viewModel::clearSelectedTopup,
                 onRetryClick = viewModel::refreshWallet,
             )
-
+            TotalStatsPanel(
+                isLoading = uiState.isLoadingStats,
+                stats = uiState.stats,
+                errorMessage = uiState.statsErrorMessage,
+                onRetryClick = viewModel::refreshStats,
+            )
             if (uiState.onboardingStatus?.canGo == true) {
                 AppPrimaryButton(
                     text = "Switch to Driver Mode",
@@ -195,54 +184,102 @@ private fun DriverWalletCard(
     val balanceLabel = dashboard?.wallet?.let { formatWalletAmount(it.balance, it.currency) } ?: "PHP 0.00"
     val pendingTopup = selectedTopup ?: dashboard?.pendingTopups?.firstOrNull()
     val isBusy = isLoading || isCreatingTopup
+    val brandBlue = MaterialTheme.colorScheme.primaryContainer
+    val walletGradient = Brush.verticalGradient(
+        colors = listOf(
+            Color(0xFF4F8DFF),
+            brandBlue,
+            Color(0xFF002D88),
+        ),
+    )
 
-    Surface(
+    Column(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(14.dp),
-        color = MaterialTheme.colorScheme.surfaceContainer,
-        contentColor = MaterialTheme.colorScheme.onSurface,
+        verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Column(
-            modifier = Modifier.padding(14.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(188.dp)
+                .clip(RoundedCornerShape(28.dp))
+                .background(walletGradient),
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.Top,
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                Column(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(3.dp),
-                ) {
-                    Text(
-                        text = "Driver wallet",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                    )
-                    Text(
-                        text = "Available balance",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                if (isBusy) {
-                    CircularProgressIndicator(modifier = Modifier.size(22.dp), strokeWidth = 2.dp)
-                }
+            if (isBusy) {
+                CircularProgressIndicator(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(18.dp)
+                        .size(22.dp),
+                    strokeWidth = 2.dp,
+                    color = Color.White,
+                )
             }
 
-            Text(
-                text = balanceLabel,
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.primary,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 18.dp, vertical = 18.dp),
+                verticalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(
+                        text = "Total balance",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = Color.White.copy(alpha = 0.78f),
+                        fontWeight = FontWeight.Medium,
+                    )
+                    Text(
+                        text = balanceLabel,
+                        style = MaterialTheme.typography.headlineLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
 
-            errorMessage?.let {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.Bottom,
+                ) {
+                    WalletQuickAction(
+                        label = "Top Up",
+                        icon = Heroicons.Outline.ArrowUp,
+                        enabled = !isBusy,
+                        onClick = { onCreateTopup(100.0) },
+                    )
+                    WalletQuickAction(
+                        label = "Cashout",
+                        icon = Heroicons.Outline.ArrowDown,
+                        enabled = !isBusy,
+                        onClick = { onCreateTopup(300.0) },
+                    )
+                    WalletQuickAction(
+                        label = "Send",
+                        icon = Heroicons.Outline.ArrowUpRight,
+                        enabled = !isBusy,
+                        onClick = { onCreateTopup(500.0) },
+                    )
+                    WalletQuickAction(
+                        label = "Transactions",
+                        icon = Heroicons.Outline.QueueList,
+                        enabled = !isBusy,
+                        onClick = { onCreateTopup(1000.0) },
+                    )
+                }
+            }
+        }
+
+        errorMessage?.let {
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                color = MaterialTheme.colorScheme.errorContainer,
+                contentColor = MaterialTheme.colorScheme.onErrorContainer,
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
@@ -250,7 +287,6 @@ private fun DriverWalletCard(
                         text = it,
                         modifier = Modifier.weight(1f),
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.error,
                     )
                     Text(
                         text = "Retry",
@@ -259,42 +295,57 @@ private fun DriverWalletCard(
                             .clickable(enabled = !isBusy) { onRetryClick() }
                             .padding(horizontal = 10.dp, vertical = 6.dp),
                         style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.primary,
                         fontWeight = FontWeight.SemiBold,
                     )
                 }
             }
-
-            pendingTopup?.let {
-                TopupReferencePanel(
-                    topup = it,
-                    canDismiss = selectedTopup != null,
-                    onDismiss = onClearSelectedTopup,
-                )
-            }
-
-            Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
-                Text(
-                    text = "Create kiosk top-up reference",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                )
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(7.dp),
-                ) {
-                    listOf(100.0, 300.0, 500.0, 1000.0).forEach { amount ->
-                        TopupAmountChip(
-                            label = formatWalletAmount(amount, "PHP"),
-                            enabled = !isBusy,
-                            onClick = { onCreateTopup(amount) },
-                            modifier = Modifier.weight(1f),
-                        )
-                    }
-                }
-            }
         }
+
+        pendingTopup?.let {
+            TopupReferencePanel(
+                topup = it,
+                canDismiss = selectedTopup != null,
+                onDismiss = onClearSelectedTopup,
+            )
+        }
+    }
+}
+
+@Composable
+private fun WalletQuickAction(
+    label: String,
+    icon: ImageVector,
+    enabled: Boolean,
+    onClick: () -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .clip(RoundedCornerShape(16.dp))
+            .clickable(enabled = enabled, onClick = onClick)
+            .padding(horizontal = 4.dp, vertical = 2.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(7.dp),
+    ) {
+        Box(
+            modifier = Modifier
+                .size(48.dp)
+                .background(Color.White.copy(alpha = if (enabled) 0.17f else 0.08f), CircleShape),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = label,
+                modifier = Modifier.size(22.dp),
+                tint = Color.White.copy(alpha = if (enabled) 0.95f else 0.45f),
+            )
+        }
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = Color.White.copy(alpha = if (enabled) 0.98f else 0.50f),
+            maxLines = 1,
+        )
     }
 }
 
@@ -445,84 +496,11 @@ private fun DriverStatePill(
 }
 
 @Composable
-private fun EarningsSummaryCard(
-    todaysEarning: String,
-    totalTrips: Int,
-    vehicleType: DriverHomeVehicleType,
-    status: DriverOnboardingStatus?,
-    modifier: Modifier = Modifier,
-) {
-    Surface(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(142.dp),
-        shape = RoundedCornerShape(8.dp),
-        color = MaterialTheme.colorScheme.surfaceContainer,
-        contentColor = MaterialTheme.colorScheme.onSurface,
-        tonalElevation = 0.dp,
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(start = 16.dp, top = 16.dp, end = 8.dp, bottom = 14.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(7.dp),
-            ) {
-                Text(
-                    text = "Today's Earning",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Text(
-                    text = todaysEarning,
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Text(
-                    text = if (status?.canGo == true) {
-                        "$totalTrips completed trips"
-                    } else {
-                        "Setup required before going online"
-                    },
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 2,
-                )
-            }
-
-            Box(
-                modifier = Modifier.size(width = 124.dp, height = 98.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                Image(
-                    painter = painterResource(vehicleType.illustration),
-                    contentDescription = null,
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Fit,
-                )
-            }
-        }
-    }
-}
-
-private val DriverHomeVehicleType.illustration: DrawableResource
-    get() = when (this) {
-        DriverHomeVehicleType.Motorcycle -> Res.drawable.home_scooter
-        DriverHomeVehicleType.Tricycle -> Res.drawable.home_tricycle
-        DriverHomeVehicleType.Car -> Res.drawable.home_car
-}
-
-@Composable
-private fun TodayStatsPanel(
-    totalTrips: Int,
-    onlineTime: String,
-    ratingLabel: String,
+private fun TotalStatsPanel(
+    isLoading: Boolean,
+    stats: DriverHomeStats?,
+    errorMessage: String?,
+    onRetryClick: () -> Unit,
 ) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
@@ -530,31 +508,70 @@ private fun TodayStatsPanel(
         color = MaterialTheme.colorScheme.surfaceContainer,
         contentColor = MaterialTheme.colorScheme.onSurface,
     ) {
-        Row(
+        Column(
             modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-            verticalAlignment = Alignment.CenterVertically,
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            DashboardStat(
-                label = "Trips",
-                value = totalTrips.toString(),
-                valueColor = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.weight(1f),
-            )
-            StatSeparator()
-            DashboardStat(
-                label = "Online",
-                value = onlineTime,
-                valueColor = MaterialTheme.colorScheme.secondary,
-                modifier = Modifier.weight(1f),
-            )
-            StatSeparator()
-            DashboardStat(
-                label = "Rating",
-                value = ratingLabel,
-                valueColor = MaterialTheme.colorScheme.tertiary,
-                modifier = Modifier.weight(1f),
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                DashboardStat(
+                    label = "Trips",
+                    value = stats?.totalTrips?.toString() ?: "0",
+                    valueColor = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.weight(1f),
+                )
+                StatSeparator()
+                DashboardStat(
+                    label = "Online",
+                    value = stats?.onlineSeconds.formatOnlineDuration(),
+                    valueColor = MaterialTheme.colorScheme.secondary,
+                    modifier = Modifier.weight(1f),
+                )
+                StatSeparator()
+                RatingDashboardStat(
+                    label = "Rating",
+                    value = stats.ratingValueLabel(),
+                    modifier = Modifier.weight(1f),
+                )
+            }
+            when {
+                isLoading -> {
+                    Text(
+                        text = "Updating stats...",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                errorMessage != null -> {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            text = errorMessage,
+                            modifier = Modifier.weight(1f),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.error,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        Text(
+                            text = "Retry",
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(999.dp))
+                                .clickable { onRetryClick() }
+                                .padding(horizontal = 8.dp, vertical = 4.dp),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                    }
+                }
+            }
         }
     }
 }
@@ -578,6 +595,45 @@ private fun DashboardStat(
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1,
+        )
+    }
+}
+
+@Composable
+private fun RatingDashboardStat(
+    label: String,
+    value: String,
+    modifier: Modifier = Modifier,
+) {
+    val starColor = Color(0xFFF5B301)
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(3.dp),
+    ) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                imageVector = Heroicons.Solid.Star,
+                contentDescription = null,
+                modifier = Modifier.size(16.dp),
+                tint = starColor,
+            )
+            Text(
+                text = value,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = starColor,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
         Text(
             text = label,
             style = MaterialTheme.typography.labelSmall,
@@ -935,4 +991,24 @@ private fun formatWalletAmount(amount: Double, currency: String): String {
         else -> "${currency.uppercase()} "
     }
     return "$prefix$whole.$fraction"
+}
+
+private fun Long?.formatOnlineDuration(): String {
+    val totalMinutes = ((this ?: 0L) / 60L).coerceAtLeast(0L)
+    val hours = totalMinutes / 60L
+    val minutes = totalMinutes % 60L
+
+    return when {
+        hours <= 0L -> "${minutes}m"
+        minutes == 0L -> "${hours}h"
+        else -> "${hours}h ${minutes}m"
+    }
+}
+
+private fun DriverHomeStats?.ratingValueLabel(): String {
+    val value = this?.rating?.value ?: return "New"
+    val tenths = (value * 10).roundToInt()
+    val whole = tenths / 10
+    val decimal = tenths % 10
+    return "$whole.$decimal"
 }

@@ -11,6 +11,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.noztek.esktransport.core.realtime.model.displayMessage
 import org.noztek.esktransport.core.realtime.model.matchesDriver
+import org.noztek.esktransport.feature.driver.home.domain.model.DriverHomeStats
+import org.noztek.esktransport.feature.driver.home.domain.usecase.GetDriverHomeStatsUseCase
 import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverOnboardingStatus
 import org.noztek.esktransport.feature.driver.onboarding.domain.usecase.GetDriverOnboardingStatusUseCase
 import org.noztek.esktransport.feature.driver.onboarding.domain.usecase.ObserveDriverOnboardingStatusChangedUseCase
@@ -23,12 +25,15 @@ import org.noztek.esktransport.feature.driver.wallet.domain.usecase.GetDriverWal
 
 data class HomeUiState(
     val isLoadingSetup: Boolean = true,
+    val isLoadingStats: Boolean = true,
     val isLoadingWallet: Boolean = true,
     val isCreatingTopup: Boolean = false,
+    val stats: DriverHomeStats? = null,
     val onboardingStatus: DriverOnboardingStatus? = null,
     val walletDashboard: DriverWalletDashboard? = null,
     val selectedTopup: DriverWalletTopup? = null,
     val errorMessage: String? = null,
+    val statsErrorMessage: String? = null,
     val walletErrorMessage: String? = null,
     val statusMessage: String? = null,
 )
@@ -38,6 +43,7 @@ class HomeViewModel(
     private val observeDriverOnboardingStatusChangedUseCase: ObserveDriverOnboardingStatusChangedUseCase,
     private val subscribeDriverOnboardingRealtimeUseCase: SubscribeDriverOnboardingRealtimeUseCase,
     private val unsubscribeDriverOnboardingRealtimeUseCase: UnsubscribeDriverOnboardingRealtimeUseCase,
+    private val getDriverHomeStatsUseCase: GetDriverHomeStatsUseCase,
     private val getDriverWalletUseCase: GetDriverWalletUseCase,
     private val createDriverTopupUseCase: CreateDriverTopupUseCase,
     private val ioDispatcher: CoroutineDispatcher,
@@ -48,6 +54,7 @@ class HomeViewModel(
     init {
         observeDriverOnboardingRealtime()
         refreshOnboardingStatus()
+        refreshStats()
         refreshWallet()
     }
 
@@ -119,6 +126,39 @@ class HomeViewModel(
                         it.copy(
                             isLoadingWallet = false,
                             walletErrorMessage = throwable.message ?: "Unable to load wallet.",
+                        )
+                    }
+                },
+            )
+        }
+    }
+
+    fun refreshStats(showLoading: Boolean = true) {
+        if (!showLoading && _uiState.value.isLoadingStats) return
+
+        viewModelScope.launch {
+            _uiState.update {
+                it.copy(
+                    isLoadingStats = showLoading,
+                    statsErrorMessage = null,
+                )
+            }
+            val result = withContext(ioDispatcher) { getDriverHomeStatsUseCase() }
+            result.fold(
+                onSuccess = { stats ->
+                    _uiState.update {
+                        it.copy(
+                            isLoadingStats = false,
+                            stats = stats,
+                            statsErrorMessage = null,
+                        )
+                    }
+                },
+                onFailure = { throwable ->
+                    _uiState.update {
+                        it.copy(
+                            isLoadingStats = false,
+                            statsErrorMessage = throwable.message ?: "Unable to load driver stats.",
                         )
                     }
                 },
