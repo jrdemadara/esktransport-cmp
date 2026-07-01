@@ -32,6 +32,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -50,10 +51,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.composables.icons.heroicons.Heroicons
+import com.composables.icons.heroicons.outline.AdjustmentsHorizontal
 import com.composables.icons.heroicons.outline.Check
 import com.composables.icons.heroicons.outline.ChatBubbleOvalLeft
 import com.composables.icons.heroicons.outline.MapPin
+import com.composables.icons.heroicons.outline.QueueList
 import com.composables.icons.heroicons.outline.ShieldCheck
+import com.composables.icons.heroicons.outline.User
+import com.composables.icons.heroicons.solid.User
 import kotlinx.coroutines.flow.collectLatest
 import org.koin.compose.viewmodel.koinViewModel
 import org.noztek.esktransport.core.ui.composables.common.HoldToCancelButton
@@ -124,9 +129,10 @@ fun TripNavigationScreen(
                     (uiState.isAtPickupPoint || session.status == "arriving_pickup")
                 var showPickupConfirmDialog by rememberSaveable(bookingPublicId) { mutableStateOf(false) }
                 BottomSheetScaffold(
-                    sheetPeekHeight = 70.dp,
+                    sheetPeekHeight = 64.dp,
                     sheetShape = RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp),
                     sheetContainerColor = MaterialTheme.colorScheme.background,
+                    sheetDragHandle = null,
                     sheetContent = {
                         TripNavigationBottomSheet(
                             passengerName = session.passengerName,
@@ -215,7 +221,7 @@ fun TripNavigationScreen(
                                         contentDescription = null,
                                     )
                                     Text(
-                                        if (uiState.isSubmittingPickup) "..." else "Passenger picked up",
+                                        if (uiState.isSubmittingPickup) "..." else "Confirm Pickup",
                                         style = MaterialTheme.typography.labelMedium,
                                     )
                                 }
@@ -272,13 +278,22 @@ private fun TripNavigationBottomSheet(
     val isPickupPhase = phase == RiderTripPhase.TO_PICKUP
     val currentStageTitle = if (isPickupPhase) "Pickup $passengerName" else "Dropoff $passengerName"
     val currentStageMetric = "$durationLabel • $distanceLabel"
+    val stageSummary = if (isPickupPhase) "Picking up $passengerName" else "Dropping off $passengerName"
 
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
+        NavigationPeekRow(
+            durationLabel = durationLabel,
+            distanceLabel = distanceLabel,
+            stageSummary = stageSummary,
+        )
+
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f))
+
         StageRow(
             currentStageTitle = currentStageTitle,
             fareLabel = fareLabel,
@@ -296,11 +311,7 @@ private fun TripNavigationBottomSheet(
             isPickupPhase = isPickupPhase,
         )
         Spacer(modifier = Modifier.height(2.dp))
-        Text(
-            text = "The passenger will be notified.",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+
         HoldToCancelButton(
             isCancelling = isCancelling,
             onCancel = onCancel,
@@ -314,12 +325,84 @@ private fun TripNavigationBottomSheet(
 }
 
 @Composable
+private fun NavigationPeekRow(
+    durationLabel: String,
+    distanceLabel: String,
+    stageSummary: String,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(64.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Icon(
+            imageVector = Heroicons.Outline.AdjustmentsHorizontal,
+            contentDescription = "Route options",
+            modifier = Modifier.size(22.dp),
+            tint = MaterialTheme.colorScheme.onSurface,
+        )
+
+        Column(
+            modifier = Modifier.weight(1f),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(2.dp),
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Text(
+                    text = durationLabel,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Surface(
+                    modifier = Modifier.size(18.dp),
+                    shape = CircleShape,
+                    color = Color(0xFF22A663),
+                    contentColor = Color.White,
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = Heroicons.Solid.User,
+                            contentDescription = null,
+                            modifier = Modifier.size(11.dp),
+                        )
+                    }
+                }
+                Text(
+                    text = distanceLabel,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+            }
+            Text(
+                text = stageSummary,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+            )
+        }
+
+        Icon(
+            imageVector = Heroicons.Outline.QueueList,
+            contentDescription = "Trip steps",
+            modifier = Modifier.size(23.dp),
+            tint = MaterialTheme.colorScheme.onSurface,
+        )
+    }
+}
+
+@Composable
 private fun StageRow(
     currentStageTitle: String,
     fareLabel: String?,
     modifier: Modifier = Modifier,
 ) {
-    val primaryColor = MaterialTheme.colorScheme.primary
     val infiniteTransition = rememberInfiniteTransition(label = "StatusDotPulse")
     val pulseScale by infiniteTransition.animateFloat(
         initialValue = 0.9f,
@@ -364,13 +447,13 @@ private fun StageRow(
                             alpha = pulseAlpha,
                         )
                         .clip(CircleShape)
-                        .background(primaryColor),
+                        .background(MaterialTheme.colorScheme.primary),
                 )
                 Box(
                     modifier = Modifier
                         .size(7.dp)
                         .clip(CircleShape)
-                        .background(primaryColor),
+                        .background(MaterialTheme.colorScheme.primary),
                 )
             }
 

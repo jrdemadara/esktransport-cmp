@@ -1,0 +1,28 @@
+package org.noztek.esktransport.feature.driver.wallet.data.remote
+
+import io.ktor.client.HttpClient
+import io.ktor.client.call.body
+import io.ktor.client.request.get
+import io.ktor.client.request.post
+import io.ktor.client.request.setBody
+import io.ktor.http.ContentType
+import io.ktor.http.contentType
+import org.noztek.esktransport.feature.driver.wallet.data.remote.dto.CreateDriverTopupRequestDto
+import org.noztek.esktransport.feature.driver.wallet.data.remote.dto.DriverWalletResponseDto
+import org.noztek.esktransport.feature.driver.wallet.data.remote.dto.DriverWalletTopupResponseDto
+
+class DriverWalletApi(
+    private val client: HttpClient,
+    private val baseUrl: String,
+) {
+    suspend fun getWallet(): DriverWalletResponseDto {
+        return client.get("${baseUrl.trimEnd('/')}/api/v1/rider/wallet").body()
+    }
+
+    suspend fun createTopup(request: CreateDriverTopupRequestDto): DriverWalletTopupResponseDto {
+        return client.post("${baseUrl.trimEnd('/')}/api/v1/rider/wallet/topups") {
+            contentType(ContentType.Application.Json)
+            setBody(request)
+        }.body()
+    }
+}

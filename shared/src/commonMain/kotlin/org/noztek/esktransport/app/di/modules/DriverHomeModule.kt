@@ -25,16 +25,25 @@ import org.noztek.esktransport.feature.driver.onboarding.domain.usecase.Subscrib
 import org.noztek.esktransport.feature.driver.onboarding.domain.usecase.UnsubscribeDriverOnboardingRealtimeUseCase
 import org.noztek.esktransport.feature.driver.onboarding.presentation.DriverOnboardingViewModel
 import org.noztek.esktransport.feature.driver.session.presentation.DriverSessionViewModel
+import org.noztek.esktransport.feature.driver.wallet.data.impl.DriverWalletRepositoryImpl
+import org.noztek.esktransport.feature.driver.wallet.data.remote.DriverWalletApi
+import org.noztek.esktransport.feature.driver.wallet.domain.repository.DriverWalletRepository
+import org.noztek.esktransport.feature.driver.wallet.domain.usecase.CreateDriverTopupUseCase
+import org.noztek.esktransport.feature.driver.wallet.domain.usecase.GetDriverWalletUseCase
 
 val driverHomeModule = module {
     single { GoApi(client = get(), baseUrl = get(named(API_BASE_URL_QUALIFIER))) }
     single<GoRepository> { GoRepositoryImpl(api = get()) }
     single { DriverOnboardingApi(client = get(), baseUrl = get(named(API_BASE_URL_QUALIFIER))) }
     single<DriverOnboardingRepository> { DriverOnboardingRepositoryImpl(api = get()) }
+    single { DriverWalletApi(client = get(), baseUrl = get(named(API_BASE_URL_QUALIFIER))) }
+    single<DriverWalletRepository> { DriverWalletRepositoryImpl(api = get()) }
     single { GetDriverAvailabilityUseCase(repository = get()) }
     single { SetDriverAvailabilityUseCase(repository = get()) }
     single { GetDriverOnboardingStatusUseCase(repository = get()) }
     single { GetDriverServiceZonesUseCase(repository = get()) }
+    single { GetDriverWalletUseCase(repository = get()) }
+    single { CreateDriverTopupUseCase(repository = get()) }
     single { ObserveDriverOnboardingStatusChangedUseCase(realtime = get()) }
     single { SubscribeDriverOnboardingRealtimeUseCase(realtime = get()) }
     single { UnsubscribeDriverOnboardingRealtimeUseCase(realtime = get()) }
@@ -56,6 +65,8 @@ val driverHomeModule = module {
             observeDriverOnboardingStatusChangedUseCase = get(),
             subscribeDriverOnboardingRealtimeUseCase = get(),
             unsubscribeDriverOnboardingRealtimeUseCase = get(),
+            getDriverWalletUseCase = get(),
+            createDriverTopupUseCase = get(),
             ioDispatcher = get(named(IO_DISPATCHER_QUALIFIER)),
         )
     }

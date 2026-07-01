@@ -1,5 +1,11 @@
 package org.noztek.esktransport.feature.passenger.trip_tracking.presentation
 
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -43,7 +49,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.composables.icons.heroicons.Heroicons
@@ -310,16 +318,68 @@ private fun TripTrackingTopAppBar(
         title = {
             Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
                 Text(
-                    text = "Session Status",
+                    text = "Trip Status",
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                Text(
-                    text = statusLabel,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
+
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(5.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    val infiniteTransition = rememberInfiniteTransition(label = "StatusDotPulse")
+                    val pulseScale by infiniteTransition.animateFloat(
+                        initialValue = 0.9f,
+                        targetValue = 1.35f,
+                        animationSpec = infiniteRepeatable(
+                            animation = tween(durationMillis = 1800, easing = FastOutSlowInEasing),
+                            repeatMode = RepeatMode.Reverse,
+                        ),
+                        label = "pulseScale",
+                    )
+                    val pulseAlpha by infiniteTransition.animateFloat(
+                        initialValue = 0.1f,
+                        targetValue = 0.45f,
+                        animationSpec = infiniteRepeatable(
+                            animation = tween(durationMillis = 1800, easing = FastOutSlowInEasing),
+                            repeatMode = RepeatMode.Reverse,
+                        ),
+                        label = "pulseAlpha",
+                    )
+
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier.size(16.dp),
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(14.dp)
+                                .graphicsLayer(
+                                    scaleX = pulseScale,
+                                    scaleY = pulseScale,
+                                    alpha = pulseAlpha,
+                                )
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.primary),
+                        )
+                        Box(
+                            modifier = Modifier
+                                .size(7.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.primary),
+                        )
+                    }
+                    Text(
+                        text = statusLabel,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                }
+
+
+
+
             }
         },
         actions = {

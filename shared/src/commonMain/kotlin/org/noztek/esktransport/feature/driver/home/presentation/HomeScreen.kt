@@ -2,6 +2,7 @@ package org.noztek.esktransport.feature.driver.home.presentation
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -60,6 +61,9 @@ import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverOnbo
 import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverOnboardingStatus
 import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverRequirementStatus
 import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverVehicleInfo
+import org.noztek.esktransport.feature.driver.wallet.domain.model.DriverWalletDashboard
+import org.noztek.esktransport.feature.driver.wallet.domain.model.DriverWalletTopup
+import kotlin.math.roundToInt
 
 enum class DriverHomeVehicleType {
     Motorcycle,
@@ -139,6 +143,16 @@ fun HomeScreen(
                 onlineTime = onlineTime,
                 ratingLabel = ratingLabel,
             )
+            DriverWalletCard(
+                isLoading = uiState.isLoadingWallet,
+                isCreatingTopup = uiState.isCreatingTopup,
+                dashboard = uiState.walletDashboard,
+                selectedTopup = uiState.selectedTopup,
+                errorMessage = uiState.walletErrorMessage,
+                onCreateTopup = viewModel::createTopup,
+                onClearSelectedTopup = viewModel::clearSelectedTopup,
+                onRetryClick = viewModel::refreshWallet,
+            )
 
             if (uiState.onboardingStatus?.canGo == true) {
                 AppPrimaryButton(
@@ -162,6 +176,219 @@ fun HomeScreen(
                 errorMessage = uiState.errorMessage,
                 onSetupClick = { onSetupClick(uiState.onboardingStatus) },
                 onRetryClick = viewModel::refreshOnboardingStatus,
+            )
+        }
+    }
+}
+
+@Composable
+private fun DriverWalletCard(
+    isLoading: Boolean,
+    isCreatingTopup: Boolean,
+    dashboard: DriverWalletDashboard?,
+    selectedTopup: DriverWalletTopup?,
+    errorMessage: String?,
+    onCreateTopup: (Double) -> Unit,
+    onClearSelectedTopup: () -> Unit,
+    onRetryClick: () -> Unit,
+) {
+    val balanceLabel = dashboard?.wallet?.let { formatWalletAmount(it.balance, it.currency) } ?: "PHP 0.00"
+    val pendingTopup = selectedTopup ?: dashboard?.pendingTopups?.firstOrNull()
+    val isBusy = isLoading || isCreatingTopup
+
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(14.dp),
+        color = MaterialTheme.colorScheme.surfaceContainer,
+        contentColor = MaterialTheme.colorScheme.onSurface,
+    ) {
+        Column(
+            modifier = Modifier.padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.Top,
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(3.dp),
+                ) {
+                    Text(
+                        text = "Driver wallet",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    Text(
+                        text = "Available balance",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                if (isBusy) {
+                    CircularProgressIndicator(modifier = Modifier.size(22.dp), strokeWidth = 2.dp)
+                }
+            }
+
+            Text(
+                text = balanceLabel,
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.primary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+
+            errorMessage?.let {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = it,
+                        modifier = Modifier.weight(1f),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                    Text(
+                        text = "Retry",
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(999.dp))
+                            .clickable(enabled = !isBusy) { onRetryClick() }
+                            .padding(horizontal = 10.dp, vertical = 6.dp),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
+            }
+
+            pendingTopup?.let {
+                TopupReferencePanel(
+                    topup = it,
+                    canDismiss = selectedTopup != null,
+                    onDismiss = onClearSelectedTopup,
+                )
+            }
+
+            Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
+                Text(
+                    text = "Create kiosk top-up reference",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(7.dp),
+                ) {
+                    listOf(100.0, 300.0, 500.0, 1000.0).forEach { amount ->
+                        TopupAmountChip(
+                            label = formatWalletAmount(amount, "PHP"),
+                            enabled = !isBusy,
+                            onClick = { onCreateTopup(amount) },
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun TopupReferencePanel(
+    topup: DriverWalletTopup,
+    canDismiss: Boolean,
+    onDismiss: () -> Unit,
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(10.dp),
+        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
+        contentColor = MaterialTheme.colorScheme.onSurface,
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(2.dp),
+            ) {
+                Text(
+                    text = "Kiosk reference",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Text(
+                    text = topup.referenceCode,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = "Show this at the kiosk for ${formatWalletAmount(topup.amount, topup.currency)}.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 2,
+                )
+            }
+            if (canDismiss) {
+                Text(
+                    text = "Done",
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(999.dp))
+                        .clickable { onDismiss() }
+                        .padding(horizontal = 10.dp, vertical = 7.dp),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.SemiBold,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun TopupAmountChip(
+    label: String,
+    enabled: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier
+            .height(38.dp)
+            .clip(RoundedCornerShape(999.dp))
+            .clickable(enabled = enabled, onClick = onClick),
+        shape = RoundedCornerShape(999.dp),
+        color = if (enabled) {
+            MaterialTheme.colorScheme.surface
+        } else {
+            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f)
+        },
+        contentColor = if (enabled) {
+            MaterialTheme.colorScheme.primary
+        } else {
+            MaterialTheme.colorScheme.onSurfaceVariant
+        },
+        tonalElevation = 0.dp,
+    ) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
         }
     }
@@ -696,4 +923,16 @@ private fun DriverVehicleInfo.detailLine(): String {
     val yearText = year?.toString()
     val capacityText = passengerCapacity?.let { "$it seats" }
     return listOfNotNull(plateText, yearText, capacityText).joinToString(" / ")
+}
+
+private fun formatWalletAmount(amount: Double, currency: String): String {
+    val cents = (amount * 100).roundToInt().coerceAtLeast(0)
+    val whole = cents / 100
+    val fraction = (cents % 100).toString().padStart(2, '0')
+    val prefix = when (currency.uppercase()) {
+        "PHP" -> "₱"
+        "USD" -> "\$"
+        else -> "${currency.uppercase()} "
+    }
+    return "$prefix$whole.$fraction"
 }

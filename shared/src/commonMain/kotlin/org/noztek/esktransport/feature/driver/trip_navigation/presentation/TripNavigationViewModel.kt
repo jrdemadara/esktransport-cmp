@@ -385,7 +385,7 @@ private data class StageRoute(
 )
 
 private const val LOCATION_PUBLISH_DISTANCE_METERS = 10.0
-private const val PICKUP_CONFIRM_DISTANCE_METERS = 40.0
+private const val PICKUP_CONFIRM_DISTANCE_METERS = 10.0
 private const val ENABLE_MOCK_DRIVER_LOCATION_UPDATES = false
 private const val MOCK_DRIVER_LOCATION_INTERVAL_MS = 5_000L
 
