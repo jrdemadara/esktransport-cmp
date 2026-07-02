@@ -2,8 +2,15 @@ package org.noztek.esktransport.feature.driver.wallet.domain.model
 
 data class DriverWalletDashboard(
     val wallet: DriverWallet,
+    val driverModeRequirement: DriverModeWalletRequirement,
     val recentLedgerEntries: List<DriverWalletLedgerEntry>,
     val pendingTopups: List<DriverWalletTopup>,
+)
+
+data class DriverModeWalletRequirement(
+    val currency: String,
+    val minimumWalletBalance: Double,
+    val hasMinimumWalletBalance: Boolean,
 )
 
 data class DriverWallet(

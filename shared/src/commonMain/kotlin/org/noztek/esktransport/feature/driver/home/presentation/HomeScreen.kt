@@ -151,9 +151,12 @@ fun HomeScreen(
                 onRetryClick = viewModel::refreshStats,
             )
             if (uiState.onboardingStatus?.canGo == true) {
+                val walletRequirement = uiState.walletDashboard?.driverModeRequirement
+                val hasRequiredBalance = walletRequirement?.hasMinimumWalletBalance == true
                 AppPrimaryButton(
                     text = "Switch to Driver Mode",
                     onClick = onDriverModeClick,
+                    enabled = hasRequiredBalance,
                     height = 44.dp,
                     contentPadding = PaddingValues(horizontal = 16.dp),
                     trailingIcon = {
@@ -164,6 +167,13 @@ fun HomeScreen(
                         )
                     },
                 )
+                if (walletRequirement != null && !hasRequiredBalance) {
+                    Text(
+                        text = "Add at least ${formatWalletAmount(walletRequirement.minimumWalletBalance, walletRequirement.currency)} to start Driver Mode.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             }
 
             DriverSetupCard(
@@ -190,6 +200,7 @@ private fun DriverWalletCard(
 ) {
     val balanceLabel = dashboard?.wallet?.let { formatWalletAmount(it.balance, it.currency) } ?: "PHP 0.00"
     val pendingTopup = selectedTopup ?: dashboard?.pendingTopups?.firstOrNull()
+    val requirement = dashboard?.driverModeRequirement
     val isBusy = isLoading || isCreatingTopup
     val brandBlue = MaterialTheme.colorScheme.primaryContainer
     val walletGradient = Brush.verticalGradient(
@@ -314,6 +325,22 @@ private fun DriverWalletCard(
                 canDismiss = selectedTopup != null,
                 onDismiss = onClearSelectedTopup,
             )
+        }
+
+        requirement?.takeIf { !it.hasMinimumWalletBalance }?.let {
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
+                contentColor = MaterialTheme.colorScheme.onSurface,
+            ) {
+                Text(
+                    text = "Driver Mode requires ${formatWalletAmount(it.minimumWalletBalance, it.currency)} minimum wallet balance.",
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
     }
 }

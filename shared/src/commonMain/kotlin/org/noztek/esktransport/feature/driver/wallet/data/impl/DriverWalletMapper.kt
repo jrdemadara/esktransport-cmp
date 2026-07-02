@@ -4,6 +4,8 @@ import org.noztek.esktransport.feature.driver.wallet.data.remote.dto.DriverWalle
 import org.noztek.esktransport.feature.driver.wallet.data.remote.dto.DriverWalletDto
 import org.noztek.esktransport.feature.driver.wallet.data.remote.dto.DriverWalletLedgerEntryDto
 import org.noztek.esktransport.feature.driver.wallet.data.remote.dto.DriverWalletTopupDto
+import org.noztek.esktransport.feature.driver.wallet.data.remote.dto.DriverModeWalletRequirementDto
+import org.noztek.esktransport.feature.driver.wallet.domain.model.DriverModeWalletRequirement
 import org.noztek.esktransport.feature.driver.wallet.domain.model.DriverWallet
 import org.noztek.esktransport.feature.driver.wallet.domain.model.DriverWalletDashboard
 import org.noztek.esktransport.feature.driver.wallet.domain.model.DriverWalletLedgerEntry
@@ -12,8 +14,17 @@ import org.noztek.esktransport.feature.driver.wallet.domain.model.DriverWalletTo
 fun DriverWalletDashboardDto.toDomain(): DriverWalletDashboard {
     return DriverWalletDashboard(
         wallet = wallet.toDomain(),
+        driverModeRequirement = driverModeRequirement.toDomain(),
         recentLedgerEntries = recentLedgerEntries.map { it.toDomain() },
         pendingTopups = pendingTopups.map { it.toDomain() },
+    )
+}
+
+fun DriverModeWalletRequirementDto.toDomain(): DriverModeWalletRequirement {
+    return DriverModeWalletRequirement(
+        currency = currency,
+        minimumWalletBalance = minimumWalletBalance,
+        hasMinimumWalletBalance = hasMinimumWalletBalance,
     )
 }
 

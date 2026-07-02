@@ -11,10 +11,21 @@ data class DriverWalletResponseDto(
 @Serializable
 data class DriverWalletDashboardDto(
     val wallet: DriverWalletDto,
+    @SerialName("driver_mode_requirement")
+    val driverModeRequirement: DriverModeWalletRequirementDto = DriverModeWalletRequirementDto(),
     @SerialName("recent_ledger_entries")
     val recentLedgerEntries: List<DriverWalletLedgerEntryDto> = emptyList(),
     @SerialName("pending_topups")
     val pendingTopups: List<DriverWalletTopupDto> = emptyList(),
+)
+
+@Serializable
+data class DriverModeWalletRequirementDto(
+    val currency: String = "PHP",
+    @SerialName("minimum_wallet_balance")
+    val minimumWalletBalance: Double = 0.0,
+    @SerialName("has_minimum_wallet_balance")
+    val hasMinimumWalletBalance: Boolean = true,
 )
 
 @Serializable
