@@ -6,6 +6,8 @@ import org.noztek.esktransport.feature.passenger.trip_tracking.domain.model.Trip
 data class TripTrackingUIState(
     val isLoading: Boolean = false,
     val isCancelling: Boolean = false,
+    val isSubmittingFeedback: Boolean = false,
+    val showFeedback: Boolean = false,
     val tripSession: TripTrackingSession? = null,
     val stage: TripTrackingStage = TripTrackingStage.ToPickup,
     val riderToPickupRoute: List<MapPoint> = emptyList(),

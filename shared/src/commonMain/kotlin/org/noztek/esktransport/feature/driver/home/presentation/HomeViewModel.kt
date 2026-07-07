@@ -11,6 +11,9 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.noztek.esktransport.core.realtime.model.displayMessage
 import org.noztek.esktransport.core.realtime.model.matchesDriver
+import org.noztek.esktransport.core.session.domain.usecase.ObserveCurrentSessionUseCase
+import org.noztek.esktransport.feature.driver.earning.domain.model.RiderEarningsDashboard
+import org.noztek.esktransport.feature.driver.earning.domain.usecase.GetRiderEarningsUseCase
 import org.noztek.esktransport.feature.driver.home.domain.model.DriverHomeStats
 import org.noztek.esktransport.feature.driver.home.domain.usecase.GetDriverHomeStatsUseCase
 import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverOnboardingStatus
@@ -24,27 +27,33 @@ import org.noztek.esktransport.feature.driver.wallet.domain.usecase.CreateDriver
 import org.noztek.esktransport.feature.driver.wallet.domain.usecase.GetDriverWalletUseCase
 
 data class HomeUiState(
+    val userName: String? = null,
     val isLoadingSetup: Boolean = true,
     val isLoadingStats: Boolean = true,
     val isLoadingWallet: Boolean = true,
+    val isLoadingEarnings: Boolean = true,
     val isCreatingTopup: Boolean = false,
     val stats: DriverHomeStats? = null,
+    val earningsDashboard: RiderEarningsDashboard? = null,
     val onboardingStatus: DriverOnboardingStatus? = null,
     val walletDashboard: DriverWalletDashboard? = null,
     val selectedTopup: DriverWalletTopup? = null,
     val errorMessage: String? = null,
     val statsErrorMessage: String? = null,
     val walletErrorMessage: String? = null,
+    val earningsErrorMessage: String? = null,
     val statusMessage: String? = null,
 )
 
 class HomeViewModel(
+    private val observeCurrentSessionUseCase: ObserveCurrentSessionUseCase,
     private val getDriverOnboardingStatusUseCase: GetDriverOnboardingStatusUseCase,
     private val observeDriverOnboardingStatusChangedUseCase: ObserveDriverOnboardingStatusChangedUseCase,
     private val subscribeDriverOnboardingRealtimeUseCase: SubscribeDriverOnboardingRealtimeUseCase,
     private val unsubscribeDriverOnboardingRealtimeUseCase: UnsubscribeDriverOnboardingRealtimeUseCase,
     private val getDriverHomeStatsUseCase: GetDriverHomeStatsUseCase,
     private val getDriverWalletUseCase: GetDriverWalletUseCase,
+    private val getRiderEarningsUseCase: GetRiderEarningsUseCase,
     private val createDriverTopupUseCase: CreateDriverTopupUseCase,
     private val ioDispatcher: CoroutineDispatcher,
 ) : ViewModel() {
@@ -52,10 +61,12 @@ class HomeViewModel(
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
 
     init {
+        observeSession()
         observeDriverOnboardingRealtime()
         refreshOnboardingStatus()
         refreshStats()
         refreshWallet()
+        refreshEarnings()
     }
 
     fun refreshOnboardingStatus(
@@ -166,6 +177,39 @@ class HomeViewModel(
         }
     }
 
+    fun refreshEarnings(showLoading: Boolean = true) {
+        if (!showLoading && _uiState.value.isLoadingEarnings) return
+
+        viewModelScope.launch {
+            _uiState.update {
+                it.copy(
+                    isLoadingEarnings = showLoading,
+                    earningsErrorMessage = null,
+                )
+            }
+            val result = withContext(ioDispatcher) { getRiderEarningsUseCase() }
+            result.fold(
+                onSuccess = { dashboard ->
+                    _uiState.update {
+                        it.copy(
+                            isLoadingEarnings = false,
+                            earningsDashboard = dashboard,
+                            earningsErrorMessage = null,
+                        )
+                    }
+                },
+                onFailure = { throwable ->
+                    _uiState.update {
+                        it.copy(
+                            isLoadingEarnings = false,
+                            earningsErrorMessage = throwable.message ?: "Unable to load earnings.",
+                        )
+                    }
+                },
+            )
+        }
+    }
+
     fun createTopup(amount: Double) {
         if (_uiState.value.isCreatingTopup) return
 
@@ -228,6 +272,14 @@ class HomeViewModel(
                         statusMessage = event.displayMessage(),
                     )
                 }
+            }
+        }
+    }
+
+    private fun observeSession() {
+        viewModelScope.launch {
+            observeCurrentSessionUseCase().collect { user ->
+                _uiState.update { it.copy(userName = user.name) }
             }
         }
     }

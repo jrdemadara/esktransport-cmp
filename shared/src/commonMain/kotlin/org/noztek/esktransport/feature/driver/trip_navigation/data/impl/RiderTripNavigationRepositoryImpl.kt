@@ -2,6 +2,7 @@ package org.noztek.esktransport.feature.rider.trip_navigation.data.impl
 
 import org.noztek.esktransport.core.network.ApiErrorParser
 import org.noztek.esktransport.feature.rider.trip_navigation.data.remote.RiderTripNavigationApi
+import org.noztek.esktransport.feature.rider.trip_navigation.data.remote.dto.RiderTripFeedbackRequestDto
 import org.noztek.esktransport.feature.rider.trip_navigation.data.remote.dto.RiderTripLocationUpdateRequestDto
 import org.noztek.esktransport.feature.rider.trip_navigation.domain.model.RiderTripPhase
 import org.noztek.esktransport.feature.rider.trip_navigation.domain.model.RiderTripPoint
@@ -60,6 +61,32 @@ class RiderTripNavigationRepositoryImpl(
             Result.success(Unit)
         } catch (throwable: Throwable) {
             val message = ApiErrorParser.parse(throwable, "Failed to confirm pickup.")
+            Result.failure(IllegalStateException(message))
+        }
+    }
+
+    override suspend fun completeTrip(bookingPublicId: String): Result<Unit> {
+        return try {
+            api.completeTrip(bookingPublicId)
+            Result.success(Unit)
+        } catch (throwable: Throwable) {
+            val message = ApiErrorParser.parse(throwable, "Failed to complete trip.")
+            Result.failure(IllegalStateException(message))
+        }
+    }
+
+    override suspend fun submitFeedback(bookingPublicId: String, rating: Int, comment: String?): Result<Unit> {
+        return try {
+            api.submitFeedback(
+                bookingPublicId = bookingPublicId,
+                request = RiderTripFeedbackRequestDto(
+                    rating = rating,
+                    comment = comment,
+                ),
+            )
+            Result.success(Unit)
+        } catch (throwable: Throwable) {
+            val message = ApiErrorParser.parse(throwable, "Failed to submit feedback.")
             Result.failure(IllegalStateException(message))
         }
     }

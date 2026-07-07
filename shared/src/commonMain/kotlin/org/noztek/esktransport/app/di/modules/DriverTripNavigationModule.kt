@@ -6,8 +6,10 @@ import org.noztek.esktransport.feature.rider.trip_navigation.data.impl.RiderTrip
 import org.noztek.esktransport.feature.rider.trip_navigation.data.remote.RiderTripNavigationApi
 import org.noztek.esktransport.feature.rider.trip_navigation.domain.repository.RiderTripNavigationRepository
 import org.noztek.esktransport.feature.rider.trip_navigation.domain.usecase.CancelRiderTripUseCase
+import org.noztek.esktransport.feature.rider.trip_navigation.domain.usecase.CompleteRiderTripUseCase
 import org.noztek.esktransport.feature.rider.trip_navigation.domain.usecase.ConfirmRiderPickupUseCase
 import org.noztek.esktransport.feature.rider.trip_navigation.domain.usecase.GetRiderTripSessionUseCase
+import org.noztek.esktransport.feature.rider.trip_navigation.domain.usecase.SubmitRiderTripFeedbackUseCase
 import org.noztek.esktransport.feature.rider.trip_navigation.domain.usecase.UpdateRiderTripLocationUseCase
 import org.noztek.esktransport.feature.driver.trip_navigation.presentation.TripNavigationViewModel
 
@@ -20,14 +22,18 @@ val driverTripNavigationModule = module {
     }
     single<RiderTripNavigationRepository> { RiderTripNavigationRepositoryImpl(api = get()) }
     single { CancelRiderTripUseCase(repository = get()) }
+    single { CompleteRiderTripUseCase(repository = get()) }
     single { ConfirmRiderPickupUseCase(repository = get()) }
     single { GetRiderTripSessionUseCase(repository = get()) }
+    single { SubmitRiderTripFeedbackUseCase(repository = get()) }
     single { UpdateRiderTripLocationUseCase(repository = get()) }
     factory {
         TripNavigationViewModel(
             getRiderTripSessionUseCase = get(),
             confirmRiderPickupUseCase = get(),
+            completeRiderTripUseCase = get(),
             cancelRiderTripUseCase = get(),
+            submitRiderTripFeedbackUseCase = get(),
             updateRiderTripLocationUseCase = get(),
             realtimeCoordinator = get(),
             currentLocationProvider = get(),

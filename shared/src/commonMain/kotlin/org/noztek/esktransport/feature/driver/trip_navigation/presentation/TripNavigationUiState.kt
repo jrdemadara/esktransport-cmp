@@ -6,8 +6,12 @@ import org.noztek.esktransport.feature.rider.trip_navigation.domain.model.RiderT
 data class TripNavigationUiState(
     val isLoading: Boolean = true,
     val isSubmittingPickup: Boolean = false,
+    val isCompletingTrip: Boolean = false,
+    val isSubmittingFeedback: Boolean = false,
     val isCancelling: Boolean = false,
+    val showFeedback: Boolean = false,
     val isAtPickupPoint: Boolean = false,
+    val isAtDestinationPoint: Boolean = false,
     val tripSession: RiderTripSession? = null,
     val routePoints: List<MapPoint> = emptyList(),
     val distanceMeters: Double? = null,

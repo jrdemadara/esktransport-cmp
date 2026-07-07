@@ -17,10 +17,14 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
@@ -33,9 +37,11 @@ import esktransport.shared.generated.resources.home_scooter
 import esktransport.shared.generated.resources.home_tricycle
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
+import org.koin.compose.viewmodel.koinViewModel
 import org.noztek.esktransport.core.ui.composables.driver.DriverBottomBar
 import org.noztek.esktransport.core.ui.composables.driver.DriverBottomBarRoute
 import org.noztek.esktransport.core.ui.composables.driver.DriverTopBar
+import kotlin.math.roundToInt
 
 enum class DriverEarningsVehicleType {
     Motorcycle,
@@ -51,7 +57,17 @@ fun EarningsScreen(
     onNotificationClick: () -> Unit = {},
     onProfileClick: () -> Unit = {},
     onBottomBarNavigate: (String) -> Unit = {},
+    viewModel: EarningsViewModel = koinViewModel(),
 ) {
+    val uiState by viewModel.uiState.collectAsState()
+    val dashboard = uiState.dashboard
+    val effectiveTodaysEarning = dashboard?.let { formatEarningAmount(it.today.netEarning, it.currency) } ?: todaysEarning
+    val effectiveTotalTrips = dashboard?.today?.completedTrips ?: totalTrips
+
+    LaunchedEffect(Unit) {
+        viewModel.load()
+    }
+
     Scaffold(
         topBar = {
             DriverTopBar(
@@ -78,10 +94,32 @@ fun EarningsScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             EarningsSummaryCard(
-                todaysEarning = todaysEarning,
-                totalTrips = totalTrips,
+                todaysEarning = effectiveTodaysEarning,
+                totalTrips = effectiveTotalTrips,
                 vehicleType = vehicleType,
             )
+            dashboard?.let {
+                EarningsBreakdownPanel(
+                    grossFare = formatEarningAmount(it.today.grossFare, it.currency),
+                    platformFee = formatEarningAmount(it.today.platformFee, it.currency),
+                    netEarning = formatEarningAmount(it.today.netEarning, it.currency),
+                )
+            }
+            if (uiState.isLoading) {
+                Box(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    CircularProgressIndicator()
+                }
+            }
+            uiState.error?.let { error ->
+                Text(
+                    text = error,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
         }
     }
 }
@@ -146,6 +184,80 @@ private fun EarningsSummaryCard(
             }
         }
     }
+}
+
+@Composable
+private fun EarningsBreakdownPanel(
+    grossFare: String,
+    platformFee: String,
+    netEarning: String,
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(18.dp),
+        color = MaterialTheme.colorScheme.surfaceContainer,
+        contentColor = MaterialTheme.colorScheme.onSurface,
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Text(
+                text = "Today",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+            )
+            EarningsMetricRow(label = "Cash collected", value = grossFare)
+            EarningsMetricRow(label = "Platform fee", value = platformFee)
+            HorizontalDividerCompat()
+            EarningsMetricRow(label = "Net income", value = netEarning, strong = true)
+        }
+    }
+}
+
+@Composable
+private fun EarningsMetricRow(
+    label: String,
+    value: String,
+    strong: Boolean = false,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Text(
+            text = value,
+            style = if (strong) MaterialTheme.typography.titleMedium else MaterialTheme.typography.bodyMedium,
+            fontWeight = if (strong) FontWeight.SemiBold else FontWeight.Medium,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+    }
+}
+
+@Composable
+private fun HorizontalDividerCompat() {
+    Surface(
+        modifier = Modifier.fillMaxWidth().height(1.dp),
+        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f),
+    ) {}
+}
+
+private fun formatEarningAmount(amount: Double, currency: String): String {
+    val cents = (amount * 100).roundToInt().coerceAtLeast(0)
+    val whole = cents / 100
+    val fraction = (cents % 100).toString().padStart(2, '0')
+    val prefix = when (currency.uppercase()) {
+        "PHP" -> "₱"
+        "USD" -> "\$"
+        else -> "${currency.uppercase()} "
+    }
+    return "$prefix$whole.$fraction"
 }
 
 private val DriverEarningsVehicleType.illustration: DrawableResource

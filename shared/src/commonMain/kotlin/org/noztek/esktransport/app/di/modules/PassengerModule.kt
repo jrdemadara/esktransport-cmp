@@ -33,6 +33,7 @@ import org.noztek.esktransport.feature.passenger.trip_tracking.data.impl.TripTra
 import org.noztek.esktransport.feature.passenger.trip_tracking.data.remote.TripTrackingApi
 import org.noztek.esktransport.feature.passenger.trip_tracking.domain.repository.TripTrackingRepository
 import org.noztek.esktransport.feature.passenger.trip_tracking.domain.usecase.CancelPassengerTripUseCase
+import org.noztek.esktransport.feature.passenger.trip_tracking.domain.usecase.SubmitPassengerTripFeedbackUseCase
 import org.noztek.esktransport.feature.passenger.trip_tracking.domain.usecase.TripTrackingUseCase
 import org.noztek.esktransport.feature.passenger.trip_tracking.presentation.TripTrackingViewModel
 import org.noztek.esktransport.feature.passenger.session.presentation.PassengerSessionViewModel
@@ -89,10 +90,12 @@ val passengerModule = module {
     single<TripTrackingRepository> { TripTrackingRepositoryImpl(api = get()) }
     single { TripTrackingUseCase(repository = get()) }
     single { CancelPassengerTripUseCase(repository = get()) }
+    single { SubmitPassengerTripFeedbackUseCase(repository = get()) }
     factory {
         TripTrackingViewModel(
             tripTrackingUseCase = get(),
             cancelPassengerTripUseCase = get(),
+            submitPassengerTripFeedbackUseCase = get(),
             getPassengerActiveBookingUseCase = get(),
             mapboxDirectionsClient = get(),
             realtimeCoordinator = get(),

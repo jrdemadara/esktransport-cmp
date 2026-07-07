@@ -10,8 +10,10 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -19,6 +21,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -27,14 +30,16 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.composables.icons.heroicons.Heroicons
 import com.composables.icons.heroicons.outline.Bell
 import com.composables.icons.heroicons.outline.User
 import esktransport.shared.generated.resources.Res
-import esktransport.shared.generated.resources.logo
 import esktransport.shared.generated.resources.logo_nobg
 import org.jetbrains.compose.resources.painterResource
+import org.noztek.esktransport.core.utils.uppercaseFirstLetterOfEachWord
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -44,6 +49,7 @@ fun DriverTopBar(
     modifier: Modifier = Modifier,
     profilePainter: Painter? = null,
     hasUnreadNotifications: Boolean = false,
+    greetingName: String? = null,
 ) {
     CenterAlignedTopAppBar(
         modifier = modifier,
@@ -54,7 +60,9 @@ fun DriverTopBar(
             navigationIconContentColor = MaterialTheme.colorScheme.onBackground,
         ),
         title = {},
-        navigationIcon = { DriverLogoBadge() },
+        navigationIcon = {
+            DriverTopBarBrand(greetingName = greetingName)
+        },
         actions = {
             Row(
                 horizontalArrangement = Arrangement.spacedBy(2.dp),
@@ -80,6 +88,32 @@ fun DriverTopBar(
             }
         },
     )
+}
+
+@Composable
+private fun DriverTopBarBrand(greetingName: String?) {
+    val displayName = greetingName
+        ?.trim()
+        ?.uppercaseFirstLetterOfEachWord()
+
+    Row(
+        modifier = Modifier.padding(start = 16.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        DriverLogoBadge()
+        if (!displayName.isNullOrBlank()) {
+            Text(
+                text = "Hello, $displayName!",
+                modifier = Modifier.widthIn(max = 150.dp),
+                style = MaterialTheme.typography.titleMediumEmphasized,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onBackground,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+    }
 }
 
 @Composable

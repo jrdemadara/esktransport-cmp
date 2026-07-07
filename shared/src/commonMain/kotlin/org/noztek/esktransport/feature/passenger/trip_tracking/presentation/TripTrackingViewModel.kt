@@ -16,6 +16,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.noztek.esktransport.core.map.MapPoint
 import org.noztek.esktransport.core.map.MapboxDirectionsClient
+import org.noztek.esktransport.core.realtime.model.PassengerTripCompletedEvent
 import org.noztek.esktransport.core.realtime.model.PassengerTripLocationUpdatedEvent
 import org.noztek.esktransport.core.realtime.passenger.PassengerRealtimeCoordinator
 import org.noztek.esktransport.feature.common.active_booking.domain.usecase.GetPassengerActiveBookingUseCase
@@ -23,6 +24,7 @@ import org.noztek.esktransport.feature.passenger.trip_tracking.domain.model.Late
 import org.noztek.esktransport.feature.passenger.trip_tracking.domain.model.TripPoint
 import org.noztek.esktransport.feature.passenger.trip_tracking.domain.model.TripTrackingSession
 import org.noztek.esktransport.feature.passenger.trip_tracking.domain.usecase.CancelPassengerTripUseCase
+import org.noztek.esktransport.feature.passenger.trip_tracking.domain.usecase.SubmitPassengerTripFeedbackUseCase
 import org.noztek.esktransport.feature.passenger.trip_tracking.domain.usecase.TripTrackingUseCase
 
 sealed class TripTrackingUiEvent {
@@ -32,6 +34,7 @@ sealed class TripTrackingUiEvent {
 class TripTrackingViewModel(
     private val tripTrackingUseCase: TripTrackingUseCase,
     private val cancelPassengerTripUseCase: CancelPassengerTripUseCase,
+    private val submitPassengerTripFeedbackUseCase: SubmitPassengerTripFeedbackUseCase,
     private val getPassengerActiveBookingUseCase: GetPassengerActiveBookingUseCase,
     private val mapboxDirectionsClient: MapboxDirectionsClient,
     private val realtimeCoordinator: PassengerRealtimeCoordinator,
@@ -89,9 +92,17 @@ class TripTrackingViewModel(
 
         realtimeJob = viewModelScope.launch {
             realtimeCoordinator.subscribePassengerDriverAssigned()
-            realtimeCoordinator.passengerTripLocationUpdated().collectLatest { event ->
-                if (event.bookingPublicId != bookingId) return@collectLatest
-                applyLocationUpdate(bookingId, event)
+            launch {
+                realtimeCoordinator.passengerTripLocationUpdated().collectLatest { event ->
+                    if (event.bookingPublicId != bookingId) return@collectLatest
+                    applyLocationUpdate(bookingId, event)
+                }
+            }
+            launch {
+                realtimeCoordinator.passengerTripCompleted().collectLatest { event ->
+                    if (event.bookingPublicId != bookingId) return@collectLatest
+                    applyTripCompleted(event)
+                }
             }
         }
         refreshJob = viewModelScope.launch {
@@ -163,6 +174,50 @@ class TripTrackingViewModel(
                 pickupToDestinationRoute = routes.pickupToDestinationRoute,
             )
         }
+    }
+
+    private fun applyTripCompleted(event: PassengerTripCompletedEvent) {
+        val currentSession = _uiState.value.tripSession
+        val updatedSession = currentSession?.copy(
+            status = "completed",
+            finalFare = event.finalFare ?: currentSession.finalFare,
+            currency = event.currency ?: currentSession.currency,
+        )
+        _uiState.value = _uiState.value.copy(
+            tripSession = updatedSession,
+            stage = TripTrackingStage.Completed,
+            showFeedback = true,
+        )
+    }
+
+    fun submitFeedback(bookingPublicId: String, rating: Int, comment: String?) {
+        if (bookingPublicId.isBlank() || _uiState.value.isSubmittingFeedback) return
+
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isSubmittingFeedback = true, error = null)
+            val result = withContext(ioDispatcher) {
+                submitPassengerTripFeedbackUseCase(
+                    bookingPublicId = bookingPublicId,
+                    rating = rating,
+                    comment = comment,
+                )
+            }
+            result.onSuccess {
+                _uiState.value = _uiState.value.copy(
+                    isSubmittingFeedback = false,
+                    showFeedback = false,
+                )
+            }.onFailure { error ->
+                _uiState.value = _uiState.value.copy(
+                    isSubmittingFeedback = false,
+                    error = error.message ?: "Failed to submit feedback.",
+                )
+            }
+        }
+    }
+
+    fun skipFeedback() {
+        _uiState.value = _uiState.value.copy(showFeedback = false)
     }
 
     private suspend fun refreshTripLocation(bookingId: String) {

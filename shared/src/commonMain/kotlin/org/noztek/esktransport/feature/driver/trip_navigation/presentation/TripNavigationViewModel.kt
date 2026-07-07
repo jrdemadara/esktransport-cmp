@@ -19,8 +19,10 @@ import org.noztek.esktransport.core.realtime.driver.DriverBookingOfferRealtime
 import org.noztek.esktransport.feature.rider.trip_navigation.domain.model.RiderTripPhase
 import org.noztek.esktransport.feature.rider.trip_navigation.domain.model.RiderTripSession
 import org.noztek.esktransport.feature.rider.trip_navigation.domain.usecase.CancelRiderTripUseCase
+import org.noztek.esktransport.feature.rider.trip_navigation.domain.usecase.CompleteRiderTripUseCase
 import org.noztek.esktransport.feature.rider.trip_navigation.domain.usecase.ConfirmRiderPickupUseCase
 import org.noztek.esktransport.feature.rider.trip_navigation.domain.usecase.GetRiderTripSessionUseCase
+import org.noztek.esktransport.feature.rider.trip_navigation.domain.usecase.SubmitRiderTripFeedbackUseCase
 import org.noztek.esktransport.feature.rider.trip_navigation.domain.usecase.UpdateRiderTripLocationUseCase
 import kotlin.math.PI
 import kotlin.math.atan2
@@ -35,7 +37,9 @@ sealed class TripNavigationUiEvent {
 class TripNavigationViewModel(
     private val getRiderTripSessionUseCase: GetRiderTripSessionUseCase,
     private val confirmRiderPickupUseCase: ConfirmRiderPickupUseCase,
+    private val completeRiderTripUseCase: CompleteRiderTripUseCase,
     private val cancelRiderTripUseCase: CancelRiderTripUseCase,
+    private val submitRiderTripFeedbackUseCase: SubmitRiderTripFeedbackUseCase,
     private val updateRiderTripLocationUseCase: UpdateRiderTripLocationUseCase,
     private val realtimeCoordinator: DriverBookingOfferRealtime,
     private val currentLocationProvider: CurrentLocationProvider,
@@ -124,6 +128,7 @@ class TripNavigationViewModel(
                                     isLoading = false,
                                     tripSession = session,
                                     isAtPickupPoint = session.status == "arriving_pickup",
+                                    isAtDestinationPoint = false,
                                     routePoints = routePoints,
                                     distanceMeters = summary?.distanceMeters,
                                     durationSeconds = summary?.durationSeconds,
@@ -135,6 +140,7 @@ class TripNavigationViewModel(
                                     isLoading = false,
                                     tripSession = session,
                                     isAtPickupPoint = session.status == "arriving_pickup",
+                                    isAtDestinationPoint = false,
                                     message = "Route loaded with fallback map data only.",
                                 )
                                 publishCurrentLocationSnapshot(bookingPublicId)
@@ -144,6 +150,7 @@ class TripNavigationViewModel(
                                 isLoading = false,
                                 tripSession = session,
                                 isAtPickupPoint = session.status == "arriving_pickup",
+                                isAtDestinationPoint = false,
                                 message = throwable.message ?: "Failed to load route.",
                             )
                             publishCurrentLocationSnapshot(bookingPublicId)
@@ -252,12 +259,64 @@ class TripNavigationViewModel(
         }
     }
 
+    fun completeTrip(bookingPublicId: String) {
+        if (bookingPublicId.isBlank() || _uiState.value.isCompletingTrip) return
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isCompletingTrip = true, message = null)
+            val result = withContext(ioDispatcher) {
+                completeRiderTripUseCase(bookingPublicId)
+            }
+            result.onSuccess {
+                _uiState.value = _uiState.value.copy(
+                    isCompletingTrip = false,
+                    showFeedback = true,
+                )
+            }.onFailure { error ->
+                _uiState.value = _uiState.value.copy(
+                    isCompletingTrip = false,
+                    message = error.message ?: "Failed to complete trip.",
+                )
+            }
+        }
+    }
+
+    fun submitFeedback(bookingPublicId: String, rating: Int, comment: String?) {
+        if (bookingPublicId.isBlank() || _uiState.value.isSubmittingFeedback) return
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isSubmittingFeedback = true, message = null)
+            val result = withContext(ioDispatcher) {
+                submitRiderTripFeedbackUseCase(
+                    bookingPublicId = bookingPublicId,
+                    rating = rating,
+                    comment = comment,
+                )
+            }
+            result.onSuccess {
+                _uiState.value = _uiState.value.copy(
+                    isSubmittingFeedback = false,
+                    showFeedback = false,
+                )
+                _uiEvents.tryEmit(TripNavigationUiEvent.NavigateToGoScreen)
+            }.onFailure { error ->
+                _uiState.value = _uiState.value.copy(
+                    isSubmittingFeedback = false,
+                    message = error.message ?: "Failed to submit feedback.",
+                )
+            }
+        }
+    }
+
+    fun skipFeedback() {
+        _uiState.value = _uiState.value.copy(showFeedback = false)
+        _uiEvents.tryEmit(TripNavigationUiEvent.NavigateToGoScreen)
+    }
+
     fun publishLocationIfNeeded(
         bookingPublicId: String,
         location: DriverNavigationLocation,
     ) {
         if (bookingPublicId.isBlank()) return
-        updatePickupProximity(location)
+        updateTripProximity(location)
         if (isPublishingLocation) return
         val previousLocation = lastPublishedLocation
         if (previousLocation != null && previousLocation.distanceToMeters(location) < LOCATION_PUBLISH_DISTANCE_METERS) return
@@ -296,25 +355,28 @@ class TripNavigationViewModel(
         }
     }
 
-    private fun updatePickupProximity(location: DriverNavigationLocation) {
+    private fun updateTripProximity(location: DriverNavigationLocation) {
         val session = _uiState.value.tripSession ?: return
-        if (session.phase != RiderTripPhase.TO_PICKUP) {
-            if (_uiState.value.isAtPickupPoint) {
-                _uiState.value = _uiState.value.copy(isAtPickupPoint = false)
-            }
-            return
+        val targetPoint = when (session.phase) {
+            RiderTripPhase.TO_PICKUP -> session.pickupPoint
+            RiderTripPhase.TO_DESTINATION -> session.destinationPoint
         }
-
-        val pickupLocation = DriverNavigationLocation(
-            latitude = session.pickupPoint.latitude,
-            longitude = session.pickupPoint.longitude,
+        val targetLocation = DriverNavigationLocation(
+            latitude = targetPoint.latitude,
+            longitude = targetPoint.longitude,
             bearing = null,
             speedKph = null,
             accuracyM = null,
         )
-        val isAtPickup = location.distanceToMeters(pickupLocation) <= PICKUP_CONFIRM_DISTANCE_METERS
-        if (_uiState.value.isAtPickupPoint != isAtPickup) {
-            _uiState.value = _uiState.value.copy(isAtPickupPoint = isAtPickup)
+        val isAtTarget = location.distanceToMeters(targetLocation) <= ARRIVAL_CONFIRM_DISTANCE_METERS
+        val isAtPickup = session.phase == RiderTripPhase.TO_PICKUP && isAtTarget
+        val isAtDestination = session.phase == RiderTripPhase.TO_DESTINATION && isAtTarget
+
+        if (_uiState.value.isAtPickupPoint != isAtPickup || _uiState.value.isAtDestinationPoint != isAtDestination) {
+            _uiState.value = _uiState.value.copy(
+                isAtPickupPoint = isAtPickup,
+                isAtDestinationPoint = isAtDestination,
+            )
         }
     }
 
@@ -385,7 +447,7 @@ private data class StageRoute(
 )
 
 private const val LOCATION_PUBLISH_DISTANCE_METERS = 10.0
-private const val PICKUP_CONFIRM_DISTANCE_METERS = 10.0
+private const val ARRIVAL_CONFIRM_DISTANCE_METERS = 10.0
 private const val ENABLE_MOCK_DRIVER_LOCATION_UPDATES = false
 private const val MOCK_DRIVER_LOCATION_INTERVAL_MS = 5_000L
 

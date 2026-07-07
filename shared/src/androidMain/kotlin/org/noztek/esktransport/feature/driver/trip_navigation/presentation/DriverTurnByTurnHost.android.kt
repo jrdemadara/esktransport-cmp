@@ -34,10 +34,21 @@ import com.mapbox.api.directions.v5.models.RouteOptions
 import com.mapbox.bindgen.Expected
 import com.mapbox.common.MapboxOptions
 import com.mapbox.common.location.Location
+import com.mapbox.geojson.Feature
+import com.mapbox.geojson.FeatureCollection
+import com.mapbox.geojson.LineString
 import com.mapbox.geojson.Point
 import com.mapbox.maps.EdgeInsets
 import com.mapbox.maps.ImageHolder
 import com.mapbox.maps.MapView
+import com.mapbox.maps.extension.style.layers.addLayer
+import com.mapbox.maps.extension.style.layers.generated.LineLayer
+import com.mapbox.maps.extension.style.layers.properties.generated.LineCap
+import com.mapbox.maps.extension.style.layers.properties.generated.LineJoin
+import com.mapbox.maps.extension.style.sources.addSource
+import com.mapbox.maps.extension.style.sources.generated.GeoJsonSource
+import com.mapbox.maps.extension.style.sources.generated.geoJsonSource
+import com.mapbox.maps.extension.style.sources.getSourceAs
 import com.mapbox.maps.plugin.animation.camera
 import com.mapbox.maps.plugin.LocationPuck2D
 import com.mapbox.maps.plugin.locationcomponent.location
@@ -128,6 +139,7 @@ private class AndroidDriverTurnByTurnHost(
     private val onLocationChanged: (DriverNavigationLocation) -> Unit,
 ) {
     val view: FrameLayout = FrameLayout(context)
+    private val configuredAccessToken = accessToken.also { MapboxOptions.accessToken = it }
 
     private val mapView = MapView(context).apply {
         layoutParams = FrameLayout.LayoutParams(
@@ -218,6 +230,7 @@ private class AndroidDriverTurnByTurnHost(
     private var routeRequestId: Long? = null
     private var pendingPickupPoint: MapPoint? = null
     private var pendingDestinationPoint: MapPoint? = null
+    private var pendingFallbackRoutePoints: List<MapPoint> = emptyList()
     private var isPickupStageConfirmed: Boolean = false
     private var waitingForLivePickupOrigin: Boolean = false
     private var isStyleLoaded: Boolean = false
@@ -242,6 +255,7 @@ private class AndroidDriverTurnByTurnHost(
         viewportDataSource.onRouteChanged(latestRoutes.first())
         viewportDataSource.evaluate()
         renderLatestRoutes()
+        clearFallbackRoute()
         navigationCamera.requestNavigationCameraToFollowing()
     }
 
@@ -319,7 +333,6 @@ private class AndroidDriverTurnByTurnHost(
     }
 
     init {
-        MapboxOptions.accessToken = accessToken
         view.addView(mapView)
         view.addView(maneuverView)
         view.addView(speedInfoView)
@@ -368,6 +381,7 @@ private class AndroidDriverTurnByTurnHost(
             mapView.location.puckBearingEnabled = true
             mapView.location.enabled = true
             seedDeviceLocationPuck()
+            renderFallbackRoute(pendingFallbackRoutePoints, fitCamera = true)
             renderLatestRoutes()
             soundButton.visibility = View.VISIBLE
             routeOverviewButton.visibility = if (latestRoutes.isNotEmpty()) View.VISIBLE else View.INVISIBLE
@@ -392,6 +406,7 @@ private class AndroidDriverTurnByTurnHost(
     ) {
         pendingPickupPoint = pickupPoint
         pendingDestinationPoint = destinationPoint
+        pendingFallbackRoutePoints = routePoints.takeIf { it.size >= 2 }.orEmpty()
         isPickupStageConfirmed = pickupConfirmed
 
         val stageKey = buildString {
@@ -419,6 +434,14 @@ private class AndroidDriverTurnByTurnHost(
         }
         val target = if (pickupConfirmed) destinationPoint else pickupPoint
         waitingForLivePickupOrigin = !pickupConfirmed && origin == null
+        renderFallbackRoute(
+            routePoints = when {
+                routePoints.size >= 2 -> routePoints
+                origin != null && !origin.isSamePointAs(target) -> listOf(origin, target)
+                !pickupPoint.isSamePointAs(destinationPoint) -> listOf(pickupPoint, destinationPoint)
+                else -> emptyList()
+            },
+        )
         if (waitingForLivePickupOrigin) {
             requestFreshDeviceLocationForPickup()
             return
@@ -553,6 +576,7 @@ private class AndroidDriverTurnByTurnHost(
     private fun applyDeviceLocation(location: android.location.Location) {
         println("DriverTurnByTurnHost device location lat=${location.latitude} lng=${location.longitude}")
         val mapboxLocation = location.toMapboxLocation()
+        onLocationChanged(mapboxLocation.toDriverNavigationLocation())
         navigationLocationProvider.changePosition(mapboxLocation, emptyList(), {}, {})
         viewportDataSource.onLocationChanged(mapboxLocation)
         viewportDataSource.evaluate()
@@ -593,6 +617,7 @@ private class AndroidDriverTurnByTurnHost(
             ) { location ->
                 if (location == null || isPickupStageConfirmed) return@getCurrentLocation
                 applyDeviceLocation(location)
+                renderFallbackRoute(listOf(MapPoint(location.latitude, location.longitude), pickup))
                 waitingForLivePickupOrigin = false
                 requestRoute(
                     origin = Point.fromLngLat(location.longitude, location.latitude),
@@ -605,6 +630,7 @@ private class AndroidDriverTurnByTurnHost(
                 { location ->
                     if (isPickupStageConfirmed) return@requestSingleUpdate
                     applyDeviceLocation(location)
+                    renderFallbackRoute(listOf(MapPoint(location.latitude, location.longitude), pickup))
                     waitingForLivePickupOrigin = false
                     requestRoute(
                         origin = Point.fromLngLat(location.longitude, location.latitude),
@@ -615,6 +641,80 @@ private class AndroidDriverTurnByTurnHost(
             )
         }
     }
+
+    private fun renderFallbackRoute(
+        routePoints: List<MapPoint>,
+        fitCamera: Boolean = true,
+    ) {
+        pendingFallbackRoutePoints = routePoints
+            .filter(MapPoint::isValidCoordinate)
+            .takeIf { it.size >= 2 }
+            .orEmpty()
+        if (!isStyleLoaded) return
+
+        val points = pendingFallbackRoutePoints
+        if (points.size < 2) {
+            clearFallbackRoute()
+            return
+        }
+
+        val style = mapView.getMapboxMap().getStyle() ?: return
+        val linePoints = points.map(MapPoint::toPoint)
+        val featureCollection = FeatureCollection.fromFeatures(
+            listOf(Feature.fromGeometry(LineString.fromLngLats(linePoints))),
+        )
+
+        if (style.styleSourceExists(FALLBACK_ROUTE_SOURCE_ID)) {
+            style.getSourceAs<GeoJsonSource>(FALLBACK_ROUTE_SOURCE_ID)
+                ?.featureCollection(featureCollection)
+        } else {
+            style.addSource(
+                geoJsonSource(FALLBACK_ROUTE_SOURCE_ID) {
+                    featureCollection(featureCollection)
+                },
+            )
+        }
+
+        if (style.styleLayerExists(FALLBACK_ROUTE_LAYER_ID)) {
+            style.removeStyleLayer(FALLBACK_ROUTE_LAYER_ID)
+        }
+
+        style.addLayer(
+            LineLayer(FALLBACK_ROUTE_LAYER_ID, FALLBACK_ROUTE_SOURCE_ID)
+                .lineColor("#2563EB")
+                .lineWidth(6.0)
+                .lineOpacity(0.9)
+                .lineCap(LineCap.ROUND)
+                .lineJoin(LineJoin.ROUND),
+        )
+
+        if (fitCamera) {
+            val camera = mapView.getMapboxMap().cameraForCoordinates(
+                linePoints,
+                EdgeInsets(180.0, 80.0, 260.0, 80.0),
+                null,
+                45.0,
+            )
+            mapView.getMapboxMap().setCamera(camera)
+        }
+    }
+
+    private fun clearFallbackRoute() {
+        val style = mapView.getMapboxMap().getStyle() ?: return
+        if (style.styleLayerExists(FALLBACK_ROUTE_LAYER_ID)) {
+            style.removeStyleLayer(FALLBACK_ROUTE_LAYER_ID)
+        }
+        if (style.styleSourceExists(FALLBACK_ROUTE_SOURCE_ID)) {
+            style.removeStyleSource(FALLBACK_ROUTE_SOURCE_ID)
+        }
+    }
+}
+
+private const val FALLBACK_ROUTE_SOURCE_ID = "driver-trip-fallback-route-source"
+private const val FALLBACK_ROUTE_LAYER_ID = "driver-trip-fallback-route-layer"
+
+private fun MapPoint.isValidCoordinate(): Boolean {
+    return latitude in -90.0..90.0 && longitude in -180.0..180.0
 }
 
 private fun createNavigationPuck(): LocationPuck2D {

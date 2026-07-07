@@ -61,7 +61,9 @@ import com.composables.icons.heroicons.outline.User
 import com.composables.icons.heroicons.solid.User
 import kotlinx.coroutines.flow.collectLatest
 import org.koin.compose.viewmodel.koinViewModel
+import org.noztek.esktransport.core.ui.composables.common.AppPrimaryButton
 import org.noztek.esktransport.core.ui.composables.common.HoldToCancelButton
+import org.noztek.esktransport.core.ui.composables.common.TripFeedbackDialog
 import org.noztek.esktransport.core.map.MapPoint
 import org.noztek.esktransport.core.map.MapboxConfig
 import org.noztek.esktransport.feature.rider.trip_navigation.domain.model.RiderTripPhase
@@ -125,9 +127,10 @@ fun TripNavigationScreen(
                 val session = uiState.tripSession ?: return@Surface
                 val pickup = MapPoint(session.pickupPoint.latitude, session.pickupPoint.longitude)
                 val destination = MapPoint(session.destinationPoint.latitude, session.destinationPoint.longitude)
-                val showConfirmPickup = session.phase == RiderTripPhase.TO_PICKUP &&
-                    (uiState.isAtPickupPoint || session.status == "arriving_pickup")
+                val showConfirmPickup = session.phase == RiderTripPhase.TO_PICKUP
+                val showCompleteTrip = session.phase == RiderTripPhase.TO_DESTINATION
                 var showPickupConfirmDialog by rememberSaveable(bookingPublicId) { mutableStateOf(false) }
+                var showCompleteTripDialog by rememberSaveable(bookingPublicId) { mutableStateOf(false) }
                 BottomSheetScaffold(
                     sheetPeekHeight = 64.dp,
                     sheetShape = RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp),
@@ -143,6 +146,9 @@ fun TripNavigationScreen(
                             durationLabel = formatDuration(uiState.durationSeconds),
                             distanceLabel = formatDistance(uiState.distanceMeters),
                             isCancelling = uiState.isCancelling,
+                            showConfirmPickup = showConfirmPickup,
+                            isSubmittingPickup = uiState.isSubmittingPickup,
+                            onConfirmPickup = { showPickupConfirmDialog = true },
                             onCancel = { viewModel.cancelTrip(bookingPublicId) },
                         )
                     },
@@ -201,11 +207,11 @@ fun TripNavigationScreen(
                                 .size(48.dp),
                         ) { Icon(Heroicons.Outline.ShieldCheck, contentDescription = "Safety") }
 
-                        if (showConfirmPickup) {
+                        if (showCompleteTrip) {
                             FloatingActionButton(
-                                onClick = { showPickupConfirmDialog = true },
-                                containerColor = Color.Black,
-                                contentColor = Color.White,
+                                onClick = { showCompleteTripDialog = true },
+                                containerColor = MaterialTheme.colorScheme.primary,
+                                contentColor = MaterialTheme.colorScheme.onPrimary,
                                 modifier = Modifier
                                     .align(Alignment.BottomEnd)
                                     .padding(end = 16.dp, bottom = 110.dp)
@@ -221,7 +227,7 @@ fun TripNavigationScreen(
                                         contentDescription = null,
                                     )
                                     Text(
-                                        if (uiState.isSubmittingPickup) "..." else "Confirm Pickup",
+                                        if (uiState.isCompletingTrip) "..." else "Complete Trip",
                                         style = MaterialTheme.typography.labelMedium,
                                     )
                                 }
@@ -256,10 +262,55 @@ fun TripNavigationScreen(
                                 },
                             )
                         }
+
+                        if (showCompleteTripDialog) {
+                            AlertDialog(
+                                onDismissRequest = {
+                                    if (!uiState.isCompletingTrip) showCompleteTripDialog = false
+                                },
+                                title = { Text("Complete trip") },
+                                text = { Text("Confirm that the passenger has paid in cash and the trip is complete.") },
+                                confirmButton = {
+                                    TextButton(
+                                        enabled = !uiState.isCompletingTrip,
+                                        onClick = {
+                                            showCompleteTripDialog = false
+                                            viewModel.completeTrip(bookingPublicId)
+                                        },
+                                    ) {
+                                        Text("Complete")
+                                    }
+                                },
+                                dismissButton = {
+                                    TextButton(
+                                        enabled = !uiState.isCompletingTrip,
+                                        onClick = { showCompleteTripDialog = false },
+                                    ) {
+                                        Text("Not yet")
+                                    }
+                                },
+                            )
+                        }
                     }
                 }
             }
         }
+    }
+
+    if (uiState.showFeedback) {
+        TripFeedbackDialog(
+            title = "Rate the passenger",
+            message = "Trip completed. Add a quick rating for this passenger.",
+            isSubmitting = uiState.isSubmittingFeedback,
+            onSubmit = { rating, comment ->
+                viewModel.submitFeedback(
+                    bookingPublicId = bookingPublicId,
+                    rating = rating,
+                    comment = comment,
+                )
+            },
+            onDismiss = viewModel::skipFeedback,
+        )
     }
 }
 
@@ -273,6 +324,9 @@ private fun TripNavigationBottomSheet(
     durationLabel: String,
     distanceLabel: String,
     isCancelling: Boolean,
+    showConfirmPickup: Boolean,
+    isSubmittingPickup: Boolean,
+    onConfirmPickup: () -> Unit,
     onCancel: () -> Unit,
 ) {
     val isPickupPhase = phase == RiderTripPhase.TO_PICKUP
@@ -311,6 +365,22 @@ private fun TripNavigationBottomSheet(
             isPickupPhase = isPickupPhase,
         )
         Spacer(modifier = Modifier.height(2.dp))
+
+        if (showConfirmPickup) {
+            AppPrimaryButton(
+                text = if (isSubmittingPickup) "Confirming..." else "Confirm Pickup",
+                onClick = onConfirmPickup,
+                enabled = !isSubmittingPickup,
+                height = 52.dp,
+                trailingIcon = {
+                    Icon(
+                        imageVector = Heroicons.Outline.Check,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp),
+                    )
+                },
+            )
+        }
 
         HoldToCancelButton(
             isCancelling = isCancelling,

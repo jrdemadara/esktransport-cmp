@@ -10,6 +10,11 @@ import org.noztek.esktransport.feature.driver.go.domain.usecase.AcceptOfferUseCa
 import org.noztek.esktransport.feature.driver.go.domain.usecase.ExpireOfferUseCase
 import org.noztek.esktransport.feature.driver.go.domain.usecase.GetDriverAvailabilityUseCase
 import org.noztek.esktransport.feature.driver.go.domain.usecase.SetDriverAvailabilityUseCase
+import org.noztek.esktransport.feature.driver.earning.data.impl.RiderEarningsRepositoryImpl
+import org.noztek.esktransport.feature.driver.earning.data.remote.RiderEarningsApi
+import org.noztek.esktransport.feature.driver.earning.domain.repository.RiderEarningsRepository
+import org.noztek.esktransport.feature.driver.earning.domain.usecase.GetRiderEarningsUseCase
+import org.noztek.esktransport.feature.driver.earning.presentation.EarningsViewModel
 import org.noztek.esktransport.feature.driver.home.data.impl.DriverHomeStatsRepositoryImpl
 import org.noztek.esktransport.feature.driver.home.data.remote.DriverHomeStatsApi
 import org.noztek.esktransport.feature.driver.home.domain.repository.DriverHomeStatsRepository
@@ -44,6 +49,8 @@ val driverHomeModule = module {
     single<DriverOnboardingRepository> { DriverOnboardingRepositoryImpl(api = get()) }
     single { DriverWalletApi(client = get(), baseUrl = get(named(API_BASE_URL_QUALIFIER))) }
     single<DriverWalletRepository> { DriverWalletRepositoryImpl(api = get()) }
+    single { RiderEarningsApi(client = get(), baseUrl = get(named(API_BASE_URL_QUALIFIER))) }
+    single<RiderEarningsRepository> { RiderEarningsRepositoryImpl(api = get()) }
     single { GetDriverAvailabilityUseCase(repository = get()) }
     single { SetDriverAvailabilityUseCase(repository = get()) }
     single { GetDriverHomeStatsUseCase(repository = get()) }
@@ -51,6 +58,7 @@ val driverHomeModule = module {
     single { GetDriverServiceZonesUseCase(repository = get()) }
     single { GetDriverWalletUseCase(repository = get()) }
     single { CreateDriverTopupUseCase(repository = get()) }
+    single { GetRiderEarningsUseCase(repository = get()) }
     single { ObserveDriverOnboardingStatusChangedUseCase(realtime = get()) }
     single { SubscribeDriverOnboardingRealtimeUseCase(realtime = get()) }
     single { UnsubscribeDriverOnboardingRealtimeUseCase(realtime = get()) }
@@ -68,12 +76,14 @@ val driverHomeModule = module {
     }
     factory {
         HomeViewModel(
+            observeCurrentSessionUseCase = get(),
             getDriverOnboardingStatusUseCase = get(),
             observeDriverOnboardingStatusChangedUseCase = get(),
             subscribeDriverOnboardingRealtimeUseCase = get(),
             unsubscribeDriverOnboardingRealtimeUseCase = get(),
             getDriverHomeStatsUseCase = get(),
             getDriverWalletUseCase = get(),
+            getRiderEarningsUseCase = get(),
             createDriverTopupUseCase = get(),
             ioDispatcher = get(named(IO_DISPATCHER_QUALIFIER)),
         )
@@ -106,6 +116,12 @@ val driverHomeModule = module {
             getActiveBookingUseCase = get(),
             realtimeCoordinator = get(),
             availabilityLifecycleCoordinator = get(),
+            ioDispatcher = get(named(IO_DISPATCHER_QUALIFIER)),
+        )
+    }
+    factory {
+        EarningsViewModel(
+            getRiderEarningsUseCase = get(),
             ioDispatcher = get(named(IO_DISPATCHER_QUALIFIER)),
         )
     }

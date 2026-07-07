@@ -388,7 +388,6 @@ final class IosMapboxViewFactory: NSObject, Shared.IosMapboxViewFactory {
             }
         }
 
-        let newCenter = CLLocationCoordinate2D(latitude: request.latitude, longitude: request.longitude)
         let center = CLLocationCoordinate2D(
             latitude: request.latitude,
             longitude: request.longitude
@@ -437,13 +436,20 @@ private extension UIColor {
 
 private extension UIImage {
     static func composeResourceImage(named name: String, type: String) -> UIImage? {
-        guard let path = Bundle.main.path(
-            forResource: name,
-            ofType: type,
-            inDirectory: "compose-resources/composeResources/asktransport_cmp.shared.generated.resources/drawable"
-        ) else {
-            return nil
+        let directories = [
+            "compose-resources/composeResources/esktransport.shared.generated.resources/drawable",
+            "compose-resources/composeResources/asktransport_cmp.shared.generated.resources/drawable",
+            "composeResources/esktransport.shared.generated.resources/drawable",
+            "composeResources/asktransport_cmp.shared.generated.resources/drawable",
+        ]
+
+        for directory in directories {
+            if let path = Bundle.main.path(forResource: name, ofType: type, inDirectory: directory),
+               let image = UIImage(contentsOfFile: path) {
+                return image
+            }
         }
-        return UIImage(contentsOfFile: path)
+
+        return UIImage(named: name)
     }
 }

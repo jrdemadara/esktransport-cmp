@@ -71,6 +71,7 @@ import org.noztek.esktransport.core.map.MapRouteLine
 import org.noztek.esktransport.core.map.MapboxConfig
 import org.noztek.esktransport.core.map.PlatformMapView
 import org.noztek.esktransport.core.ui.composables.common.HoldToCancelButton
+import org.noztek.esktransport.core.ui.composables.common.TripFeedbackDialog
 import org.noztek.esktransport.feature.passenger.trip_tracking.domain.model.LatestLocation
 import org.noztek.esktransport.feature.passenger.trip_tracking.domain.model.TripPoint
 import org.noztek.esktransport.feature.passenger.trip_tracking.domain.model.TripTrackingSession
@@ -93,6 +94,7 @@ fun TripTrackingScreen(
     val session = uiState.tripSession
     var initialCameraCenter by remember(bookingId) { mutableStateOf<MapPoint?>(null) }
     var initialCameraDefaults by remember(bookingId) { mutableStateOf<MapCameraDefaults?>(null) }
+    var cameraIncludesDriver by remember(bookingId) { mutableStateOf(false) }
     LaunchedEffect(bookingId) { viewModel.loadTripData(bookingId) }
 
     DisposableEffect(viewModel, bookingId) {
@@ -138,10 +140,14 @@ fun TripTrackingScreen(
         Box(modifier = Modifier.fillMaxSize().padding(contentPadding)) {
             val center = session?.tripMarkerCenter()
             val zoom = session?.tripMarkerZoom() ?: 13.5
-            LaunchedEffect(bookingId, center, zoom) {
-                if (center != null && initialCameraCenter == null) {
+            val hasDriverLocation = session?.latestLocation != null
+            LaunchedEffect(bookingId, center, zoom, hasDriverLocation) {
+                val shouldSetInitialCamera = center != null && initialCameraCenter == null
+                val shouldFitDriverOnce = center != null && hasDriverLocation && !cameraIncludesDriver
+                if (shouldSetInitialCamera || shouldFitDriverOnce) {
                     initialCameraCenter = center
                     initialCameraDefaults = MapCameraDefaults(zoom = zoom + 0.6, pitch = 65.0)
+                    cameraIncludesDriver = hasDriverLocation
                 }
             }
             val markers = session?.let { buildTripMarkers(it, uiState.stage) }.orEmpty()
@@ -177,6 +183,22 @@ fun TripTrackingScreen(
             )
 
         }
+    }
+
+    if (uiState.showFeedback) {
+        TripFeedbackDialog(
+            title = "Rate your ride",
+            message = "Trip completed. Add a quick rating for your driver.",
+            isSubmitting = uiState.isSubmittingFeedback,
+            onSubmit = { rating, comment ->
+                viewModel.submitFeedback(
+                    bookingPublicId = bookingId,
+                    rating = rating,
+                    comment = comment,
+                )
+            },
+            onDismiss = viewModel::skipFeedback,
+        )
     }
 }
 

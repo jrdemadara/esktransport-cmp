@@ -2,6 +2,7 @@ package org.noztek.esktransport.feature.passenger.trip_tracking.data.impl
 
 import org.noztek.esktransport.core.network.ApiErrorParser
 import org.noztek.esktransport.feature.passenger.trip_tracking.data.remote.TripTrackingApi
+import org.noztek.esktransport.feature.passenger.trip_tracking.data.remote.dto.TripFeedbackRequestDto
 import org.noztek.esktransport.feature.passenger.trip_tracking.domain.model.LatestLocation
 import org.noztek.esktransport.feature.passenger.trip_tracking.domain.model.RiderTripInfo
 import org.noztek.esktransport.feature.passenger.trip_tracking.domain.model.TripPoint
@@ -53,6 +54,22 @@ class TripTrackingRepositoryImpl(
             Result.success(Unit)
         } catch (throwable: Throwable) {
             val message = ApiErrorParser.parse(throwable, "Cancel trip failed.")
+            Result.failure(IllegalStateException(message))
+        }
+    }
+
+    override suspend fun submitFeedback(bookingPublicId: String, rating: Int, comment: String?): Result<Unit> {
+        return try {
+            api.submitFeedback(
+                bookingPublicId = bookingPublicId,
+                request = TripFeedbackRequestDto(
+                    rating = rating,
+                    comment = comment,
+                ),
+            )
+            Result.success(Unit)
+        } catch (throwable: Throwable) {
+            val message = ApiErrorParser.parse(throwable, "Failed to submit feedback.")
             Result.failure(IllegalStateException(message))
         }
     }

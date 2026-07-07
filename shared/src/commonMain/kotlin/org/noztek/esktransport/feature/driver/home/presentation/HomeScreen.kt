@@ -1,6 +1,8 @@
 package org.noztek.esktransport.feature.driver.home.presentation
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -11,9 +13,11 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -37,7 +41,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -46,14 +52,21 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.composables.icons.heroicons.Heroicons
 import com.composables.icons.heroicons.outline.ArrowDown
-import com.composables.icons.heroicons.outline.ArrowUp
-import com.composables.icons.heroicons.outline.ArrowUpRight
 import com.composables.icons.heroicons.outline.ChartBarSquare
 import com.composables.icons.heroicons.outline.ChevronRight
+import com.composables.icons.heroicons.outline.Clock
+import com.composables.icons.heroicons.outline.MapPin
 import com.composables.icons.heroicons.outline.PaperAirplane
 import com.composables.icons.heroicons.outline.Plus
+import com.composables.icons.heroicons.outline.PlusCircle
 import com.composables.icons.heroicons.outline.QueueList
+import com.composables.icons.heroicons.outline.Wallet
 import com.composables.icons.heroicons.solid.Star
+import com.composables.icons.heroicons.solid.Wallet
+import esktransport.shared.generated.resources.Res
+import esktransport.shared.generated.resources.blue_sedan
+import esktransport.shared.generated.resources.driver_main_card_background
+import org.jetbrains.compose.resources.painterResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.noztek.esktransport.core.ui.composables.common.AppPrimaryButton
 import org.noztek.esktransport.core.ui.composables.driver.DriverBottomBar
@@ -89,6 +102,7 @@ fun HomeScreen(
                 viewModel.refreshOnboardingStatus(showLoading = false)
                 viewModel.refreshStats(showLoading = false)
                 viewModel.refreshWallet(showLoading = false)
+                viewModel.refreshEarnings(showLoading = false)
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
@@ -105,6 +119,7 @@ fun HomeScreen(
     LaunchedEffect(statsRefreshToken) {
         if (statsRefreshToken > 0L) {
             viewModel.refreshStats(showLoading = false)
+            viewModel.refreshEarnings(showLoading = false)
         }
     }
 
@@ -114,6 +129,7 @@ fun HomeScreen(
             DriverTopBar(
                 onNotificationClick = onNotificationClick,
                 onProfileClick = onProfileClick,
+                greetingName = uiState.userName,
             )
         },
         bottomBar = {
@@ -131,10 +147,20 @@ fun HomeScreen(
                 .background(MaterialTheme.colorScheme.background)
                 .padding(innerPadding)
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp, vertical = 10.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            DriverWalletCard(
+            DriverMainStatusCard(
+                isLoading = uiState.isLoadingSetup,
+                status = uiState.onboardingStatus,
+                stats = uiState.stats,
+                todaysEarning = uiState.earningsDashboard?.today?.netEarning,
+                earningsCurrency = uiState.earningsDashboard?.currency ?: "PHP",
+                walletDashboard = uiState.walletDashboard,
+                onDriverModeClick = onDriverModeClick,
+                onSetupClick = { onSetupClick(uiState.onboardingStatus) },
+            )
+            DriverWalletStrip(
                 isLoading = uiState.isLoadingWallet,
                 isCreatingTopup = uiState.isCreatingTopup,
                 dashboard = uiState.walletDashboard,
@@ -144,37 +170,18 @@ fun HomeScreen(
                 onClearSelectedTopup = viewModel::clearSelectedTopup,
                 onRetryClick = viewModel::refreshWallet,
             )
-            TotalStatsPanel(
+            PerformancePanel(
                 isLoading = uiState.isLoadingStats,
                 stats = uiState.stats,
                 errorMessage = uiState.statsErrorMessage,
                 onRetryClick = viewModel::refreshStats,
             )
-            if (uiState.onboardingStatus?.canGo == true) {
-                val walletRequirement = uiState.walletDashboard?.driverModeRequirement
-                val hasRequiredBalance = walletRequirement?.hasMinimumWalletBalance == true
-                AppPrimaryButton(
-                    text = "Switch to Driver Mode",
-                    onClick = onDriverModeClick,
-                    enabled = hasRequiredBalance,
-                    height = 44.dp,
-                    contentPadding = PaddingValues(horizontal = 16.dp),
-                    trailingIcon = {
-                        Icon(
-                            imageVector = Heroicons.Outline.ChevronRight,
-                            contentDescription = null,
-                            modifier = Modifier.size(15.dp),
-                        )
-                    },
-                )
-                if (walletRequirement != null && !hasRequiredBalance) {
-                    Text(
-                        text = "Add at least ${formatWalletAmount(walletRequirement.minimumWalletBalance, walletRequirement.currency)} to start Driver Mode.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
+            DriverQuickActions(
+                onTripsClick = { onBottomBarNavigate(DriverBottomBarRoute.TRIPS) },
+                onEarningsClick = { onBottomBarNavigate(DriverBottomBarRoute.EARNINGS) },
+                onSupportClick = onProfileClick,
+                onVehicleClick = { onSetupClick(uiState.onboardingStatus) },
+            )
 
             DriverSetupCard(
                 isLoading = uiState.isLoadingSetup,
@@ -188,7 +195,346 @@ fun HomeScreen(
 }
 
 @Composable
-private fun DriverWalletCard(
+private fun DriverMainStatusCard(
+    isLoading: Boolean,
+    status: DriverOnboardingStatus?,
+    stats: DriverHomeStats?,
+    todaysEarning: Double?,
+    earningsCurrency: String,
+    walletDashboard: DriverWalletDashboard?,
+    onDriverModeClick: () -> Unit,
+    onSetupClick: () -> Unit,
+) {
+    val canGo = status?.canGo == true
+    val walletRequirement = walletDashboard?.driverModeRequirement
+    val hasRequiredBalance = walletRequirement?.hasMinimumWalletBalance != false
+    val canOpenDriverMode = canGo && hasRequiredBalance
+    val todaysEarningLabel = formatWalletAmount(todaysEarning ?: 0.0, earningsCurrency)
+    val cardShape = RoundedCornerShape(22.dp)
+
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(240.dp)
+            .clip(cardShape),
+        shape = cardShape,
+        color = Color(0xFF075BE8),
+        tonalElevation = 0.dp,
+        shadowElevation = 0.dp,
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .clip(cardShape),
+        ) {
+            Image(
+                painter = painterResource(Res.drawable.driver_main_card_background),
+                contentDescription = null,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .graphicsLayer(
+                        scaleX = 1.02f,
+                        scaleY = 1.02f,
+                    ),
+                contentScale = ContentScale.Crop,
+            )
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                Color(0xFF0F6BF2).copy(alpha = 0.16f),
+                                Color(0xFF0649C7).copy(alpha = 0.70f),
+                            ),
+                        ),
+                    ),
+            )
+
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(14.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(7.dp),
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                    ) {
+                        DriverStatusPill(
+                            isLoading = isLoading,
+                            canGo = canGo,
+                            status = status,
+                        )
+                        DriverRatingPill(rating = stats.ratingValueLabel())
+                    }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.Bottom,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        Column(
+                            modifier = Modifier.weight(1f),
+                            verticalArrangement = Arrangement.spacedBy(10.dp),
+                        ) {
+                            Text(
+                                text = if (canGo) "Ready to drive" else "Setup required",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                            Text(
+                                text = when {
+                                    canGo && hasRequiredBalance -> "Switch to Driver Mode \nwhen you are ready."
+                                    canGo -> "Top up your wallet to start accepting rides."
+                                    else -> "Finish verification before going online."
+                                },
+                                style = MaterialTheme.typography.bodySmall,
+                                color = Color.White.copy(alpha = 0.86f),
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                            DriverMainActionButton(
+                                text = if (canGo) "Driver Mode" else "Finish Setup",
+                                enabled = if (canGo) canOpenDriverMode else !isLoading,
+                                onClick = if (canGo) onDriverModeClick else onSetupClick,
+                            )
+                        }
+                        Image(
+                            painter = painterResource(Res.drawable.blue_sedan),
+                            contentDescription = null,
+                            modifier = Modifier
+                                .width(190.dp)
+                                .offset(y = 2.dp),
+                            contentScale = ContentScale.Fit,
+                        )
+                    }
+                }
+
+                if (canGo && walletRequirement != null && !hasRequiredBalance) {
+                    Text(
+                        text = "Minimum wallet balance: ${formatWalletAmount(walletRequirement.minimumWalletBalance, walletRequirement.currency)}",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = Color.White.copy(alpha = 0.88f),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(30.dp),
+                    color = Color(0xFF053DAD).copy(alpha = 0.74f),
+                    contentColor = Color.White,
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 9.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        MainMetric(
+                            icon = Heroicons.Outline.Plus,
+                            value = todaysEarningLabel,
+                            label = "Earned today",
+                            modifier = Modifier.weight(1f),
+                        )
+                        LightStatSeparator()
+                        MainMetric(
+                            icon = Heroicons.Outline.QueueList,
+                            value = stats?.totalTrips?.toString() ?: "0",
+                            label = "Trips",
+                            modifier = Modifier.weight(0.78f),
+                        )
+                        LightStatSeparator()
+                        MainMetric(
+                            icon = Heroicons.Outline.Clock,
+                            value = stats?.onlineSeconds.formatOnlineDuration(),
+                            label = "Online",
+                            modifier = Modifier.weight(0.85f),
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun DriverRatingPill(
+    rating: String,
+) {
+    Surface(
+        shape = RoundedCornerShape(999.dp),
+        color = Color.White.copy(alpha = 0.18f),
+        contentColor = Color.White,
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+            horizontalArrangement = Arrangement.spacedBy(5.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                imageVector = Heroicons.Solid.Star,
+                contentDescription = null,
+                modifier = Modifier.size(14.dp),
+                tint = Color(0xFFFFC44D),
+            )
+            Text(
+                text = rating,
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.Bold,
+                color = Color.White,
+                maxLines = 1,
+            )
+        }
+    }
+}
+
+@Composable
+private fun DriverStatusPill(
+    isLoading: Boolean,
+    canGo: Boolean,
+    status: DriverOnboardingStatus?,
+) {
+    val label = when {
+        isLoading -> "SYNCING"
+        canGo -> "READY"
+        status?.status == DriverOnboardingState.PendingReview -> "UNDER REVIEW"
+        status?.status == DriverOnboardingState.Rejected -> "ACTION NEEDED"
+        else -> "REQUIRED"
+    }
+    val dotColor = when {
+        canGo -> Color(0xFF22C55E)
+        status?.status == DriverOnboardingState.PendingReview -> Color(0xFFFACC15)
+        status?.status == DriverOnboardingState.Rejected -> Color(0xFFFF6B6B)
+        else -> Color.White.copy(alpha = 0.72f)
+    }
+
+    Surface(
+        shape = RoundedCornerShape(999.dp),
+        color = Color.White.copy(alpha = 0.92f),
+        contentColor = Color(0xFF0757D8),
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 11.dp, vertical = 6.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(8.dp)
+                    .background(dotColor, CircleShape),
+            )
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.Bold,
+                maxLines = 1,
+            )
+        }
+    }
+}
+
+@Composable
+private fun DriverMainActionButton(
+    text: String,
+    enabled: Boolean,
+    onClick: () -> Unit,
+) {
+    Surface(
+        modifier = Modifier
+            .height(40.dp)
+            .clip(RoundedCornerShape(999.dp))
+            .clickable(enabled = enabled, onClick = onClick),
+        shape = RoundedCornerShape(999.dp),
+        color = Color.White.copy(alpha = if (enabled) 0.96f else 0.56f),
+        contentColor = Color(0xFF075BE8),
+        shadowElevation = 1.dp,
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(7.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = text,
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Bold,
+                maxLines = 1,
+            )
+            Icon(
+                imageVector = Heroicons.Outline.ChevronRight,
+                contentDescription = null,
+                modifier = Modifier.size(15.dp),
+            )
+        }
+    }
+}
+
+@Composable
+private fun MainMetric(
+    icon: ImageVector,
+    value: String,
+    label: String,
+    modifier: Modifier = Modifier,
+    iconTint: Color = Color.White,
+) {
+    Row(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(7.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(
+            modifier = Modifier
+                .size(28.dp)
+                .background(Color.White.copy(alpha = 0.15f), CircleShape),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                modifier = Modifier.size(16.dp),
+                tint = iconTint,
+            )
+        }
+        Column(verticalArrangement = Arrangement.spacedBy(0.dp)) {
+            Text(
+                text = value,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                color = Color.White,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelSmall,
+                color = Color.White.copy(alpha = 0.82f),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+    }
+}
+
+@Composable
+private fun LightStatSeparator() {
+    Box(
+        modifier = Modifier
+            .padding(horizontal = 6.dp)
+            .size(width = 1.dp, height = 34.dp)
+            .background(Color.White.copy(alpha = 0.20f)),
+    )
+}
+
+@Composable
+private fun DriverWalletStrip(
     isLoading: Boolean,
     isCreatingTopup: Boolean,
     dashboard: DriverWalletDashboard?,
@@ -200,90 +546,97 @@ private fun DriverWalletCard(
 ) {
     val balanceLabel = dashboard?.wallet?.let { formatWalletAmount(it.balance, it.currency) } ?: "PHP 0.00"
     val pendingTopup = selectedTopup ?: dashboard?.pendingTopups?.firstOrNull()
-    val requirement = dashboard?.driverModeRequirement
     val isBusy = isLoading || isCreatingTopup
-    val brandBlue = MaterialTheme.colorScheme.primaryContainer
-    val walletGradient = Brush.verticalGradient(
-        colors = listOf(
-            Color(0xFF4F8DFF),
-            brandBlue,
-            Color(0xFF002D88),
-        ),
-    )
 
     Column(
         modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(188.dp)
-                .clip(RoundedCornerShape(28.dp))
-                .background(walletGradient),
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(20.dp),
+            color = MaterialTheme.colorScheme.surfaceContainer,
+            contentColor = MaterialTheme.colorScheme.onSurface,
+            shadowElevation = 0.5.dp,
         ) {
-            if (isBusy) {
-                CircularProgressIndicator(
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(18.dp)
-                        .size(22.dp),
-                    strokeWidth = 2.dp,
-                    color = Color.White,
-                )
-            }
-
-            Column(
+            Row(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 18.dp, vertical = 18.dp),
-                verticalArrangement = Arrangement.SpaceBetween,
+                    .fillMaxWidth()
+                    .padding(horizontal = 12.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Box(
+                    modifier = Modifier
+                        .size(44.dp)
+                        .background(MaterialTheme.colorScheme.primary, CircleShape),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = Heroicons.Solid.Wallet,
+                        contentDescription = null,
+                        modifier = Modifier.size(23.dp),
+                        tint = MaterialTheme.colorScheme.onPrimary,
+                    )
+                }
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(1.dp),
+                ) {
                     Text(
-                        text = "Total balance",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = Color.White.copy(alpha = 0.78f),
-                        fontWeight = FontWeight.Medium,
+                        text = "Balance",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
                     )
                     Text(
                         text = balanceLabel,
-                        style = MaterialTheme.typography.headlineLarge,
+                        style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold,
-                        color = Color.White,
+                        color = MaterialTheme.colorScheme.onSurface,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
                 }
 
+                Box(
+                    modifier = Modifier
+                        .size(width = 1.dp, height = 58.dp)
+                        .background(MaterialTheme.colorScheme.outlineVariant),
+                )
+
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.Bottom,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
                     WalletQuickAction(
                         label = "Top Up",
-                        icon = Heroicons.Outline.ArrowUp,
+                        icon = Heroicons.Outline.Plus,
+                        color = MaterialTheme.colorScheme.primary,
                         enabled = !isBusy,
                         onClick = { onCreateTopup(100.0) },
                     )
                     WalletQuickAction(
                         label = "Cashout",
                         icon = Heroicons.Outline.ArrowDown,
+                        color = Color(0xFF21B36B),
                         enabled = !isBusy,
-                        onClick = { onCreateTopup(300.0) },
+                        onClick = {},
                     )
+                    //todo:future implementation
+//                    WalletQuickAction(
+//                        label = "Send",
+//                        icon = Heroicons.Outline.PaperAirplane,
+//                        color = MaterialTheme.colorScheme.secondary,
+//                        enabled = !isBusy,
+//                        onClick = {},
+//                    )
                     WalletQuickAction(
-                        label = "Send",
-                        icon = Heroicons.Outline.ArrowUpRight,
-                        enabled = !isBusy,
-                        onClick = { onCreateTopup(500.0) },
-                    )
-                    WalletQuickAction(
-                        label = "Transactions",
+                        label = "History",
                         icon = Heroicons.Outline.QueueList,
+                        color = MaterialTheme.colorScheme.tertiary,
                         enabled = !isBusy,
-                        onClick = { onCreateTopup(1000.0) },
+                        onClick = {},
                     )
                 }
             }
@@ -327,21 +680,26 @@ private fun DriverWalletCard(
             )
         }
 
-        requirement?.takeIf { !it.hasMinimumWalletBalance }?.let {
-            Surface(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
-                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
-                contentColor = MaterialTheme.colorScheme.onSurface,
-            ) {
-                Text(
-                    text = "Driver Mode requires ${formatWalletAmount(it.minimumWalletBalance, it.currency)} minimum wallet balance.",
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        }
+    }
+}
+
+@Composable
+private fun DriverModeRequirementMessage(
+    minimumBalance: Double,
+    currency: String,
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
+        contentColor = MaterialTheme.colorScheme.onSurface,
+    ) {
+        Text(
+            text = "Driver Mode requires ${formatWalletAmount(minimumBalance, currency)} minimum wallet balance.",
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 
@@ -349,36 +707,38 @@ private fun DriverWalletCard(
 private fun WalletQuickAction(
     label: String,
     icon: ImageVector,
+    color: Color,
     enabled: Boolean,
     onClick: () -> Unit,
 ) {
     Column(
         modifier = Modifier
-            .clip(RoundedCornerShape(16.dp))
+            .clip(RoundedCornerShape(14.dp))
             .clickable(enabled = enabled, onClick = onClick)
-            .padding(horizontal = 4.dp, vertical = 2.dp),
+            .padding(horizontal = 2.dp, vertical = 2.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(7.dp),
+        verticalArrangement = Arrangement.spacedBy(5.dp),
     ) {
         Box(
             modifier = Modifier
-                .size(48.dp)
-                .background(Color.White.copy(alpha = if (enabled) 0.17f else 0.08f), CircleShape),
+                .size(38.dp)
+                .background(color, CircleShape),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
                 imageVector = icon,
                 contentDescription = label,
-                modifier = Modifier.size(22.dp),
-                tint = Color.White.copy(alpha = if (enabled) 0.95f else 0.45f),
+                modifier = Modifier.size(20.dp),
+                tint = Color.White
             )
         }
         Text(
             text = label,
-            style = MaterialTheme.typography.labelMedium,
-            fontWeight = FontWeight.SemiBold,
-            color = Color.White.copy(alpha = if (enabled) 0.98f else 0.50f),
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.Medium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = if (enabled) 1f else 0.5f),
             maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
         )
     }
 }
@@ -530,7 +890,7 @@ private fun DriverStatePill(
 }
 
 @Composable
-private fun TotalStatsPanel(
+private fun PerformancePanel(
     isLoading: Boolean,
     stats: DriverHomeStats?,
     errorMessage: String?,
@@ -538,36 +898,75 @@ private fun TotalStatsPanel(
 ) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(14.dp),
+        shape = RoundedCornerShape(20.dp),
         color = MaterialTheme.colorScheme.surfaceContainer,
         contentColor = MaterialTheme.colorScheme.onSurface,
+        shadowElevation = 0.5.dp,
     ) {
         Column(
-            modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.padding(horizontal = 13.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Text(
+                    text = "Today's Performance",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Text(
+                    text = "View details",
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(999.dp))
+                        .clickable { onRetryClick() }
+                        .padding(horizontal = 8.dp, vertical = 4.dp),
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            }
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(14.dp))
+                    .border(
+                        width = 1.dp,
+                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f),
+                        shape = RoundedCornerShape(14.dp),
+                    )
+                    .background(MaterialTheme.colorScheme.surface)
+                    .padding(horizontal = 10.dp, vertical = 12.dp),
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                DashboardStat(
-                    label = "Trips",
+                PerformanceMetric(
+                    icon = Heroicons.Outline.QueueList,
+                    iconColor = MaterialTheme.colorScheme.primary,
+                    containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.10f),
                     value = stats?.totalTrips?.toString() ?: "0",
-                    valueColor = MaterialTheme.colorScheme.primary,
+                    label = "Trips",
                     modifier = Modifier.weight(1f),
                 )
                 StatSeparator()
-                DashboardStat(
-                    label = "Online",
+                PerformanceMetric(
+                    icon = Heroicons.Outline.Clock,
+                    iconColor = Color(0xFF20B66A),
+                    containerColor = Color(0xFF20B66A).copy(alpha = 0.12f),
                     value = stats?.onlineSeconds.formatOnlineDuration(),
-                    valueColor = MaterialTheme.colorScheme.secondary,
+                    label = "Online",
                     modifier = Modifier.weight(1f),
                 )
                 StatSeparator()
-                RatingDashboardStat(
-                    label = "Rating",
+                PerformanceMetric(
+                    icon = Heroicons.Solid.Star,
+                    iconColor = Color(0xFFF5B301),
+                    containerColor = Color(0xFFF5B301).copy(alpha = 0.16f),
                     value = stats.ratingValueLabel(),
+                    label = "Rating",
                     modifier = Modifier.weight(1f),
                 )
             }
@@ -611,30 +1010,146 @@ private fun TotalStatsPanel(
 }
 
 @Composable
-private fun DashboardStat(
-    label: String,
+private fun PerformanceMetric(
+    icon: ImageVector,
+    iconColor: Color,
+    containerColor: Color,
     value: String,
-    valueColor: Color,
+    label: String,
     modifier: Modifier = Modifier,
 ) {
-    Column(
+    Row(
         modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(3.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(
-            text = value,
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold,
-            color = valueColor,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
+        Box(
+            modifier = Modifier
+                .size(38.dp)
+                .background(containerColor, CircleShape),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                modifier = Modifier.size(21.dp),
+                tint = iconColor,
+            )
+        }
+        Column(verticalArrangement = Arrangement.spacedBy(0.dp)) {
+            Text(
+                text = value,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+    }
+}
+
+@Composable
+private fun DriverQuickActions(
+    onTripsClick: () -> Unit,
+    onEarningsClick: () -> Unit,
+    onSupportClick: () -> Unit,
+    onVehicleClick: () -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        DriverQuickActionTile(
+            title = "Trips",
+            subtitle = "History",
+            icon = Heroicons.Outline.QueueList,
+            iconColor = MaterialTheme.colorScheme.primary,
+            onClick = onTripsClick,
+            modifier = Modifier.weight(1f),
         )
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            maxLines = 1,
+        DriverQuickActionTile(
+            title = "Earnings",
+            subtitle = "Income",
+            icon = Heroicons.Outline.ChartBarSquare,
+            iconColor = Color(0xFF16A661),
+            onClick = onEarningsClick,
+            modifier = Modifier.weight(1f),
         )
+        DriverQuickActionTile(
+            title = "Support",
+            subtitle = "Help",
+            icon = Heroicons.Outline.PaperAirplane,
+            iconColor = Color(0xFF7C3AED),
+            onClick = onSupportClick,
+            modifier = Modifier.weight(1f),
+        )
+        DriverQuickActionTile(
+            title = "Vehicle",
+            subtitle = "Manage",
+            icon = Heroicons.Outline.MapPin,
+            iconColor = Color(0xFFF59E0B),
+            onClick = onVehicleClick,
+            modifier = Modifier.weight(1f),
+        )
+    }
+}
+
+@Composable
+private fun DriverQuickActionTile(
+    title: String,
+    subtitle: String,
+    icon: ImageVector,
+    iconColor: Color,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier
+            .height(86.dp)
+            .clip(RoundedCornerShape(16.dp))
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.surfaceContainer,
+        contentColor = MaterialTheme.colorScheme.onSurface,
+        tonalElevation = 0.dp,
+        shadowElevation = 1.dp,
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 10.dp),
+            verticalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                modifier = Modifier.size(22.dp),
+                tint = iconColor,
+            )
+            Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        }
     }
 }
 
