@@ -220,8 +220,8 @@ private fun AmountCard(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(14.dp),
         color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 1.dp,
-        shadowElevation = 2.dp,
+        tonalElevation = 0.5.dp,
+        shadowElevation = 0.5.dp,
     ) {
         Column(
             modifier = Modifier.padding(12.dp),
@@ -336,8 +336,8 @@ private fun KioskQrCard(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(14.dp),
         color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 1.dp,
-        shadowElevation = 2.dp,
+        tonalElevation = 0.5.dp,
+        shadowElevation = 0.5.dp,
     ) {
         Column(
             modifier = Modifier.padding(horizontal = 10.dp, vertical = 12.dp),
@@ -366,7 +366,7 @@ private fun KioskQrCard(
                     modifier = Modifier.width(172.dp).aspectRatio(1f),
                     shape = RoundedCornerShape(12.dp),
                     color = Color.White,
-                    shadowElevation = 2.dp,
+                    shadowElevation = 0.5.dp,
                 ) {
                     QrPreview(
                         payload = qrPayload.orEmpty(),
@@ -474,8 +474,8 @@ private fun TopUpStepsCard() {
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(14.dp),
         color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 1.dp,
-        shadowElevation = 2.dp,
+        tonalElevation = 0.5.dp,
+        shadowElevation = 0.5.dp,
     ) {
         Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
             StepRow(

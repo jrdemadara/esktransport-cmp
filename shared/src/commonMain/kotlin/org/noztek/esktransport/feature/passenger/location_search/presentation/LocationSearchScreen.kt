@@ -162,6 +162,7 @@ fun LocationSearchScreen(
                 onCameraIdle = { point ->
                     viewModel.onMapSettled(GeoPoint(point.latitude, point.longitude))
                 },
+                showUserLocation = true,
             )
             Image(
                 painter = painterResource(Res.drawable.map_pin_red),
