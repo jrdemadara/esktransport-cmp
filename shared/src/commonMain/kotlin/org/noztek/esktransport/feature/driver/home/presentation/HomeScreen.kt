@@ -1,6 +1,7 @@
 package org.noztek.esktransport.feature.driver.home.presentation
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -41,6 +42,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
@@ -79,7 +83,6 @@ import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverOnbo
 import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverRequirementStatus
 import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverVehicleInfo
 import org.noztek.esktransport.feature.driver.wallet.domain.model.DriverWalletDashboard
-import org.noztek.esktransport.feature.driver.wallet.domain.model.DriverWalletTopup
 import kotlin.math.roundToInt
 
 @Composable
@@ -90,6 +93,7 @@ fun HomeScreen(
     onBottomBarNavigate: (String) -> Unit = {},
     onSetupClick: (DriverOnboardingStatus?) -> Unit = {},
     onDriverModeClick: () -> Unit = {},
+    onTopUpClick: () -> Unit = {},
     viewModel: HomeViewModel = koinViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -162,12 +166,9 @@ fun HomeScreen(
             )
             DriverWalletStrip(
                 isLoading = uiState.isLoadingWallet,
-                isCreatingTopup = uiState.isCreatingTopup,
                 dashboard = uiState.walletDashboard,
-                selectedTopup = uiState.selectedTopup,
                 errorMessage = uiState.walletErrorMessage,
-                onCreateTopup = viewModel::createTopup,
-                onClearSelectedTopup = viewModel::clearSelectedTopup,
+                onTopUpClick = onTopUpClick,
                 onRetryClick = viewModel::refreshWallet,
             )
             PerformancePanel(
@@ -182,6 +183,7 @@ fun HomeScreen(
                 onSupportClick = onProfileClick,
                 onVehicleClick = { onSetupClick(uiState.onboardingStatus) },
             )
+            RecentActivityCard()
 
             DriverSetupCard(
                 isLoading = uiState.isLoadingSetup,
@@ -536,17 +538,12 @@ private fun LightStatSeparator() {
 @Composable
 private fun DriverWalletStrip(
     isLoading: Boolean,
-    isCreatingTopup: Boolean,
     dashboard: DriverWalletDashboard?,
-    selectedTopup: DriverWalletTopup?,
     errorMessage: String?,
-    onCreateTopup: (Double) -> Unit,
-    onClearSelectedTopup: () -> Unit,
+    onTopUpClick: () -> Unit,
     onRetryClick: () -> Unit,
 ) {
     val balanceLabel = dashboard?.wallet?.let { formatWalletAmount(it.balance, it.currency) } ?: "PHP 0.00"
-    val pendingTopup = selectedTopup ?: dashboard?.pendingTopups?.firstOrNull()
-    val isBusy = isLoading || isCreatingTopup
 
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -613,14 +610,14 @@ private fun DriverWalletStrip(
                         label = "Top Up",
                         icon = Heroicons.Outline.Plus,
                         color = MaterialTheme.colorScheme.primary,
-                        enabled = !isBusy,
-                        onClick = { onCreateTopup(100.0) },
+                        enabled = !isLoading,
+                        onClick = onTopUpClick,
                     )
                     WalletQuickAction(
                         label = "Cashout",
                         icon = Heroicons.Outline.ArrowDown,
                         color = Color(0xFF21B36B),
-                        enabled = !isBusy,
+                        enabled = !isLoading,
                         onClick = {},
                     )
                     //todo:future implementation
@@ -635,7 +632,7 @@ private fun DriverWalletStrip(
                         label = "History",
                         icon = Heroicons.Outline.QueueList,
                         color = MaterialTheme.colorScheme.tertiary,
-                        enabled = !isBusy,
+                        enabled = !isLoading,
                         onClick = {},
                     )
                 }
@@ -663,7 +660,7 @@ private fun DriverWalletStrip(
                         text = "Retry",
                         modifier = Modifier
                             .clip(RoundedCornerShape(999.dp))
-                            .clickable(enabled = !isBusy) { onRetryClick() }
+                            .clickable(enabled = !isLoading) { onRetryClick() }
                             .padding(horizontal = 10.dp, vertical = 6.dp),
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.SemiBold,
@@ -671,15 +668,6 @@ private fun DriverWalletStrip(
                 }
             }
         }
-
-        pendingTopup?.let {
-            TopupReferencePanel(
-                topup = it,
-                canDismiss = selectedTopup != null,
-                onDismiss = onClearSelectedTopup,
-            )
-        }
-
     }
 }
 
@@ -740,102 +728,6 @@ private fun WalletQuickAction(
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
-    }
-}
-
-@Composable
-private fun TopupReferencePanel(
-    topup: DriverWalletTopup,
-    canDismiss: Boolean,
-    onDismiss: () -> Unit,
-) {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(10.dp),
-        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
-        contentColor = MaterialTheme.colorScheme.onSurface,
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(2.dp),
-            ) {
-                Text(
-                    text = "Kiosk reference",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Text(
-                    text = topup.referenceCode,
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Text(
-                    text = "Show this at the kiosk for ${formatWalletAmount(topup.amount, topup.currency)}.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 2,
-                )
-            }
-            if (canDismiss) {
-                Text(
-                    text = "Done",
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(999.dp))
-                        .clickable { onDismiss() }
-                        .padding(horizontal = 10.dp, vertical = 7.dp),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.SemiBold,
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun TopupAmountChip(
-    label: String,
-    enabled: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Surface(
-        modifier = modifier
-            .height(38.dp)
-            .clip(RoundedCornerShape(999.dp))
-            .clickable(enabled = enabled, onClick = onClick),
-        shape = RoundedCornerShape(999.dp),
-        color = if (enabled) {
-            MaterialTheme.colorScheme.surface
-        } else {
-            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f)
-        },
-        contentColor = if (enabled) {
-            MaterialTheme.colorScheme.primary
-        } else {
-            MaterialTheme.colorScheme.onSurfaceVariant
-        },
-        tonalElevation = 0.dp,
-    ) {
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center,
-        ) {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.SemiBold,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
     }
 }
 
@@ -1150,6 +1042,156 @@ private fun DriverQuickActionTile(
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun RecentActivityCard() {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(18.dp),
+        color = MaterialTheme.colorScheme.surfaceContainer,
+        contentColor = MaterialTheme.colorScheme.onSurface,
+        tonalElevation = 0.dp,
+        shadowElevation = 0.5.dp,
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = "Recent Activity",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Text(
+                    text = "See all",
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(999.dp))
+                        .clickable { }
+                        .padding(horizontal = 8.dp, vertical = 4.dp),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.SemiBold,
+                )
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                MockRecentTripMap(
+                    modifier = Modifier
+                        .size(width = 116.dp, height = 72.dp)
+                        .clip(RoundedCornerShape(10.dp)),
+                )
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(3.dp),
+                ) {
+                    Text(
+                        text = "Last Trip",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Text(
+                        text = "SM City Cebu  →  Ayala Center Cebu",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Text(
+                        text = "May 14, 2025 • 4:29 PM",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+                Column(
+                    horizontalAlignment = Alignment.End,
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Text(
+                        text = "₱87.91",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                    Surface(
+                        shape = RoundedCornerShape(999.dp),
+                        color = Color(0xFFDCFCE7),
+                        contentColor = Color(0xFF128A45),
+                    ) {
+                        Text(
+                            text = "Completed",
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.SemiBold,
+                            maxLines = 1,
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun MockRecentTripMap(
+    modifier: Modifier = Modifier,
+) {
+    val primary = MaterialTheme.colorScheme.primary
+    val destination = Color(0xFF21B36B)
+    Canvas(
+        modifier = modifier.background(Color(0xFFEFF4FA)),
+    ) {
+        drawRect(color = Color(0xFFF8FAFC), topLeft = Offset.Zero, size = size)
+
+        val roadColor = Color(0xFFDCE4EE)
+        val parkColor = Color(0xFFBFE7C8)
+        drawRect(
+            color = parkColor,
+            topLeft = Offset(size.width * 0.04f, size.height * 0.08f),
+            size = Size(size.width * 0.18f, size.height * 0.22f),
+        )
+        drawRect(
+            color = parkColor,
+            topLeft = Offset(size.width * 0.72f, size.height * 0.70f),
+            size = Size(size.width * 0.22f, size.height * 0.20f),
+        )
+
+        val thinStroke = 2.2f
+        drawLine(roadColor, Offset(size.width * 0.03f, size.height * 0.45f), Offset(size.width * 0.92f, size.height * 0.12f), thinStroke)
+        drawLine(roadColor, Offset(size.width * 0.05f, size.height * 0.82f), Offset(size.width * 0.92f, size.height * 0.42f), thinStroke)
+        drawLine(roadColor, Offset(size.width * 0.28f, size.height * 0.02f), Offset(size.width * 0.82f, size.height * 0.92f), thinStroke)
+        drawLine(roadColor, Offset(size.width * 0.02f, size.height * 0.18f), Offset(size.width * 0.76f, size.height * 0.88f), thinStroke)
+        drawLine(roadColor, Offset(size.width * 0.46f, 0f), Offset(size.width * 0.16f, size.height), thinStroke)
+
+        val routeStroke = 3.4f
+        val pickup = Offset(size.width * 0.27f, size.height * 0.30f)
+        val turnOne = Offset(size.width * 0.48f, size.height * 0.48f)
+        val turnTwo = Offset(size.width * 0.64f, size.height * 0.40f)
+        val dropoff = Offset(size.width * 0.83f, size.height * 0.70f)
+        drawLine(primary, pickup, turnOne, routeStroke, cap = StrokeCap.Round)
+        drawLine(primary, turnOne, turnTwo, routeStroke, cap = StrokeCap.Round)
+        drawLine(primary, turnTwo, dropoff, routeStroke, cap = StrokeCap.Round)
+
+        drawCircle(color = Color.White, radius = 8f, center = pickup)
+        drawCircle(color = primary, radius = 5f, center = pickup)
+        drawCircle(color = Color.White, radius = 8f, center = dropoff)
+        drawCircle(color = destination, radius = 5f, center = dropoff)
     }
 }
 

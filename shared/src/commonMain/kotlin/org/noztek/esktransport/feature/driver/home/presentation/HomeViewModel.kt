@@ -22,8 +22,6 @@ import org.noztek.esktransport.feature.driver.onboarding.domain.usecase.ObserveD
 import org.noztek.esktransport.feature.driver.onboarding.domain.usecase.SubscribeDriverOnboardingRealtimeUseCase
 import org.noztek.esktransport.feature.driver.onboarding.domain.usecase.UnsubscribeDriverOnboardingRealtimeUseCase
 import org.noztek.esktransport.feature.driver.wallet.domain.model.DriverWalletDashboard
-import org.noztek.esktransport.feature.driver.wallet.domain.model.DriverWalletTopup
-import org.noztek.esktransport.feature.driver.wallet.domain.usecase.CreateDriverTopupUseCase
 import org.noztek.esktransport.feature.driver.wallet.domain.usecase.GetDriverWalletUseCase
 
 data class HomeUiState(
@@ -32,12 +30,10 @@ data class HomeUiState(
     val isLoadingStats: Boolean = true,
     val isLoadingWallet: Boolean = true,
     val isLoadingEarnings: Boolean = true,
-    val isCreatingTopup: Boolean = false,
     val stats: DriverHomeStats? = null,
     val earningsDashboard: RiderEarningsDashboard? = null,
     val onboardingStatus: DriverOnboardingStatus? = null,
     val walletDashboard: DriverWalletDashboard? = null,
-    val selectedTopup: DriverWalletTopup? = null,
     val errorMessage: String? = null,
     val statsErrorMessage: String? = null,
     val walletErrorMessage: String? = null,
@@ -54,7 +50,6 @@ class HomeViewModel(
     private val getDriverHomeStatsUseCase: GetDriverHomeStatsUseCase,
     private val getDriverWalletUseCase: GetDriverWalletUseCase,
     private val getRiderEarningsUseCase: GetRiderEarningsUseCase,
-    private val createDriverTopupUseCase: CreateDriverTopupUseCase,
     private val ioDispatcher: CoroutineDispatcher,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(HomeUiState())
@@ -208,53 +203,6 @@ class HomeViewModel(
                 },
             )
         }
-    }
-
-    fun createTopup(amount: Double) {
-        if (_uiState.value.isCreatingTopup) return
-
-        viewModelScope.launch {
-            _uiState.update {
-                it.copy(
-                    isCreatingTopup = true,
-                    walletErrorMessage = null,
-                )
-            }
-            val result = withContext(ioDispatcher) {
-                createDriverTopupUseCase(amount = amount)
-            }
-            result.fold(
-                onSuccess = { topup ->
-                    _uiState.update {
-                        val currentDashboard = it.walletDashboard
-                        it.copy(
-                            isCreatingTopup = false,
-                            selectedTopup = topup,
-                            walletDashboard = currentDashboard?.copy(
-                                pendingTopups = listOf(topup) + currentDashboard.pendingTopups.filterNot { pending ->
-                                    pending.referenceCode == topup.referenceCode
-                                },
-                            ),
-                            walletErrorMessage = null,
-                            statusMessage = "Top-up reference created.",
-                        )
-                    }
-                    refreshWallet(showLoading = false)
-                },
-                onFailure = { throwable ->
-                    _uiState.update {
-                        it.copy(
-                            isCreatingTopup = false,
-                            walletErrorMessage = throwable.message ?: "Unable to create top-up reference.",
-                        )
-                    }
-                },
-            )
-        }
-    }
-
-    fun clearSelectedTopup() {
-        _uiState.update { it.copy(selectedTopup = null) }
     }
 
     override fun onCleared() {

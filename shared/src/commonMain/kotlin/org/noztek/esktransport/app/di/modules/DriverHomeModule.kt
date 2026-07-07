@@ -39,6 +39,7 @@ import org.noztek.esktransport.feature.driver.wallet.data.remote.DriverWalletApi
 import org.noztek.esktransport.feature.driver.wallet.domain.repository.DriverWalletRepository
 import org.noztek.esktransport.feature.driver.wallet.domain.usecase.CreateDriverTopupUseCase
 import org.noztek.esktransport.feature.driver.wallet.domain.usecase.GetDriverWalletUseCase
+import org.noztek.esktransport.feature.common.topup.presentation.TopUpViewModel
 
 val driverHomeModule = module {
     single { GoApi(client = get(), baseUrl = get(named(API_BASE_URL_QUALIFIER))) }
@@ -84,7 +85,6 @@ val driverHomeModule = module {
             getDriverHomeStatsUseCase = get(),
             getDriverWalletUseCase = get(),
             getRiderEarningsUseCase = get(),
-            createDriverTopupUseCase = get(),
             ioDispatcher = get(named(IO_DISPATCHER_QUALIFIER)),
         )
     }
@@ -122,6 +122,13 @@ val driverHomeModule = module {
     factory {
         EarningsViewModel(
             getRiderEarningsUseCase = get(),
+            ioDispatcher = get(named(IO_DISPATCHER_QUALIFIER)),
+        )
+    }
+    factory {
+        TopUpViewModel(
+            getDriverWalletUseCase = get(),
+            createDriverTopupUseCase = get(),
             ioDispatcher = get(named(IO_DISPATCHER_QUALIFIER)),
         )
     }

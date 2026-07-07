@@ -18,6 +18,7 @@ import org.noztek.esktransport.core.map.MapboxConfig
 import org.noztek.esktransport.feature.common.presence.domain.lifecycle.UserPresenceCoordinator
 import org.noztek.esktransport.feature.common.presence.domain.model.UserPresenceContext
 import org.noztek.esktransport.feature.common.presence.domain.model.UserPresenceRole
+import org.noztek.esktransport.feature.common.topup.presentation.TopUpScreen
 import org.noztek.esktransport.feature.driver.earning.presentation.EarningsScreen
 import org.noztek.esktransport.feature.driver.go.presentation.GoScreen
 import org.noztek.esktransport.feature.driver.home.presentation.HomeScreen
@@ -34,6 +35,7 @@ private const val ROUTE_DRIVER_TRIP_TRACKING = "driver-trip-tracking"
 private const val ROUTE_DRIVER_IDENTITY_VERIFICATION = "driver-onboarding/identity"
 private const val ROUTE_DRIVER_VEHICLE_REGISTRATION = "driver-onboarding/vehicle-registration"
 private const val ROUTE_DRIVER_SERVICE_ZONE = "driver-onboarding/service-zone"
+private const val ROUTE_DRIVER_TOP_UP = "driver/wallet/top-up"
 private const val DRIVER_HOME_STATS_REFRESH_TOKEN = "driver_home_stats_refresh_token"
 
 fun NavGraphBuilder.driverNavGraph(navController: NavHostController) {
@@ -93,6 +95,16 @@ fun NavGraphBuilder.driverNavGraph(navController: NavHostController) {
                         launchSingleTop = true
                     }
                 },
+                onTopUpClick = {
+                    navController.navigate(ROUTE_DRIVER_TOP_UP) {
+                        launchSingleTop = true
+                    }
+                },
+            )
+        }
+        composable(route = ROUTE_DRIVER_TOP_UP) {
+            TopUpScreen(
+                onBackClick = { navController.popBackStack() },
             )
         }
         composable(route = DriverBottomBarRoute.EARNINGS) {
