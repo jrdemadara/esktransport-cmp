@@ -169,70 +169,57 @@ fun TripNavigationScreen(
                             },
                         )
 
-                        Column(
+                        Row(
                             modifier = Modifier
-                                .align(Alignment.BottomEnd)
-                                .padding(end = 16.dp, bottom = 110.dp)
-                                .offset(y = (-8).dp),
-                            verticalArrangement = Arrangement.spacedBy(10.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally,
+                                .align(Alignment.BottomStart)
+                                .padding(start = 16.dp, bottom = 110.dp),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
                         ) {
                             FloatingActionButton(
                                 onClick = {},
                                 containerColor = Color.White,
                                 contentColor = Color.Black,
                                 modifier = Modifier.size(48.dp),
-                            ) { Icon(Heroicons.Outline.MapPin, contentDescription = "Pin") }
-                            FloatingActionButton(
-                                onClick = {},
-                                containerColor = Color.White,
-                                contentColor = Color.Black,
-                                modifier = Modifier.size(48.dp),
-                            ) { Text("↕") }
-                            FloatingActionButton(
-                                onClick = {},
-                                containerColor = Color.White,
-                                contentColor = Color.Black,
-                                modifier = Modifier.size(48.dp),
-                            ) { Icon(Heroicons.Outline.ChatBubbleOvalLeft, contentDescription = "Chat") }
-                        }
-
-                        FloatingActionButton(
-                            onClick = {},
-                            containerColor = Color.White,
-                            contentColor = Color(0xFF2B6EF2),
-                            modifier = Modifier
-                                .align(Alignment.BottomStart)
-                                .padding(start = 16.dp, bottom = 110.dp)
-                                .size(48.dp),
-                        ) { Icon(Heroicons.Outline.ShieldCheck, contentDescription = "Safety") }
-
-                        if (showCompleteTrip) {
-                            FloatingActionButton(
-                                onClick = { showCompleteTripDialog = true },
-                                containerColor = MaterialTheme.colorScheme.primary,
-                                contentColor = MaterialTheme.colorScheme.onPrimary,
-                                modifier = Modifier
-                                    .align(Alignment.BottomEnd)
-                                    .padding(end = 16.dp, bottom = 110.dp)
-                                    .widthIn(min = 150.dp)
-                                    .size(height = 56.dp, width = 150.dp),
                             ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                                ) {
-                                    Icon(
-                                        imageVector = Heroicons.Outline.Check,
-                                        contentDescription = null,
-                                    )
-                                    Text(
-                                        if (uiState.isCompletingTrip) "..." else "Complete Trip",
-                                        style = MaterialTheme.typography.labelMedium,
-                                    )
-                                }
+                                Icon(Heroicons.Outline.ChatBubbleOvalLeft, contentDescription = "Chat")
+                            }
+                            FloatingActionButton(
+                                onClick = {},
+                                containerColor = Color.White,
+                                contentColor = Color(0xFF2B6EF2),
+                                modifier = Modifier.size(48.dp),
+                            ) {
+                                Icon(Heroicons.Outline.ShieldCheck, contentDescription = "Safety")
                             }
                         }
+
+//                        if (showCompleteTrip) {
+//                            FloatingActionButton(
+//                                onClick = { showCompleteTripDialog = true },
+//                                containerColor = MaterialTheme.colorScheme.primary,
+//                                contentColor = MaterialTheme.colorScheme.onPrimary,
+//                                modifier = Modifier
+//                                    .align(Alignment.BottomEnd)
+//                                    .padding(end = 16.dp, bottom = 110.dp)
+//                                    .widthIn(min = 150.dp)
+//                                    .size(height = 56.dp, width = 150.dp),
+//                            ) {
+//                                Row(
+//                                    verticalAlignment = Alignment.CenterVertically,
+//                                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+//                                ) {
+//                                    Icon(
+//                                        imageVector = Heroicons.Outline.Check,
+//                                        contentDescription = null,
+//                                    )
+//                                    Text(
+//                                        if (uiState.isCompletingTrip) "..." else "Complete Trip",
+//                                        style = MaterialTheme.typography.labelMedium,
+//                                    )
+//                                }
+//                            }
+//                        }
 
                         if (showPickupConfirmDialog) {
                             AlertDialog(
