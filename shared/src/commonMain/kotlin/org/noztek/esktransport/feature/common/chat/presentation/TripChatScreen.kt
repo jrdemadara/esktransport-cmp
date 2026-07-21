@@ -149,7 +149,7 @@ fun TripChatScreen(
                         state = listState,
                         modifier = Modifier.fillMaxSize(),
                         contentPadding = PaddingValues(horizontal = 14.dp, vertical = 12.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.Bottom),
                     ) {
                         items(uiState.messages, key = { it.id }) { message ->
                             ChatMessageRow(message = message)
