@@ -337,6 +337,7 @@ private class AndroidDriverTurnByTurnHost(
         view.addView(soundButton)
         view.addView(routeOverviewButton)
         view.addView(recenterButton)
+        bindFloatingControlActions()
         maneuverView.bringToFront()
         bringFloatingControlsToFront()
         maneuverView.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
@@ -543,6 +544,39 @@ private class AndroidDriverTurnByTurnHost(
         soundButton.bringToFront()
         routeOverviewButton.bringToFront()
         recenterButton.bringToFront()
+    }
+
+    private fun bindFloatingControlActions() {
+        soundButton.setOnClickListener {
+            isVoiceMuted = if (isVoiceMuted) {
+                soundButton.unmute()
+                setVoiceVolume(1f)
+                false
+            } else {
+                soundButton.mute()
+                speechApi.cancel()
+                voiceInstructionsPlayer.clear()
+                setVoiceVolume(0f)
+                true
+            }
+        }
+        routeOverviewButton.setOnClickListener {
+            if (latestRoutes.isEmpty()) return@setOnClickListener
+
+            viewportDataSource.evaluate()
+            navigationCamera.requestNavigationCameraToOverview()
+            routeOverviewButton.showTextAndExtend(1200L)
+        }
+        recenterButton.setOnClickListener {
+            requestFollowingCamera()
+            recenterButton.showTextAndExtend(1200L)
+        }
+    }
+
+    private fun setVoiceVolume(level: Float) {
+        runCatching {
+            voiceInstructionsPlayer.volume(SpeechVolume(level))
+        }
     }
 
     private fun requestInitialFollowFocus() {
