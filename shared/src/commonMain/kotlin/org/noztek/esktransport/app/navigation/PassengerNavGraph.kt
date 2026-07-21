@@ -412,6 +412,13 @@ private fun PassengerShell(onLogout: () -> Unit) {
                             launchSingleTop = true
                         }
                     },
+                    onCompleted = {
+                        activeTripTrackingBookingId = null
+                        navController.navigate(ROUTE_HOME) {
+                            popUpTo(ROUTE_HOME) { inclusive = false }
+                            launchSingleTop = true
+                        }
+                    },
                 )
             }
         }

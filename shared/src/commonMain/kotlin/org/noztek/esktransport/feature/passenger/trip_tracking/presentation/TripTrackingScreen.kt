@@ -87,6 +87,7 @@ import kotlin.math.sqrt
 fun TripTrackingScreen(
     bookingId: String,
     onCancelled: () -> Unit,
+    onCompleted: () -> Unit,
     viewModel: TripTrackingViewModel = koinViewModel(),
     mapboxConfig: MapboxConfig = koinInject(),
 ) {
@@ -106,6 +107,7 @@ fun TripTrackingScreen(
         viewModel.uiEvents.collectLatest { event ->
             when (event) {
                 TripTrackingUiEvent.NavigateToBookingReview -> onCancelled()
+                TripTrackingUiEvent.NavigateToHome -> onCompleted()
             }
         }
     }

@@ -29,6 +29,7 @@ import org.noztek.esktransport.feature.passenger.trip_tracking.domain.usecase.Tr
 
 sealed class TripTrackingUiEvent {
     data object NavigateToBookingReview : TripTrackingUiEvent()
+    data object NavigateToHome : TripTrackingUiEvent()
 }
 
 class TripTrackingViewModel(
@@ -207,6 +208,7 @@ class TripTrackingViewModel(
                     isSubmittingFeedback = false,
                     showFeedback = false,
                 )
+                _uiEvents.tryEmit(TripTrackingUiEvent.NavigateToHome)
             }.onFailure { error ->
                 _uiState.value = _uiState.value.copy(
                     isSubmittingFeedback = false,
@@ -218,6 +220,7 @@ class TripTrackingViewModel(
 
     fun skipFeedback() {
         _uiState.value = _uiState.value.copy(showFeedback = false)
+        _uiEvents.tryEmit(TripTrackingUiEvent.NavigateToHome)
     }
 
     private suspend fun refreshTripLocation(bookingId: String) {
