@@ -341,6 +341,9 @@ private class AndroidDriverTurnByTurnHost(
         view.addView(recenterButton)
         maneuverView.bringToFront()
         bringFloatingControlsToFront()
+        maneuverView.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
+            updateSpeedInfoPosition()
+        }
         mapView.location.setLocationProvider(navigationLocationProvider)
         mapView.location.locationPuck = createNavigationPuck()
         mapView.location.puckBearingEnabled = true
@@ -537,6 +540,16 @@ private class AndroidDriverTurnByTurnHost(
         soundButton.bringToFront()
         routeOverviewButton.bringToFront()
         recenterButton.bringToFront()
+    }
+
+    private fun updateSpeedInfoPosition() {
+        val maneuverBottom = maneuverView.bottom.takeIf { it > 0 } ?: return
+        val topMargin = maxOf(maneuverBottom + 12.dp, 236.dp)
+        val params = speedInfoView.layoutParams as? FrameLayout.LayoutParams ?: return
+        if (params.topMargin == topMargin) return
+
+        params.topMargin = topMargin
+        speedInfoView.layoutParams = params
     }
 
 //    private fun applyDefaultMapboxButtonIcons() {
