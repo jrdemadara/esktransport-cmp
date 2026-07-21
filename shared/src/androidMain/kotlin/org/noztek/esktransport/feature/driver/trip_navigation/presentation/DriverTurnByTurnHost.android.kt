@@ -27,7 +27,6 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
-import androidx.appcompat.widget.AppCompatImageView
 import androidx.core.content.ContextCompat
 import com.mapbox.api.directions.v5.DirectionsCriteria
 import com.mapbox.api.directions.v5.models.RouteOptions
@@ -162,41 +161,38 @@ private class AndroidDriverTurnByTurnHost(
             ViewGroup.LayoutParams.WRAP_CONTENT,
             Gravity.START or Gravity.TOP,
         ).apply {
-            setMargins(16.dp, 198.dp, 0, 0)
+            setMargins(16.dp, MAPBOX_CONTROL_TOP_MARGIN_DP.dp, 0, 0)
         }
     }
     private val soundButton = MapboxSoundButton(context).apply {
+        updateStyle(com.mapbox.navigation.ui.components.R.style.MapboxStyleSound)
         unmute()
-        minimumWidth = 48.dp
-        minimumHeight = 48.dp
         layoutParams = FrameLayout.LayoutParams(
             ViewGroup.LayoutParams.WRAP_CONTENT,
             ViewGroup.LayoutParams.WRAP_CONTENT,
             Gravity.END or Gravity.TOP,
         ).apply {
-            setMargins(0, 198.dp, 16.dp, 0)
+            setMargins(0, MAPBOX_CONTROL_TOP_MARGIN_DP.dp, 16.dp, 0)
         }
     }
     private val routeOverviewButton = MapboxRouteOverviewButton(context).apply {
-        minimumWidth = 48.dp
-        minimumHeight = 48.dp
+        updateStyle(com.mapbox.navigation.ui.components.R.style.MapboxStyleRouteOverview)
         layoutParams = FrameLayout.LayoutParams(
             ViewGroup.LayoutParams.WRAP_CONTENT,
             ViewGroup.LayoutParams.WRAP_CONTENT,
             Gravity.END or Gravity.TOP,
         ).apply {
-            setMargins(0, 252.dp, 16.dp, 0)
+            setMargins(0, (MAPBOX_CONTROL_TOP_MARGIN_DP + MAPBOX_CONTROL_STEP_DP).dp, 16.dp, 0)
         }
     }
     private val recenterButton = MapboxRecenterButton(context).apply {
-        minimumWidth = 48.dp
-        minimumHeight = 48.dp
+        updateStyle(com.mapbox.navigation.ui.components.R.style.MapboxStyleRecenter)
         layoutParams = FrameLayout.LayoutParams(
             ViewGroup.LayoutParams.WRAP_CONTENT,
             ViewGroup.LayoutParams.WRAP_CONTENT,
             Gravity.END or Gravity.TOP,
         ).apply {
-            setMargins(0, 306.dp, 16.dp, 0)
+            setMargins(0, (MAPBOX_CONTROL_TOP_MARGIN_DP + MAPBOX_CONTROL_STEP_DP * 2).dp, 16.dp, 0)
         }
     }
 
@@ -342,7 +338,7 @@ private class AndroidDriverTurnByTurnHost(
         maneuverView.bringToFront()
         bringFloatingControlsToFront()
         maneuverView.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
-            updateSpeedInfoPosition()
+            updateFloatingControlPositions()
         }
         mapView.location.setLocationProvider(navigationLocationProvider)
         mapView.location.locationPuck = createNavigationPuck()
@@ -495,6 +491,7 @@ private class AndroidDriverTurnByTurnHost(
                     mapboxNavigation.setNavigationRoutes(routes)
                     soundButton.visibility = View.VISIBLE
                     soundButton.unmute()
+                    isVoiceMuted = false
                     routeOverviewButton.visibility = View.VISIBLE
                     routeOverviewButton.showTextAndExtend(1200L)
                     speedInfoView.visibility = View.VISIBLE
@@ -542,43 +539,26 @@ private class AndroidDriverTurnByTurnHost(
         recenterButton.bringToFront()
     }
 
-    private fun updateSpeedInfoPosition() {
+    private fun updateFloatingControlPositions() {
         val maneuverBottom = maneuverView.bottom.takeIf { it > 0 } ?: return
-        val topMargin = maxOf(maneuverBottom + 12.dp, 236.dp)
-        val params = speedInfoView.layoutParams as? FrameLayout.LayoutParams ?: return
+        val topMargin = maxOf(
+            maneuverBottom + MAPBOX_CONTROL_GAP_DP.dp,
+            MAPBOX_CONTROL_TOP_MARGIN_DP.dp,
+        )
+
+        speedInfoView.updateTopMargin(topMargin)
+        soundButton.updateTopMargin(topMargin)
+        routeOverviewButton.updateTopMargin(topMargin + MAPBOX_CONTROL_STEP_DP.dp)
+        recenterButton.updateTopMargin(topMargin + (MAPBOX_CONTROL_STEP_DP * 2).dp)
+    }
+
+    private fun View.updateTopMargin(topMargin: Int) {
+        val params = layoutParams as? FrameLayout.LayoutParams ?: return
         if (params.topMargin == topMargin) return
 
         params.topMargin = topMargin
-        speedInfoView.layoutParams = params
+        layoutParams = params
     }
-
-//    private fun applyDefaultMapboxButtonIcons() {
-//        setButtonIcon(
-//            view = soundButton,
-//            drawableRes = if (isVoiceMuted) {
-//                com.mapbox.navigation.ui.components.R.drawable.mapbox_ic_sound_off
-//            } else {
-//                com.mapbox.navigation.ui.components.R.drawable.mapbox_ic_sound_on
-//            },
-//        )
-//        setButtonIcon(
-//            view = routeOverviewButton,
-//            drawableRes = com.mapbox.navigation.ui.components.R.drawable.mapbox_ic_route_overview,
-//        )
-//        setButtonIcon(
-//            view = recenterButton,
-//            drawableRes = com.mapbox.navigation.ui.components.R.drawable.mapbox_ic_recenter,
-//        )
-//    }
-
-//    private fun setButtonIcon(view: View, drawableRes: Int) {
-//        view.findViewById<AppCompatImageView>(com.mapbox.navigation.ui.components.R.id.iconImage)
-//            ?.apply {
-//                setImageResource(drawableRes)
-//                setColorFilter(Color.BLACK)
-//                visibility = View.VISIBLE
-//            }
-//    }
 
     private fun seedDeviceLocationPuck(): MapPoint? {
         val location = getBestLastKnownLocation() ?: return null
@@ -805,6 +785,11 @@ private fun Location.toDriverNavigationLocation(): DriverNavigationLocation {
         accuracyM = horizontalAccuracy,
     )
 }
+
+private const val MAPBOX_CONTROL_SIZE_DP = 56
+private const val MAPBOX_CONTROL_GAP_DP = 12
+private const val MAPBOX_CONTROL_STEP_DP = MAPBOX_CONTROL_SIZE_DP + MAPBOX_CONTROL_GAP_DP
+private const val MAPBOX_CONTROL_TOP_MARGIN_DP = 236
 
 private val Int.dp: Int
     get() = (this * android.content.res.Resources.getSystem().displayMetrics.density).toInt()
