@@ -231,6 +231,7 @@ private class AndroidDriverTurnByTurnHost(
     private var waitingForLivePickupOrigin: Boolean = false
     private var isStyleLoaded: Boolean = false
     private var isVoiceMuted: Boolean = false
+    private var pendingInitialFollowFocus: Boolean = true
     private var latestRoutes: List<NavigationRoute> = emptyList()
 
     private val routesObserver = RoutesObserver { result ->
@@ -252,7 +253,7 @@ private class AndroidDriverTurnByTurnHost(
         viewportDataSource.evaluate()
         renderLatestRoutes()
         clearFallbackRoute()
-        navigationCamera.requestNavigationCameraToFollowing()
+        requestFollowingCamera()
     }
 
     private val locationObserver = object : LocationObserver {
@@ -269,6 +270,7 @@ private class AndroidDriverTurnByTurnHost(
             )
             viewportDataSource.onLocationChanged(enhancedLocation)
             viewportDataSource.evaluate()
+            requestInitialFollowFocus()
             val speedInfo = speedInfoApi.updatePostedAndCurrentSpeed(
                 locationMatcherResult,
                 distanceFormatterOptions,
@@ -380,7 +382,8 @@ private class AndroidDriverTurnByTurnHost(
             mapView.location.puckBearingEnabled = true
             mapView.location.enabled = true
             seedDeviceLocationPuck()
-            renderFallbackRoute(pendingFallbackRoutePoints, fitCamera = true)
+            requestInitialFollowFocus()
+            renderFallbackRoute(pendingFallbackRoutePoints, fitCamera = false)
             renderLatestRoutes()
             soundButton.visibility = View.VISIBLE
             routeOverviewButton.visibility = if (latestRoutes.isNotEmpty()) View.VISIBLE else View.INVISIBLE
@@ -391,7 +394,7 @@ private class AndroidDriverTurnByTurnHost(
                     "recenterVisible=${recenterButton.visibility == View.VISIBLE}",
             )
             bringFloatingControlsToFront()
-            navigationCamera.requestNavigationCameraToFollowing()
+            requestInitialFollowFocus()
         }
 
         startTripSessionSafely()
@@ -423,6 +426,7 @@ private class AndroidDriverTurnByTurnHost(
         }
         if (stageKey == currentStageKey) return
         currentStageKey = stageKey
+        pendingInitialFollowFocus = true
 
         val origin = if (pickupConfirmed) {
             pickupPoint
@@ -440,6 +444,7 @@ private class AndroidDriverTurnByTurnHost(
                 !pickupPoint.isSamePointAs(destinationPoint) -> listOf(pickupPoint, destinationPoint)
                 else -> emptyList()
             },
+            fitCamera = false,
         )
         if (waitingForLivePickupOrigin) {
             requestFreshDeviceLocationForPickup()
@@ -502,6 +507,7 @@ private class AndroidDriverTurnByTurnHost(
                             "recenterVisible=${recenterButton.visibility == View.VISIBLE}",
                     )
                     bringFloatingControlsToFront()
+                    requestFollowingCamera()
                 }
 
                 override fun onFailure(reasons: List<RouterFailure>, routeOptions: RouteOptions) {
@@ -539,6 +545,22 @@ private class AndroidDriverTurnByTurnHost(
         recenterButton.bringToFront()
     }
 
+    private fun requestInitialFollowFocus() {
+        if (!pendingInitialFollowFocus || !isStyleLoaded) return
+        if (requestFollowingCamera()) {
+            pendingInitialFollowFocus = false
+        }
+    }
+
+    private fun requestFollowingCamera(): Boolean {
+        if (!isStyleLoaded) return false
+        if (navigationLocationProvider.lastLocation == null) return false
+
+        viewportDataSource.evaluate()
+        navigationCamera.requestNavigationCameraToFollowing()
+        return true
+    }
+
     private fun updateFloatingControlPositions() {
         val maneuverBottom = maneuverView.bottom.takeIf { it > 0 } ?: return
         val topMargin = maxOf(
@@ -573,6 +595,7 @@ private class AndroidDriverTurnByTurnHost(
         navigationLocationProvider.changePosition(mapboxLocation, emptyList(), {}, {})
         viewportDataSource.onLocationChanged(mapboxLocation)
         viewportDataSource.evaluate()
+        requestInitialFollowFocus()
     }
 
     @SuppressLint("MissingPermission")
@@ -610,7 +633,10 @@ private class AndroidDriverTurnByTurnHost(
             ) { location ->
                 if (location == null || isPickupStageConfirmed) return@getCurrentLocation
                 applyDeviceLocation(location)
-                renderFallbackRoute(listOf(MapPoint(location.latitude, location.longitude), pickup))
+                renderFallbackRoute(
+                    routePoints = listOf(MapPoint(location.latitude, location.longitude), pickup),
+                    fitCamera = false,
+                )
                 waitingForLivePickupOrigin = false
                 requestRoute(
                     origin = Point.fromLngLat(location.longitude, location.latitude),
@@ -623,7 +649,10 @@ private class AndroidDriverTurnByTurnHost(
                 { location ->
                     if (isPickupStageConfirmed) return@requestSingleUpdate
                     applyDeviceLocation(location)
-                    renderFallbackRoute(listOf(MapPoint(location.latitude, location.longitude), pickup))
+                    renderFallbackRoute(
+                        routePoints = listOf(MapPoint(location.latitude, location.longitude), pickup),
+                        fitCamera = false,
+                    )
                     waitingForLivePickupOrigin = false
                     requestRoute(
                         origin = Point.fromLngLat(location.longitude, location.latitude),
