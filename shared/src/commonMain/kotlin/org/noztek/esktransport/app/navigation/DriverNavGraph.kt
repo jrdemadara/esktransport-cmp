@@ -2,9 +2,15 @@ package org.noztek.esktransport.app.navigation
 
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.composable
@@ -15,6 +21,8 @@ import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 import org.noztek.esktransport.core.ui.composables.driver.DriverBottomBarRoute
 import org.noztek.esktransport.core.map.MapboxConfig
+import org.noztek.esktransport.feature.common.chat.domain.model.TripChatParticipantRole
+import org.noztek.esktransport.feature.common.chat.presentation.TripChatScreen
 import org.noztek.esktransport.feature.common.presence.domain.lifecycle.UserPresenceCoordinator
 import org.noztek.esktransport.feature.common.presence.domain.model.UserPresenceContext
 import org.noztek.esktransport.feature.common.presence.domain.model.UserPresenceRole
@@ -195,13 +203,28 @@ fun NavGraphBuilder.driverNavGraph(navController: NavHostController) {
             }
             val bookingId = backStackEntry.arguments?.read { getStringOrNull("bookingId") }.orEmpty()
             val mapboxConfig: MapboxConfig = koinInject()
-            TripNavigationScreen(
-                bookingPublicId = bookingId,
-                mapboxConfig = mapboxConfig,
-                onCancelled = {
-                    navController.navigateToDriverModeAfterTrip()
-                },
-            )
+            var showChat by rememberSaveable(bookingId) { mutableStateOf(false) }
+            Box(modifier = Modifier.fillMaxSize()) {
+                TripNavigationScreen(
+                    bookingPublicId = bookingId,
+                    mapboxConfig = mapboxConfig,
+                    onCancelled = {
+                        showChat = false
+                        navController.navigateToDriverModeAfterTrip()
+                    },
+                    onChatClick = {
+                        showChat = true
+                    },
+                )
+
+                if (showChat) {
+                    TripChatScreen(
+                        bookingPublicId = bookingId,
+                        role = TripChatParticipantRole.Driver,
+                        onBack = { showChat = false },
+                    )
+                }
+            }
         }
     }
 }

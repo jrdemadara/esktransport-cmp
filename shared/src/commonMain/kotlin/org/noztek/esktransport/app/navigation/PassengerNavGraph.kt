@@ -74,6 +74,8 @@ import org.jetbrains.compose.resources.painterResource
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 import org.noztek.esktransport.core.realtime.passenger.PassengerRealtimeCoordinator
+import org.noztek.esktransport.feature.common.chat.domain.model.TripChatParticipantRole
+import org.noztek.esktransport.feature.common.chat.presentation.TripChatScreen
 import org.noztek.esktransport.feature.common.presence.domain.lifecycle.UserPresenceCoordinator
 import org.noztek.esktransport.feature.common.presence.domain.model.UserPresenceContext
 import org.noztek.esktransport.feature.common.presence.domain.model.UserPresenceRole
@@ -125,6 +127,7 @@ private fun PassengerShell(onLogout: () -> Unit) {
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
     var activeTripTrackingBookingId by remember { mutableStateOf<String?>(null) }
+    var activeTripChatBookingId by remember { mutableStateOf<String?>(null) }
     val tabs = passengerTabs
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
@@ -166,6 +169,7 @@ private fun PassengerShell(onLogout: () -> Unit) {
                 is BookingReviewUiEvent.ShowSnackbar -> snackbarHostState.showSnackbar(event.message)
                 is BookingReviewUiEvent.NavigateToTripTracking -> {
                     activeTripTrackingBookingId = event.bookingId
+                    activeTripChatBookingId = null
                 }
             }
         }
@@ -183,6 +187,7 @@ private fun PassengerShell(onLogout: () -> Unit) {
                 if (event.cancelledBy == "passenger") return@collectLatest
                 bookingReviewViewModel.showReviewSheet()
                 activeTripTrackingBookingId = null
+                activeTripChatBookingId = null
                 navController.navigate(ROUTE_BOOKING_REVIEW) {
                     popUpTo(ROUTE_HOME) { inclusive = false }
                     launchSingleTop = true
@@ -406,6 +411,7 @@ private fun PassengerShell(onLogout: () -> Unit) {
                     bookingId = bookingId,
                     onCancelled = {
                         activeTripTrackingBookingId = null
+                        activeTripChatBookingId = null
                         bookingReviewViewModel.showReviewSheet()
                         navController.navigate(ROUTE_BOOKING_REVIEW) {
                             popUpTo(ROUTE_HOME) { inclusive = false }
@@ -414,11 +420,23 @@ private fun PassengerShell(onLogout: () -> Unit) {
                     },
                     onCompleted = {
                         activeTripTrackingBookingId = null
+                        activeTripChatBookingId = null
                         navController.navigate(ROUTE_HOME) {
                             popUpTo(ROUTE_HOME) { inclusive = false }
                             launchSingleTop = true
                         }
                     },
+                    onChatClick = {
+                        activeTripChatBookingId = bookingId
+                    },
+                )
+            }
+
+            activeTripChatBookingId?.let { bookingId ->
+                TripChatScreen(
+                    bookingPublicId = bookingId,
+                    role = TripChatParticipantRole.Passenger,
+                    onBack = { activeTripChatBookingId = null },
                 )
             }
         }

@@ -88,6 +88,7 @@ fun TripTrackingScreen(
     bookingId: String,
     onCancelled: () -> Unit,
     onCompleted: () -> Unit,
+    onChatClick: () -> Unit,
     viewModel: TripTrackingViewModel = koinViewModel(),
     mapboxConfig: MapboxConfig = koinInject(),
 ) {
@@ -181,6 +182,7 @@ fun TripTrackingScreen(
 
             TripTrackingTopAppBar(
                 statusLabel = sessionStatusLabel(uiState.stage),
+                onChatClick = onChatClick,
                 modifier = Modifier.align(Alignment.TopCenter),
             )
 
@@ -328,6 +330,7 @@ private fun TripTrackingSheet(
 @Composable
 private fun TripTrackingTopAppBar(
     statusLabel: String,
+    onChatClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     TopAppBar(
@@ -408,7 +411,7 @@ private fun TripTrackingTopAppBar(
         },
         actions = {
             IconButton(
-                onClick = {},
+                onClick = onChatClick,
             ) {
                 Icon(
                     Heroicons.Outline.ChatBubbleOvalLeft,

@@ -75,6 +75,7 @@ import kotlin.math.roundToInt
 fun TripNavigationScreen(
     bookingPublicId: String,
     onCancelled: () -> Unit,
+    onChatClick: () -> Unit,
     viewModel: TripNavigationViewModel = koinViewModel(),
     mapboxConfig: MapboxConfig,
 ) {
@@ -169,29 +170,28 @@ fun TripNavigationScreen(
                             },
                         )
 
-                        Row(
+                        FloatingActionButton(
+                            onClick = {},
+                            containerColor = Color.White,
+                            contentColor = Color(0xFF2B6EF2),
                             modifier = Modifier
                                 .align(Alignment.BottomStart)
-                                .padding(start = 16.dp, bottom = 110.dp),
-                            horizontalArrangement = Arrangement.spacedBy(10.dp),
-                            verticalAlignment = Alignment.CenterVertically,
+                                .padding(start = 16.dp, bottom = 110.dp)
+                                .size(48.dp),
                         ) {
-                            FloatingActionButton(
-                                onClick = {},
-                                containerColor = Color.White,
-                                contentColor = Color.Black,
-                                modifier = Modifier.size(48.dp),
-                            ) {
-                                Icon(Heroicons.Outline.ChatBubbleOvalLeft, contentDescription = "Chat")
-                            }
-                            FloatingActionButton(
-                                onClick = {},
-                                containerColor = Color.White,
-                                contentColor = Color(0xFF2B6EF2),
-                                modifier = Modifier.size(48.dp),
-                            ) {
-                                Icon(Heroicons.Outline.ShieldCheck, contentDescription = "Safety")
-                            }
+                            Icon(Heroicons.Outline.ShieldCheck, contentDescription = "Safety")
+                        }
+
+                        FloatingActionButton(
+                            onClick = onChatClick,
+                            containerColor = Color.White,
+                            contentColor = Color.Black,
+                            modifier = Modifier
+                                .align(Alignment.BottomEnd)
+                                .padding(end = 16.dp, bottom = 110.dp)
+                                .size(48.dp),
+                        ) {
+                            Icon(Heroicons.Outline.ChatBubbleOvalLeft, contentDescription = "Chat")
                         }
 
 //                        if (showCompleteTrip) {
