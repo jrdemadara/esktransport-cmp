@@ -62,6 +62,7 @@ import com.composables.icons.heroicons.outline.XCircle
 import org.koin.compose.viewmodel.koinViewModel
 import org.noztek.esktransport.core.ui.composables.driver.DriverBottomBar
 import org.noztek.esktransport.core.ui.composables.driver.DriverBottomBarRoute
+import org.noztek.esktransport.core.utils.formatApiDateTimeForDisplay
 import org.noztek.esktransport.feature.driver.earning.domain.model.RiderEarningsDashboard
 import org.noztek.esktransport.feature.driver.earning.domain.model.RiderEarningsSettlement
 import org.noztek.esktransport.feature.driver.wallet.domain.model.DriverWalletDashboard
@@ -460,7 +461,7 @@ private fun SettlementRow(settlement: RiderEarningsSettlement) {
                     overflow = TextOverflow.Ellipsis,
                 )
                 Text(
-                    text = settlement.settledAt.dateTimeLabel(),
+                    text = settlement.settledAt.formatApiDateTimeForDisplay(),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -574,7 +575,7 @@ private fun WalletActivityRow(entry: DriverWalletLedgerEntry) {
                 maxLines = 1,
             )
             Text(
-                text = entry.createdAt.dateTimeLabel(),
+                text = entry.createdAt.formatApiDateTimeForDisplay(),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.End,
@@ -820,18 +821,4 @@ private fun String.entryTypeLabel(): String {
         .joinToString(" ") { value ->
             value.replaceFirstChar { char -> char.uppercase() }
         }
-}
-
-private fun String?.dateTimeLabel(): String {
-    val value = this ?: return "-"
-    val datePart = value.substringBefore('T').substringBefore(' ')
-    val timePart = when {
-        value.contains('T') -> value.substringAfter('T')
-        value.contains(' ') -> value.substringAfter(' ')
-        else -> ""
-    }.take(5)
-    return listOfNotNull(
-        datePart.takeIf { it.isNotBlank() },
-        timePart.takeIf { it.isNotBlank() },
-    ).joinToString(" • ").ifBlank { "-" }
 }

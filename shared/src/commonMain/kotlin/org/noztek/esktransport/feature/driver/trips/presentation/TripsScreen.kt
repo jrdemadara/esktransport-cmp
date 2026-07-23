@@ -61,6 +61,8 @@ import com.composables.icons.heroicons.outline.Wallet
 import org.koin.compose.viewmodel.koinViewModel
 import org.noztek.esktransport.core.ui.composables.driver.DriverBottomBar
 import org.noztek.esktransport.core.ui.composables.driver.DriverBottomBarRoute
+import org.noztek.esktransport.core.utils.formatApiDateForDisplay
+import org.noztek.esktransport.core.utils.formatApiTimeForDisplay
 import org.noztek.esktransport.feature.driver.trips.domain.model.DriverTrip
 import org.noztek.esktransport.feature.driver.trips.domain.model.DriverTripStatus
 import org.noztek.esktransport.feature.driver.trips.domain.model.DriverTripsSummary
@@ -214,7 +216,7 @@ private fun TripsSummaryCard(
                             fontWeight = FontWeight.SemiBold,
                         )
                         Text(
-                            text = summary.from.formatDateLabel(),
+                            text = summary.from.formatApiDateForDisplay(fallback = "Today"),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -475,17 +477,17 @@ private fun TripHistoryCard(trip: DriverTrip) {
                 ) {
                     CompactTripTime(
                         label = "Requested",
-                        value = trip.requestedAt.formatClockLabel(),
+                        value = trip.requestedAt.formatApiTimeForDisplay(),
                         modifier = Modifier.weight(1f),
                     )
                     CompactTripTime(
                         label = "Accepted",
-                        value = trip.acceptedAt.formatClockLabel(),
+                        value = trip.acceptedAt.formatApiTimeForDisplay(),
                         modifier = Modifier.weight(1f),
                     )
                     CompactTripTime(
                         label = "Completed",
-                        value = (trip.completedAt ?: trip.canceledAt).formatClockLabel(),
+                        value = (trip.completedAt ?: trip.canceledAt).formatApiTimeForDisplay(),
                         modifier = Modifier.weight(1f),
                     )
                     CompactTripTime(
@@ -865,49 +867,6 @@ private fun String?.reasonLabel(): String? {
         .removeSuffix(".")
         .replace("Cancelled by rider from mobile app", "Driver cancelled")
         .replace("Cancelled by passenger from mobile app", "Passenger cancelled")
-}
-
-private fun String?.formatDateLabel(): String {
-    val value = this ?: return "Today"
-    val datePart = value.substringBefore('T').substringBefore(' ')
-    val parts = datePart.split("-")
-    if (parts.size != 3) return "Today"
-    val month = parts[1].toIntOrNull()?.let { monthIndex ->
-        listOf(
-            "Jan",
-            "Feb",
-            "Mar",
-            "Apr",
-            "May",
-            "Jun",
-            "Jul",
-            "Aug",
-            "Sep",
-            "Oct",
-            "Nov",
-            "Dec",
-        ).getOrNull(monthIndex - 1)
-    } ?: return "Today"
-    val day = parts[2].toIntOrNull() ?: return "Today"
-    return "$month $day, ${parts[0]}"
-}
-
-private fun String?.formatClockLabel(): String {
-    val value = this ?: return "-"
-    val timePart = when {
-        value.contains('T') -> value.substringAfter('T')
-        value.contains(' ') -> value.substringAfter(' ')
-        else -> return "-"
-    }.take(5)
-    val hour = timePart.take(2).toIntOrNull() ?: return "-"
-    val minute = timePart.takeLast(2)
-    val suffix = if (hour >= 12) "PM" else "AM"
-    val hour12 = when {
-        hour == 0 -> 12
-        hour > 12 -> hour - 12
-        else -> hour
-    }
-    return "$hour12:$minute $suffix"
 }
 
 private fun Long.formatOnlineDuration(): String {
