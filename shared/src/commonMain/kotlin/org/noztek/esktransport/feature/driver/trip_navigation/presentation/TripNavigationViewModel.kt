@@ -17,6 +17,7 @@ import org.noztek.esktransport.core.location.CurrentLocationProvider
 import org.noztek.esktransport.core.map.MapboxDirectionsClient
 import org.noztek.esktransport.core.realtime.driver.DriverBookingOfferRealtime
 import org.noztek.esktransport.feature.rider.trip_navigation.domain.model.RiderTripPhase
+import org.noztek.esktransport.feature.rider.trip_navigation.domain.model.RiderTripPoint
 import org.noztek.esktransport.feature.rider.trip_navigation.domain.model.RiderTripSession
 import org.noztek.esktransport.feature.rider.trip_navigation.domain.usecase.CancelRiderTripUseCase
 import org.noztek.esktransport.feature.rider.trip_navigation.domain.usecase.CompleteRiderTripUseCase
@@ -99,8 +100,8 @@ class TripNavigationViewModel(
                                     }
                                 }
                                 RiderTripPhase.TO_DESTINATION -> StageRoute(
-                                    originLng = session.pickupPoint.longitude,
-                                    originLat = session.pickupPoint.latitude,
+                                    originLng = session.riderCurrentPoint?.longitude ?: session.pickupPoint.longitude,
+                                    originLat = session.riderCurrentPoint?.latitude ?: session.pickupPoint.latitude,
                                     destinationLng = session.destinationPoint.longitude,
                                     destinationLat = session.destinationPoint.latitude,
                                 )
@@ -127,8 +128,8 @@ class TripNavigationViewModel(
                                 _uiState.value = TripNavigationUiState(
                                     isLoading = false,
                                     tripSession = session,
-                                    isAtPickupPoint = session.status == "arriving_pickup",
-                                    isAtDestinationPoint = false,
+                                    isAtPickupPoint = session.isAtPickupPoint(),
+                                    isAtDestinationPoint = session.isAtDestinationPoint(),
                                     routePoints = routePoints,
                                     distanceMeters = summary?.distanceMeters,
                                     durationSeconds = summary?.durationSeconds,
@@ -139,8 +140,8 @@ class TripNavigationViewModel(
                                 _uiState.value = TripNavigationUiState(
                                     isLoading = false,
                                     tripSession = session,
-                                    isAtPickupPoint = session.status == "arriving_pickup",
-                                    isAtDestinationPoint = false,
+                                    isAtPickupPoint = session.isAtPickupPoint(),
+                                    isAtDestinationPoint = session.isAtDestinationPoint(),
                                     message = "Route loaded with fallback map data only.",
                                 )
                                 publishCurrentLocationSnapshot(bookingPublicId)
@@ -149,8 +150,8 @@ class TripNavigationViewModel(
                             _uiState.value = TripNavigationUiState(
                                 isLoading = false,
                                 tripSession = session,
-                                isAtPickupPoint = session.status == "arriving_pickup",
-                                isAtDestinationPoint = false,
+                                isAtPickupPoint = session.isAtPickupPoint(),
+                                isAtDestinationPoint = session.isAtDestinationPoint(),
                                 message = throwable.message ?: "Failed to load route.",
                             )
                             publishCurrentLocationSnapshot(bookingPublicId)
@@ -447,9 +448,22 @@ private data class StageRoute(
 )
 
 private const val LOCATION_PUBLISH_DISTANCE_METERS = 10.0
-private const val ARRIVAL_CONFIRM_DISTANCE_METERS = 10.0
+private const val ARRIVAL_CONFIRM_DISTANCE_METERS = 15.0
 private const val ENABLE_MOCK_DRIVER_LOCATION_UPDATES = false
 private const val MOCK_DRIVER_LOCATION_INTERVAL_MS = 5_000L
+
+private fun RiderTripSession.isAtPickupPoint(): Boolean {
+    if (status == "arriving_pickup") return true
+    val current = riderCurrentPoint ?: return false
+    if (phase != RiderTripPhase.TO_PICKUP) return false
+    return current.distanceToMeters(pickupPoint) <= ARRIVAL_CONFIRM_DISTANCE_METERS
+}
+
+private fun RiderTripSession.isAtDestinationPoint(): Boolean {
+    val current = riderCurrentPoint ?: return false
+    if (phase != RiderTripPhase.TO_DESTINATION) return false
+    return current.distanceToMeters(destinationPoint) <= ARRIVAL_CONFIRM_DISTANCE_METERS
+}
 
 private fun RiderTripSession.mockDriverLocation(tick: Int): DriverNavigationLocation {
     val source = when (phase) {
@@ -483,6 +497,24 @@ private fun DriverNavigationLocation.distanceToMeters(other: DriverNavigationLoc
         cos(startLatitude) * cos(endLatitude) * sin(longitudeDelta / 2.0) * sin(longitudeDelta / 2.0)
     val centralAngle = 2.0 * atan2(sqrt(haversine), sqrt(1.0 - haversine))
     return earthRadiusMeters * centralAngle
+}
+
+private fun RiderTripPoint.distanceToMeters(other: RiderTripPoint): Double {
+    return DriverNavigationLocation(
+        latitude = latitude,
+        longitude = longitude,
+        bearing = null,
+        speedKph = null,
+        accuracyM = null,
+    ).distanceToMeters(
+        DriverNavigationLocation(
+            latitude = other.latitude,
+            longitude = other.longitude,
+            bearing = null,
+            speedKph = null,
+            accuracyM = null,
+        ),
+    )
 }
 
 private fun Double.toRadians(): Double = this * PI / 180.0

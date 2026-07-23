@@ -34,6 +34,11 @@ import org.noztek.esktransport.feature.driver.onboarding.domain.usecase.Subscrib
 import org.noztek.esktransport.feature.driver.onboarding.domain.usecase.UnsubscribeDriverOnboardingRealtimeUseCase
 import org.noztek.esktransport.feature.driver.onboarding.presentation.DriverOnboardingViewModel
 import org.noztek.esktransport.feature.driver.session.presentation.DriverSessionViewModel
+import org.noztek.esktransport.feature.driver.trips.data.impl.DriverTripsRepositoryImpl
+import org.noztek.esktransport.feature.driver.trips.data.remote.DriverTripsApi
+import org.noztek.esktransport.feature.driver.trips.domain.repository.DriverTripsRepository
+import org.noztek.esktransport.feature.driver.trips.domain.usecase.GetDriverTripsUseCase
+import org.noztek.esktransport.feature.driver.trips.presentation.TripsViewModel
 import org.noztek.esktransport.feature.driver.wallet.data.impl.DriverWalletRepositoryImpl
 import org.noztek.esktransport.feature.driver.wallet.data.remote.DriverWalletApi
 import org.noztek.esktransport.feature.driver.wallet.domain.repository.DriverWalletRepository
@@ -52,6 +57,8 @@ val driverHomeModule = module {
     single<DriverWalletRepository> { DriverWalletRepositoryImpl(api = get()) }
     single { RiderEarningsApi(client = get(), baseUrl = get(named(API_BASE_URL_QUALIFIER))) }
     single<RiderEarningsRepository> { RiderEarningsRepositoryImpl(api = get()) }
+    single { DriverTripsApi(client = get(), baseUrl = get(named(API_BASE_URL_QUALIFIER))) }
+    single<DriverTripsRepository> { DriverTripsRepositoryImpl(api = get()) }
     single { GetDriverAvailabilityUseCase(repository = get()) }
     single { SetDriverAvailabilityUseCase(repository = get()) }
     single { GetDriverHomeStatsUseCase(repository = get()) }
@@ -60,6 +67,7 @@ val driverHomeModule = module {
     single { GetDriverWalletUseCase(repository = get()) }
     single { CreateDriverTopupUseCase(repository = get()) }
     single { GetRiderEarningsUseCase(repository = get()) }
+    single { GetDriverTripsUseCase(repository = get()) }
     single { ObserveDriverOnboardingStatusChangedUseCase(realtime = get()) }
     single { SubscribeDriverOnboardingRealtimeUseCase(realtime = get()) }
     single { UnsubscribeDriverOnboardingRealtimeUseCase(realtime = get()) }
@@ -122,6 +130,12 @@ val driverHomeModule = module {
     factory {
         EarningsViewModel(
             getRiderEarningsUseCase = get(),
+            ioDispatcher = get(named(IO_DISPATCHER_QUALIFIER)),
+        )
+    }
+    factory {
+        TripsViewModel(
+            getDriverTripsUseCase = get(),
             ioDispatcher = get(named(IO_DISPATCHER_QUALIFIER)),
         )
     }

@@ -38,6 +38,7 @@ import org.noztek.esktransport.feature.driver.onboarding.presentation.DriverVehi
 import org.noztek.esktransport.feature.driver.session.presentation.DriverSessionUiEvent
 import org.noztek.esktransport.feature.driver.session.presentation.DriverSessionViewModel
 import org.noztek.esktransport.feature.driver.trip_navigation.presentation.TripNavigationScreen
+import org.noztek.esktransport.feature.driver.trips.presentation.TripsScreen
 
 private const val ROUTE_DRIVER_TRIP_TRACKING = "driver-trip-tracking"
 private const val ROUTE_DRIVER_IDENTITY_VERIFICATION = "driver-onboarding/identity"
@@ -117,6 +118,21 @@ fun NavGraphBuilder.driverNavGraph(navController: NavHostController) {
         }
         composable(route = DriverBottomBarRoute.EARNINGS) {
             EarningsScreen(
+                onBottomBarNavigate = { route ->
+                    navController.navigateDriverBottomBarRoute(route)
+                },
+            )
+        }
+        composable(route = DriverBottomBarRoute.TRIPS) {
+            TripsScreen(
+                onBackClick = {
+                    navController.navigate(DriverRoute.HOME) {
+                        popUpTo(DriverRoute.HOME) {
+                            inclusive = false
+                        }
+                        launchSingleTop = true
+                    }
+                },
                 onBottomBarNavigate = { route ->
                     navController.navigateDriverBottomBarRoute(route)
                 },
@@ -247,6 +263,11 @@ private fun NavHostController.navigateDriverBottomBarRoute(route: String) {
         }
         DriverBottomBarRoute.EARNINGS -> {
             navigate(DriverBottomBarRoute.EARNINGS) {
+                launchSingleTop = true
+            }
+        }
+        DriverBottomBarRoute.TRIPS -> {
+            navigate(DriverBottomBarRoute.TRIPS) {
                 launchSingleTop = true
             }
         }
