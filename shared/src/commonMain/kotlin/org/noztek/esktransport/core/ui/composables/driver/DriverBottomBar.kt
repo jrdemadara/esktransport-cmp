@@ -13,9 +13,9 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import com.composables.icons.heroicons.Heroicons
 import com.composables.icons.heroicons.outline.ChartBarSquare
+import com.composables.icons.heroicons.outline.Cog6Tooth
 import com.composables.icons.heroicons.outline.Home
 import com.composables.icons.heroicons.outline.QueueList
-import com.composables.icons.heroicons.outline.User
 
 data class DriverBottomBarItem(
     val route: String,
@@ -48,8 +48,8 @@ val defaultDriverBottomBarItems = listOf(
     ),
     DriverBottomBarItem(
         route = DriverBottomBarRoute.PROFILE,
-        label = "Profile",
-        icon = Heroicons.Outline.User,
+        label = "Settings",
+        icon = Heroicons.Outline.Cog6Tooth,
     ),
 )
 

@@ -157,7 +157,12 @@ fun RootNavHost(
             navController.navigateRoot(route)
         }
         passengerNavGraph(navController)
-        driverNavGraph(navController)
+        driverNavGraph(
+            navController = navController,
+            onLogout = {
+                navController.navigateRoot(RootRoute.AUTH)
+            },
+        )
         composable(DevRoute.MAP_PREVIEW) {
             MapPreviewScreen(
                 onBackClick = { navController.popBackStack() },

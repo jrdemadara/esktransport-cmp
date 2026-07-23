@@ -35,6 +35,7 @@ import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverRequ
 import org.noztek.esktransport.feature.driver.onboarding.presentation.DriverIdentityVerificationScreen
 import org.noztek.esktransport.feature.driver.onboarding.presentation.DriverServiceZoneScreen
 import org.noztek.esktransport.feature.driver.onboarding.presentation.DriverVehicleRegistrationScreen
+import org.noztek.esktransport.feature.driver.settings.presentation.DriverSettingsScreen
 import org.noztek.esktransport.feature.driver.session.presentation.DriverSessionUiEvent
 import org.noztek.esktransport.feature.driver.session.presentation.DriverSessionViewModel
 import org.noztek.esktransport.feature.driver.trip_navigation.presentation.TripNavigationScreen
@@ -47,7 +48,10 @@ private const val ROUTE_DRIVER_SERVICE_ZONE = "driver-onboarding/service-zone"
 private const val ROUTE_DRIVER_TOP_UP = "driver/wallet/top-up"
 private const val DRIVER_HOME_STATS_REFRESH_TOKEN = "driver_home_stats_refresh_token"
 
-fun NavGraphBuilder.driverNavGraph(navController: NavHostController) {
+fun NavGraphBuilder.driverNavGraph(
+    navController: NavHostController,
+    onLogout: () -> Unit,
+) {
     navigation(startDestination = DriverRoute.HOME, route = RootRoute.DRIVER) {
         composable(
             route = DriverRoute.HOME,
@@ -146,6 +150,22 @@ fun NavGraphBuilder.driverNavGraph(navController: NavHostController) {
                         launchSingleTop = true
                     }
                 },
+                onBottomBarNavigate = { route ->
+                    navController.navigateDriverBottomBarRoute(route)
+                },
+            )
+        }
+        composable(route = DriverBottomBarRoute.PROFILE) {
+            DriverSettingsScreen(
+                onBackClick = {
+                    navController.navigate(DriverRoute.HOME) {
+                        popUpTo(DriverRoute.HOME) {
+                            inclusive = false
+                        }
+                        launchSingleTop = true
+                    }
+                },
+                onLogout = onLogout,
                 onBottomBarNavigate = { route ->
                     navController.navigateDriverBottomBarRoute(route)
                 },
@@ -281,6 +301,11 @@ private fun NavHostController.navigateDriverBottomBarRoute(route: String) {
         }
         DriverBottomBarRoute.TRIPS -> {
             navigate(DriverBottomBarRoute.TRIPS) {
+                launchSingleTop = true
+            }
+        }
+        DriverBottomBarRoute.PROFILE -> {
+            navigate(DriverBottomBarRoute.PROFILE) {
                 launchSingleTop = true
             }
         }

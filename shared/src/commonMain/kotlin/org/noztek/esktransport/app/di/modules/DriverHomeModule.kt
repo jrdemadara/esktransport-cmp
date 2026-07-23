@@ -33,6 +33,7 @@ import org.noztek.esktransport.feature.driver.onboarding.domain.usecase.SubmitDr
 import org.noztek.esktransport.feature.driver.onboarding.domain.usecase.SubscribeDriverOnboardingRealtimeUseCase
 import org.noztek.esktransport.feature.driver.onboarding.domain.usecase.UnsubscribeDriverOnboardingRealtimeUseCase
 import org.noztek.esktransport.feature.driver.onboarding.presentation.DriverOnboardingViewModel
+import org.noztek.esktransport.feature.driver.settings.presentation.DriverSettingsViewModel
 import org.noztek.esktransport.feature.driver.session.presentation.DriverSessionViewModel
 import org.noztek.esktransport.feature.driver.trips.data.impl.DriverTripsRepositoryImpl
 import org.noztek.esktransport.feature.driver.trips.data.remote.DriverTripsApi
@@ -137,6 +138,13 @@ val driverHomeModule = module {
     factory {
         TripsViewModel(
             getDriverTripsUseCase = get(),
+            ioDispatcher = get(named(IO_DISPATCHER_QUALIFIER)),
+        )
+    }
+    factory {
+        DriverSettingsViewModel(
+            observeCurrentSessionUseCase = get(),
+            logoutUseCase = get(),
             ioDispatcher = get(named(IO_DISPATCHER_QUALIFIER)),
         )
     }
