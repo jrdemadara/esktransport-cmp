@@ -118,6 +118,19 @@ fun NavGraphBuilder.driverNavGraph(navController: NavHostController) {
         }
         composable(route = DriverBottomBarRoute.EARNINGS) {
             EarningsScreen(
+                onBackClick = {
+                    navController.navigate(DriverRoute.HOME) {
+                        popUpTo(DriverRoute.HOME) {
+                            inclusive = false
+                        }
+                        launchSingleTop = true
+                    }
+                },
+                onTopUpClick = {
+                    navController.navigate(ROUTE_DRIVER_TOP_UP) {
+                        launchSingleTop = true
+                    }
+                },
                 onBottomBarNavigate = { route ->
                     navController.navigateDriverBottomBarRoute(route)
                 },

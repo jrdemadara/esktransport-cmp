@@ -130,6 +130,7 @@ val driverHomeModule = module {
     factory {
         EarningsViewModel(
             getRiderEarningsUseCase = get(),
+            getDriverWalletUseCase = get(),
             ioDispatcher = get(named(IO_DISPATCHER_QUALIFIER)),
         )
     }
