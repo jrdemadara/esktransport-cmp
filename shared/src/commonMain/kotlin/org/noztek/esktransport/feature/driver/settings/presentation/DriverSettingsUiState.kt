@@ -5,6 +5,7 @@ data class DriverSettingsUiState(
     val phone: String = "",
     val role: String = "Driver",
     val driverId: Long? = null,
+    val isVerifiedDriver: Boolean = false,
     val profilePhotoBytes: ByteArray? = null,
     val isLoggingOut: Boolean = false,
     val isLoggedOut: Boolean = false,
@@ -18,6 +19,7 @@ data class DriverSettingsUiState(
             phone == other.phone &&
             role == other.role &&
             driverId == other.driverId &&
+            isVerifiedDriver == other.isVerifiedDriver &&
             profilePhotoBytes.contentEquals(other.profilePhotoBytes) &&
             isLoggingOut == other.isLoggingOut &&
             isLoggedOut == other.isLoggedOut &&
@@ -29,6 +31,7 @@ data class DriverSettingsUiState(
         result = 31 * result + phone.hashCode()
         result = 31 * result + role.hashCode()
         result = 31 * result + (driverId?.hashCode() ?: 0)
+        result = 31 * result + isVerifiedDriver.hashCode()
         result = 31 * result + (profilePhotoBytes?.contentHashCode() ?: 0)
         result = 31 * result + isLoggingOut.hashCode()
         result = 31 * result + isLoggedOut.hashCode()

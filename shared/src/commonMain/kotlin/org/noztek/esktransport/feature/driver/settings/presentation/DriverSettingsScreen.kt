@@ -1,6 +1,7 @@
 package org.noztek.esktransport.feature.driver.settings.presentation
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -63,6 +64,7 @@ import org.noztek.esktransport.feature.driver.onboarding.presentation.CapturedDo
 fun DriverSettingsScreen(
     onBackClick: () -> Unit,
     onLogout: () -> Unit,
+    onAccountClick: () -> Unit = {},
     onBottomBarNavigate: (String) -> Unit = {},
     viewModel: DriverSettingsViewModel = koinViewModel(),
     appBuildInfo: AppBuildInfo = koinInject(),
@@ -97,7 +99,14 @@ fun DriverSettingsScreen(
             SettingsProfileRow(uiState = uiState)
             SettingsDivider()
             settingsMenuItems.forEachIndexed { index, item ->
-                SettingsMenuRow(item = item)
+                SettingsMenuRow(
+                    item = item,
+                    onClick = {
+                        if (item == SettingsMenuItem.Account) {
+                            onAccountClick()
+                        }
+                    },
+                )
                 if (index < settingsMenuItems.lastIndex) {
                     SettingsDivider()
                 }
@@ -213,10 +222,15 @@ private fun SettingsProfileRow(uiState: DriverSettingsUiState) {
 @Composable
 private fun SettingsMenuRow(
     item: SettingsMenuItem,
+    onClick: () -> Unit,
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .clickable(
+                enabled = item == SettingsMenuItem.Account,
+                onClick = onClick,
+            )
             .padding(vertical = 13.dp),
         horizontalArrangement = Arrangement.spacedBy(18.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -334,7 +348,3 @@ private fun settingsFooterItems(versionName: String) = listOf(
     SettingsFooterItem("About", Heroicons.Outline.QuestionMarkCircle),
     SettingsFooterItem("Version", Heroicons.Outline.InformationCircle, versionName),
 )
-
-private fun Long?.driverIdLabel(): String {
-    return this?.let { "Driver ID: DRV-${it.toString().padStart(6, '0')}" } ?: "Driver ID: -"
-}

@@ -35,6 +35,7 @@ import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverRequ
 import org.noztek.esktransport.feature.driver.onboarding.presentation.DriverIdentityVerificationScreen
 import org.noztek.esktransport.feature.driver.onboarding.presentation.DriverServiceZoneScreen
 import org.noztek.esktransport.feature.driver.onboarding.presentation.DriverVehicleRegistrationScreen
+import org.noztek.esktransport.feature.driver.settings.presentation.DriverAccountScreen
 import org.noztek.esktransport.feature.driver.settings.presentation.DriverSettingsScreen
 import org.noztek.esktransport.feature.driver.session.presentation.DriverSessionUiEvent
 import org.noztek.esktransport.feature.driver.session.presentation.DriverSessionViewModel
@@ -46,6 +47,7 @@ private const val ROUTE_DRIVER_IDENTITY_VERIFICATION = "driver-onboarding/identi
 private const val ROUTE_DRIVER_VEHICLE_REGISTRATION = "driver-onboarding/vehicle-registration"
 private const val ROUTE_DRIVER_SERVICE_ZONE = "driver-onboarding/service-zone"
 private const val ROUTE_DRIVER_TOP_UP = "driver/wallet/top-up"
+private const val ROUTE_DRIVER_ACCOUNT_SETTINGS = "driver/settings/account"
 private const val DRIVER_HOME_STATS_REFRESH_TOKEN = "driver_home_stats_refresh_token"
 
 fun NavGraphBuilder.driverNavGraph(
@@ -165,6 +167,20 @@ fun NavGraphBuilder.driverNavGraph(
                         launchSingleTop = true
                     }
                 },
+                onLogout = onLogout,
+                onAccountClick = {
+                    navController.navigate(ROUTE_DRIVER_ACCOUNT_SETTINGS) {
+                        launchSingleTop = true
+                    }
+                },
+                onBottomBarNavigate = { route ->
+                    navController.navigateDriverBottomBarRoute(route)
+                },
+            )
+        }
+        composable(route = ROUTE_DRIVER_ACCOUNT_SETTINGS) {
+            DriverAccountScreen(
+                onBackClick = { navController.popBackStack() },
                 onLogout = onLogout,
                 onBottomBarNavigate = { route ->
                     navController.navigateDriverBottomBarRoute(route)

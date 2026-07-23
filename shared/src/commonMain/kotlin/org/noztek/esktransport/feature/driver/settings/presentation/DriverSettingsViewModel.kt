@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import org.noztek.esktransport.core.session.domain.usecase.ObserveCurrentSessionUseCase
 import org.noztek.esktransport.feature.common.logout.domain.usecase.LogoutUseCase
+import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverOnboardingState
 import org.noztek.esktransport.feature.driver.onboarding.domain.usecase.GetDriverOnboardingStatusUseCase
 import org.noztek.esktransport.feature.driver.settings.domain.usecase.GetDriverProfilePhotoUseCase
 
@@ -82,7 +83,12 @@ class DriverSettingsViewModel(
     private fun loadDriverStatus() {
         viewModelScope.launch(ioDispatcher) {
             getDriverOnboardingStatusUseCase().onSuccess { status ->
-                _uiState.update { it.copy(driverId = status.driverId) }
+                _uiState.update {
+                    it.copy(
+                        driverId = status.driverId,
+                        isVerifiedDriver = status.canGo || status.status == DriverOnboardingState.Ready,
+                    )
+                }
             }
         }
     }
