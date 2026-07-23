@@ -4,8 +4,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
@@ -14,11 +14,7 @@ import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.CenterAlignedTopAppBar
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -26,6 +22,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -33,29 +30,34 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.composables.icons.heroicons.Heroicons
 import com.composables.icons.heroicons.outline.AdjustmentsHorizontal
 import com.composables.icons.heroicons.outline.ArrowLeft
-import com.composables.icons.heroicons.outline.ArrowLeftOnRectangle
 import com.composables.icons.heroicons.outline.ChartBarSquare
 import com.composables.icons.heroicons.outline.ChevronRight
 import com.composables.icons.heroicons.outline.DocumentText
 import com.composables.icons.heroicons.outline.InformationCircle
 import com.composables.icons.heroicons.outline.Lifebuoy
 import com.composables.icons.heroicons.outline.MapPin
+import com.composables.icons.heroicons.outline.QuestionMarkCircle
 import com.composables.icons.heroicons.outline.ShieldCheck
+import com.composables.icons.heroicons.outline.Star
 import com.composables.icons.heroicons.outline.Truck
 import com.composables.icons.heroicons.outline.User
 import com.composables.icons.heroicons.outline.Wallet
+import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
+import org.noztek.esktransport.core.platform.AppBuildInfo
 import org.noztek.esktransport.core.ui.composables.driver.DriverBottomBar
 import org.noztek.esktransport.core.ui.composables.driver.DriverBottomBarRoute
 import org.noztek.esktransport.core.utils.uppercaseFirstLetterOfEachWord
+import org.noztek.esktransport.feature.driver.onboarding.presentation.CapturedDocumentPreviewImage
 
 @Composable
 fun DriverSettingsScreen(
@@ -63,6 +65,7 @@ fun DriverSettingsScreen(
     onLogout: () -> Unit,
     onBottomBarNavigate: (String) -> Unit = {},
     viewModel: DriverSettingsViewModel = koinViewModel(),
+    appBuildInfo: AppBuildInfo = koinInject(),
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
@@ -74,9 +77,7 @@ fun DriverSettingsScreen(
     }
 
     Scaffold(
-        topBar = {
-            SettingsTopBar(onBackClick = onBackClick)
-        },
+        topBar = { SettingsTopBar(onBackClick = onBackClick) },
         bottomBar = {
             DriverBottomBar(
                 currentRoute = DriverBottomBarRoute.PROFILE,
@@ -86,73 +87,38 @@ fun DriverSettingsScreen(
         contentWindowInsets = WindowInsets.safeDrawing,
         containerColor = MaterialTheme.colorScheme.background,
     ) { innerPadding ->
-        LazyColumn(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
                 .background(MaterialTheme.colorScheme.background)
-                .padding(innerPadding),
-            contentPadding = PaddingValues(start = 16.dp, top = 8.dp, end = 16.dp, bottom = 14.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+                .padding(innerPadding)
+                .padding(start = 20.dp, top = 4.dp, end = 20.dp, bottom = 6.dp),
         ) {
-            item {
-                SettingsProfileCard(uiState = uiState)
-            }
-            item {
-                SettingsSection(
-                    items = listOf(
-                        SettingsMenuItem.Account,
-                        SettingsMenuItem.DriverVerification,
-                        SettingsMenuItem.Vehicle,
-                    ),
-                )
-            }
-            item {
-                SettingsSection(
-                    items = listOf(
-                        SettingsMenuItem.Wallet,
-                        SettingsMenuItem.Earnings,
-                    ),
-                )
-            }
-            item {
-                SettingsSection(
-                    items = listOf(
-                        SettingsMenuItem.ServiceAreas,
-                        SettingsMenuItem.Safety,
-                        SettingsMenuItem.AppPreferences,
-                    ),
-                )
-            }
-            item {
-                SettingsSection(
-                    items = listOf(
-                        SettingsMenuItem.HelpSupport,
-                        SettingsMenuItem.Legal,
-                    ),
-                )
-            }
-            item {
-                SettingsSection(
-                    items = listOf(SettingsMenuItem.Logout),
-                    isLogoutLoading = uiState.isLoggingOut,
-                    onLogoutClick = viewModel::logout,
-                )
-            }
-            item {
-                VersionCard()
-            }
-            uiState.errorMessage?.let { message ->
-                item {
-                    ErrorCard(message = message)
+            SettingsProfileRow(uiState = uiState)
+            SettingsDivider()
+            settingsMenuItems.forEachIndexed { index, item ->
+                SettingsMenuRow(item = item)
+                if (index < settingsMenuItems.lastIndex) {
+                    SettingsDivider()
                 }
             }
+            uiState.errorMessage?.let { message ->
+                Text(
+                    text = message,
+                    modifier = Modifier.padding(top = 12.dp),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
+            Spacer(modifier = Modifier.weight(1f))
+            SettingsFooter(versionName = appBuildInfo.versionName)
         }
     }
 }
 
 @Composable
 private fun SettingsTopBar(onBackClick: () -> Unit) {
-    CenterAlignedTopAppBar(
+    TopAppBar(
         windowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top),
         colors = TopAppBarDefaults.topAppBarColors(
             containerColor = MaterialTheme.colorScheme.background,
@@ -164,6 +130,7 @@ private fun SettingsTopBar(onBackClick: () -> Unit) {
                 Icon(
                     imageVector = Heroicons.Outline.ArrowLeft,
                     contentDescription = "Back",
+                    modifier = Modifier.size(22.dp),
                 )
             }
         },
@@ -178,257 +145,151 @@ private fun SettingsTopBar(onBackClick: () -> Unit) {
 }
 
 @Composable
-private fun SettingsProfileCard(uiState: DriverSettingsUiState) {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(18.dp),
-        color = MaterialTheme.colorScheme.surfaceContainer,
-        contentColor = MaterialTheme.colorScheme.onSurface,
-        tonalElevation = 0.dp,
-        shadowElevation = 0.dp,
-    ) {
-        Row(
-            modifier = Modifier.padding(14.dp),
-            horizontalArrangement = Arrangement.spacedBy(14.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Surface(
-                modifier = Modifier.size(72.dp),
-                shape = CircleShape,
-                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.10f),
-                contentColor = MaterialTheme.colorScheme.primary,
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        imageVector = Heroicons.Outline.User,
-                        contentDescription = null,
-                        modifier = Modifier.size(34.dp),
-                    )
-                }
-            }
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(5.dp),
-            ) {
-                Text(
-                    text = uiState.name.takeIf { it.isNotBlank() }?.uppercaseFirstLetterOfEachWord() ?: "Driver",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Text(
-                    text = uiState.phone.takeIf { it.isNotBlank() } ?: "Phone not provided",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Surface(
-                    shape = RoundedCornerShape(7.dp),
-                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.10f),
-                    contentColor = MaterialTheme.colorScheme.primary,
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                        horizontalArrangement = Arrangement.spacedBy(5.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Icon(
-                            imageVector = Heroicons.Outline.ShieldCheck,
-                            contentDescription = null,
-                            modifier = Modifier.size(15.dp),
-                        )
-                        Text(
-                            text = "Active ${uiState.role}",
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.SemiBold,
-                        )
-                    }
-                }
-            }
-            Icon(
-                imageVector = Heroicons.Outline.ChevronRight,
-                contentDescription = null,
-                modifier = Modifier.size(20.dp),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-    }
-}
-
-@Composable
-private fun SettingsSection(
-    items: List<SettingsMenuItem>,
-    isLogoutLoading: Boolean = false,
-    onLogoutClick: () -> Unit = {},
-) {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(18.dp),
-        color = MaterialTheme.colorScheme.surfaceContainer,
-        contentColor = MaterialTheme.colorScheme.onSurface,
-        tonalElevation = 0.dp,
-        shadowElevation = 0.dp,
-    ) {
-        Column(modifier = Modifier.padding(horizontal = 14.dp, vertical = 4.dp)) {
-            items.forEachIndexed { index, item ->
-                SettingsRow(
-                    item = item,
-                    isLoading = item == SettingsMenuItem.Logout && isLogoutLoading,
-                    onClick = {
-                        if (item == SettingsMenuItem.Logout) {
-                            onLogoutClick()
-                        }
-                    },
-                )
-                if (index < items.lastIndex) {
-                    HorizontalDivider(
-                        modifier = Modifier.padding(start = 58.dp),
-                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f),
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun SettingsRow(
-    item: SettingsMenuItem,
-    isLoading: Boolean,
-    onClick: () -> Unit,
-) {
+private fun SettingsProfileRow(uiState: DriverSettingsUiState) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 12.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+            .padding(top = 10.dp, bottom = 16.dp),
+        horizontalArrangement = Arrangement.spacedBy(14.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        SoftIcon(
-            icon = item.icon,
-            backgroundColor = item.color.copy(alpha = 0.12f),
-            iconColor = item.color,
-        )
+        Surface(
+            modifier = Modifier.size(58.dp),
+            shape = CircleShape,
+            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.10f),
+            contentColor = MaterialTheme.colorScheme.primary,
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                if (uiState.profilePhotoBytes != null) {
+                    CapturedDocumentPreviewImage(
+                        bytes = uiState.profilePhotoBytes,
+                        contentDescription = "Driver profile photo",
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.surfaceVariant, CircleShape),
+                        contentScale = ContentScale.Crop,
+                    )
+                } else {
+                    Icon(
+                        imageVector = Heroicons.Outline.User,
+                        contentDescription = null,
+                        modifier = Modifier.size(30.dp),
+                    )
+                }
+            }
+        }
+
         Column(
             modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(2.dp),
+            verticalArrangement = Arrangement.spacedBy(5.dp),
         ) {
             Text(
-                text = item.title,
-                style = MaterialTheme.typography.titleSmall,
+                text = uiState.name.takeIf { it.isNotBlank() }?.uppercaseFirstLetterOfEachWord() ?: "Driver",
+                style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onBackground,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
             Text(
-                text = item.subtitle,
-                style = MaterialTheme.typography.bodySmall,
+                text = uiState.driverId.driverIdLabel(),
+                style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
         }
-        if (isLoading) {
-            CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
-        } else {
-            IconButton(onClick = onClick, enabled = item == SettingsMenuItem.Logout) {
-                Icon(
-                    imageVector = Heroicons.Outline.ChevronRight,
-                    contentDescription = item.title,
-                    modifier = Modifier.size(20.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        }
-    }
-}
 
-@Composable
-private fun VersionCard() {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(18.dp),
-        color = MaterialTheme.colorScheme.surfaceContainer,
-        contentColor = MaterialTheme.colorScheme.onSurface,
-        tonalElevation = 0.dp,
-        shadowElevation = 0.dp,
-    ) {
-        Row(
-            modifier = Modifier.padding(14.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            SoftIcon(
-                icon = Heroicons.Outline.InformationCircle,
-                backgroundColor = MaterialTheme.colorScheme.surfaceVariant,
-                iconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(3.dp),
-            ) {
-                Text(
-                    text = "Version",
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.SemiBold,
-                )
-                Text(
-                    text = "1.0.0",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            Surface(
-                shape = RoundedCornerShape(7.dp),
-                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.10f),
-                contentColor = MaterialTheme.colorScheme.primary,
-            ) {
-                Text(
-                    text = "Latest",
-                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.SemiBold,
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun ErrorCard(message: String) {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(14.dp),
-        color = MaterialTheme.colorScheme.errorContainer,
-        contentColor = MaterialTheme.colorScheme.onErrorContainer,
-    ) {
-        Text(
-            text = message,
-            modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
-            style = MaterialTheme.typography.bodySmall,
+        Icon(
+            imageVector = Heroicons.Outline.ChevronRight,
+            contentDescription = null,
+            modifier = Modifier.size(20.dp),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
 }
 
 @Composable
-private fun SoftIcon(
-    icon: ImageVector,
-    backgroundColor: Color,
-    iconColor: Color,
+private fun SettingsMenuRow(
+    item: SettingsMenuItem,
 ) {
-    Surface(
-        modifier = Modifier.size(42.dp),
-        shape = CircleShape,
-        color = backgroundColor,
-        contentColor = iconColor,
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 13.dp),
+        horizontalArrangement = Arrangement.spacedBy(18.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Box(contentAlignment = Alignment.Center) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                modifier = Modifier.size(22.dp),
+        Icon(
+            imageVector = item.icon,
+            contentDescription = null,
+            modifier = Modifier.size(24.dp),
+            tint = MaterialTheme.colorScheme.onBackground,
+        )
+        Text(
+            text = item.title,
+            modifier = Modifier.weight(1f),
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.Medium,
+            color = MaterialTheme.colorScheme.onBackground,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+        Icon(
+            imageVector = Heroicons.Outline.ChevronRight,
+            contentDescription = null,
+            modifier = Modifier.size(19.dp),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+@Composable
+private fun SettingsDivider() {
+    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.28f))
+}
+
+@Composable
+private fun SettingsFooter(versionName: String) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 24.dp, bottom = 10.dp),
+    ) {
+        settingsFooterItems(versionName).forEach { item ->
+            SettingsFooterRow(item = item)
+        }
+    }
+}
+
+@Composable
+private fun SettingsFooterRow(item: SettingsFooterItem) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 6.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            imageVector = item.icon,
+            contentDescription = null,
+            modifier = Modifier.size(18.dp),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.78f),
+        )
+        Text(
+            text = item.title,
+            modifier = if (item.value == null) Modifier.weight(1f) else Modifier,
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.Normal,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        item.value?.let { value ->
+            Text(
+                text = value,
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.72f),
             )
         }
     }
@@ -436,74 +297,44 @@ private fun SoftIcon(
 
 private enum class SettingsMenuItem(
     val title: String,
-    val subtitle: String,
     val icon: ImageVector,
-    val color: Color,
 ) {
-    Account(
-        title = "Account",
-        subtitle = "Personal information and account details",
-        icon = Heroicons.Outline.User,
-        color = Color(0xFF0B6BFF),
-    ),
-    DriverVerification(
-        title = "Driver Verification",
-        subtitle = "Identity, documents and approval status",
-        icon = Heroicons.Outline.ShieldCheck,
-        color = Color(0xFF13A85B),
-    ),
-    Vehicle(
-        title = "Vehicle",
-        subtitle = "Manage vehicle information",
-        icon = Heroicons.Outline.Truck,
-        color = Color(0xFF7C3AED),
-    ),
-    Wallet(
-        title = "Wallet",
-        subtitle = "Balance, top-up and transactions",
-        icon = Heroicons.Outline.Wallet,
-        color = Color(0xFF0B6BFF),
-    ),
-    Earnings(
-        title = "Earnings",
-        subtitle = "Earnings summary and history",
-        icon = Heroicons.Outline.ChartBarSquare,
-        color = Color(0xFFF59E0B),
-    ),
-    ServiceAreas(
-        title = "Service Areas",
-        subtitle = "Manage areas where you drive",
-        icon = Heroicons.Outline.MapPin,
-        color = Color(0xFF13A85B),
-    ),
-    Safety(
-        title = "Safety",
-        subtitle = "Emergency contacts and safety tools",
-        icon = Heroicons.Outline.ShieldCheck,
-        color = Color(0xFFE53935),
-    ),
-    AppPreferences(
-        title = "App Preferences",
-        subtitle = "Theme and app experience",
-        icon = Heroicons.Outline.AdjustmentsHorizontal,
-        color = Color(0xFF7C3AED),
-    ),
-    HelpSupport(
-        title = "Help & Support",
-        subtitle = "Get help and contact support",
-        icon = Heroicons.Outline.Lifebuoy,
-        color = Color(0xFFF59E0B),
-    ),
-    Legal(
-        title = "Legal",
-        subtitle = "Terms of service and privacy policy",
-        icon = Heroicons.Outline.DocumentText,
-        color = Color(0xFF64748B),
-    ),
-    Logout(
-        title = "Logout",
-        subtitle = "Sign out from your driver account",
-        icon = Heroicons.Outline.ArrowLeftOnRectangle,
-        color = Color(0xFFE53935),
-    ),
+    Account("Account", Heroicons.Outline.User),
+    DriverVerification("Driver Verification", Heroicons.Outline.ShieldCheck),
+    Vehicle("Vehicle", Heroicons.Outline.Truck),
+    Wallet("Wallet", Heroicons.Outline.Wallet),
+    Earnings("Earnings", Heroicons.Outline.ChartBarSquare),
+    ServiceAreas("Service Areas", Heroicons.Outline.MapPin),
+    Safety("Safety", Heroicons.Outline.ShieldCheck),
+    AppPreferences("App Preferences", Heroicons.Outline.AdjustmentsHorizontal),
+}
+
+private data class SettingsFooterItem(
+    val title: String,
+    val icon: ImageVector,
+    val value: String? = null,
+)
+
+private val settingsMenuItems = listOf(
+    SettingsMenuItem.Account,
+    SettingsMenuItem.DriverVerification,
+    SettingsMenuItem.Vehicle,
+    // SettingsMenuItem.Wallet,
+    // SettingsMenuItem.Earnings,
+    SettingsMenuItem.ServiceAreas,
+    SettingsMenuItem.Safety,
+    SettingsMenuItem.AppPreferences,
+)
+
+private fun settingsFooterItems(versionName: String) = listOf(
+    SettingsFooterItem("Rate", Heroicons.Outline.Star),
+    SettingsFooterItem("Help and tips", Heroicons.Outline.Lifebuoy),
+    SettingsFooterItem("Terms and condition", Heroicons.Outline.DocumentText),
+    SettingsFooterItem("Privacy policy", Heroicons.Outline.ShieldCheck),
+    SettingsFooterItem("About", Heroicons.Outline.QuestionMarkCircle),
+    SettingsFooterItem("Version", Heroicons.Outline.InformationCircle, versionName),
+)
+
+private fun Long?.driverIdLabel(): String {
+    return this?.let { "Driver ID: DRV-${it.toString().padStart(6, '0')}" } ?: "Driver ID: -"
 }

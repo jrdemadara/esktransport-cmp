@@ -27,6 +27,7 @@ class MainActivity : ComponentActivity() {
                 pusherAppCluster = BuildConfig.PUSHER_APP_CLUSTER,
                 pusherAuthEndpoint = BuildConfig.PUSHER_AUTH_ENDPOINT,
                 mapboxAccessToken = getString(R.string.mapbox_access_token),
+                appVersionName = BuildConfig.VERSION_NAME,
             )
         )
         super.onCreate(savedInstanceState)

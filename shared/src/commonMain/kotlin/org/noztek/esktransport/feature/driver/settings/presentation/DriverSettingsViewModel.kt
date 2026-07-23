@@ -10,10 +10,14 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import org.noztek.esktransport.core.session.domain.usecase.ObserveCurrentSessionUseCase
 import org.noztek.esktransport.feature.common.logout.domain.usecase.LogoutUseCase
+import org.noztek.esktransport.feature.driver.onboarding.domain.usecase.GetDriverOnboardingStatusUseCase
+import org.noztek.esktransport.feature.driver.settings.domain.usecase.GetDriverProfilePhotoUseCase
 
 class DriverSettingsViewModel(
     private val observeCurrentSessionUseCase: ObserveCurrentSessionUseCase,
     private val logoutUseCase: LogoutUseCase,
+    private val getDriverProfilePhotoUseCase: GetDriverProfilePhotoUseCase,
+    private val getDriverOnboardingStatusUseCase: GetDriverOnboardingStatusUseCase,
     private val ioDispatcher: CoroutineDispatcher,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(DriverSettingsUiState())
@@ -21,6 +25,8 @@ class DriverSettingsViewModel(
 
     init {
         observeSession()
+        loadProfilePhoto()
+        loadDriverStatus()
     }
 
     fun logout() {
@@ -61,6 +67,22 @@ class DriverSettingsViewModel(
                         role = user.primaryRole?.replaceFirstChar { char -> char.uppercase() } ?: "Driver",
                     )
                 }
+            }
+        }
+    }
+
+    private fun loadProfilePhoto() {
+        viewModelScope.launch(ioDispatcher) {
+            getDriverProfilePhotoUseCase().onSuccess { bytes ->
+                _uiState.update { it.copy(profilePhotoBytes = bytes) }
+            }
+        }
+    }
+
+    private fun loadDriverStatus() {
+        viewModelScope.launch(ioDispatcher) {
+            getDriverOnboardingStatusUseCase().onSuccess { status ->
+                _uiState.update { it.copy(driverId = status.driverId) }
             }
         }
     }

@@ -5,12 +5,14 @@ import org.noztek.esktransport.core.location.CurrentLocationProvider
 import org.noztek.esktransport.core.location.IosCurrentLocationProvider
 import org.noztek.esktransport.core.map.MapboxConfig
 import org.noztek.esktransport.core.network.NetworkConfig
+import org.noztek.esktransport.core.platform.AppBuildInfo
 import org.noztek.esktransport.core.realtime.RealtimeConfig
 import org.noztek.esktransport.core.storage.createPlatformSettings
 
 actual class PlatformKoinContext internal constructor(
     internal val realtimeConfig: RealtimeConfig,
     internal val mapboxConfig: MapboxConfig,
+    internal val appBuildInfo: AppBuildInfo,
 )
 
 actual fun createPlatformKoinContext(
@@ -19,6 +21,7 @@ actual fun createPlatformKoinContext(
     pusherAppCluster: String,
     pusherAuthEndpoint: String,
     mapboxAccessToken: String,
+    appVersionName: String,
 ): PlatformKoinContext = PlatformKoinContext(
     realtimeConfig = RealtimeConfig(
         appKey = pusherAppKey,
@@ -26,6 +29,7 @@ actual fun createPlatformKoinContext(
         authEndpoint = pusherAuthEndpoint.toRealtimeAuthUrl(),
     ),
     mapboxConfig = MapboxConfig(accessToken = mapboxAccessToken),
+    appBuildInfo = AppBuildInfo(versionName = appVersionName),
 )
 
 private fun String.toRealtimeAuthUrl(): String {
@@ -46,6 +50,7 @@ actual fun initKoinPlatform(context: PlatformKoinContext) {
                 single { createPlatformSettings(context) }
                 single { context.realtimeConfig }
                 single { context.mapboxConfig }
+                single { context.appBuildInfo }
                 single<CurrentLocationProvider> { IosCurrentLocationProvider() }
             }
         )

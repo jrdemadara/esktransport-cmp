@@ -8,6 +8,7 @@ expect fun createPlatformKoinContext(
     pusherAppCluster: String = "",
     pusherAuthEndpoint: String = "",
     mapboxAccessToken: String = "",
+    appVersionName: String = "1.0.0",
 ): PlatformKoinContext
 
 expect fun initKoinPlatform(context: PlatformKoinContext)
