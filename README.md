@@ -6,17 +6,11 @@ The app is designed around provincial transport needs: city and municipality ser
 
 ## Demo
 
-### Driver App
-
-<video src="./shared/src/commonMain/composeResources/drawable/driver.mp4" controls muted playsinline width="320"></video>
-
-[Open driver demo video](./shared/src/commonMain/composeResources/drawable/driver.mp4)
-
 ### Passenger App
 
-<video src="./shared/src/commonMain/composeResources/drawable/passenger.mp4" controls muted playsinline width="320"></video>
+![Passenger app demo](./docs/passenger.gif)
 
-[Open passenger demo video](./shared/src/commonMain/composeResources/drawable/passenger.mp4)
+Driver demo will be added after the preview is optimized for GitHub.
 
 ## Core Features
 
@@ -49,6 +43,7 @@ The app is designed around provincial transport needs: city and municipality ser
 - [commonMain](./shared/src/commonMain/kotlin) contains shared UI, domain, data, navigation, and app logic.
 - [androidMain](./shared/src/androidMain/kotlin) contains Android-specific implementations.
 - [iosMain](./shared/src/iosMain/kotlin) contains iOS-specific implementations.
+- [docs](./docs) contains README media and product documentation assets.
 
 ## Running The App
 
