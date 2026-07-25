@@ -1,7 +1,6 @@
 package org.noztek.esktransport.feature.driver.home.presentation
 
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -40,11 +39,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
@@ -71,18 +67,28 @@ import esktransport.shared.generated.resources.Res
 import esktransport.shared.generated.resources.blue_sedan
 import esktransport.shared.generated.resources.driver_main_card_background
 import org.jetbrains.compose.resources.painterResource
+import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
+import org.noztek.esktransport.core.map.MapCameraDefaults
+import org.noztek.esktransport.core.map.MapPoint
+import org.noztek.esktransport.core.map.MapRouteLine
+import org.noztek.esktransport.core.map.MapboxConfig
+import org.noztek.esktransport.core.map.PlatformMapView
 import org.noztek.esktransport.core.ui.composables.common.AppPrimaryButton
 import org.noztek.esktransport.core.ui.composables.driver.DriverBottomBar
 import org.noztek.esktransport.core.ui.composables.driver.DriverBottomBarRoute
 import org.noztek.esktransport.core.ui.composables.driver.DriverTopBar
+import org.noztek.esktransport.core.utils.formatApiDateTimeForDisplay
 import org.noztek.esktransport.feature.driver.home.domain.model.DriverHomeStats
 import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverOnboardingDocumentType
 import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverOnboardingState
 import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverOnboardingStatus
 import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverRequirementStatus
 import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverVehicleInfo
+import org.noztek.esktransport.feature.driver.trips.domain.model.DriverTrip
+import org.noztek.esktransport.feature.driver.trips.domain.model.DriverTripStatus
 import org.noztek.esktransport.feature.driver.wallet.domain.model.DriverWalletDashboard
+import kotlin.math.abs
 import kotlin.math.roundToInt
 
 @Composable
@@ -95,6 +101,7 @@ fun HomeScreen(
     onDriverModeClick: () -> Unit = {},
     onTopUpClick: () -> Unit = {},
     viewModel: HomeViewModel = koinViewModel(),
+    mapboxConfig: MapboxConfig = koinInject(),
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -107,6 +114,7 @@ fun HomeScreen(
                 viewModel.refreshStats(showLoading = false)
                 viewModel.refreshWallet(showLoading = false)
                 viewModel.refreshEarnings(showLoading = false)
+                viewModel.refreshRecentActivity(showLoading = false)
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
@@ -124,6 +132,7 @@ fun HomeScreen(
         if (statsRefreshToken > 0L) {
             viewModel.refreshStats(showLoading = false)
             viewModel.refreshEarnings(showLoading = false)
+            viewModel.refreshRecentActivity(showLoading = false)
         }
     }
 
@@ -183,7 +192,15 @@ fun HomeScreen(
                 onSupportClick = onProfileClick,
                 onVehicleClick = { onSetupClick(uiState.onboardingStatus) },
             )
-            RecentActivityCard()
+            RecentActivityCard(
+                isLoading = uiState.isLoadingRecentActivity,
+                trip = uiState.recentActivityTrip,
+                routePoints = uiState.recentActivityRoutePoints,
+                errorMessage = uiState.recentActivityErrorMessage,
+                mapboxConfig = mapboxConfig,
+                onSeeAllClick = { onBottomBarNavigate(DriverBottomBarRoute.TRIPS) },
+                onRetryClick = viewModel::refreshRecentActivity,
+            )
 
             DriverSetupCard(
                 isLoading = uiState.isLoadingSetup,
@@ -1046,7 +1063,15 @@ private fun DriverQuickActionTile(
 }
 
 @Composable
-private fun RecentActivityCard() {
+private fun RecentActivityCard(
+    isLoading: Boolean,
+    trip: DriverTrip?,
+    routePoints: List<MapPoint>,
+    errorMessage: String?,
+    mapboxConfig: MapboxConfig,
+    onSeeAllClick: () -> Unit,
+    onRetryClick: () -> Unit,
+) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(18.dp),
@@ -1074,7 +1099,7 @@ private fun RecentActivityCard() {
                     text = "See all",
                     modifier = Modifier
                         .clip(RoundedCornerShape(999.dp))
-                        .clickable { }
+                        .clickable(onClick = onSeeAllClick)
                         .padding(horizontal = 8.dp, vertical = 4.dp),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.primary,
@@ -1082,116 +1107,261 @@ private fun RecentActivityCard() {
                 )
             }
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                MockRecentTripMap(
-                    modifier = Modifier
-                        .size(width = 116.dp, height = 72.dp)
-                        .clip(RoundedCornerShape(10.dp)),
+            when {
+                isLoading && trip == null -> RecentActivityLoading()
+                errorMessage != null && trip == null -> RecentActivityError(
+                    message = errorMessage,
+                    onRetryClick = onRetryClick,
                 )
-                Column(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(3.dp),
-                ) {
-                    Text(
-                        text = "Last Trip",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    Text(
-                        text = "SM City Cebu  →  Ayala Center Cebu",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    Text(
-                        text = "May 14, 2025 • 4:29 PM",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-                Column(
-                    horizontalAlignment = Alignment.End,
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    Text(
-                        text = "₱87.91",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface,
-                    )
-                    Surface(
-                        shape = RoundedCornerShape(999.dp),
-                        color = Color(0xFFDCFCE7),
-                        contentColor = Color(0xFF128A45),
-                    ) {
-                        Text(
-                            text = "Completed",
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.SemiBold,
-                            maxLines = 1,
-                        )
-                    }
-                }
+                trip == null -> RecentActivityEmpty()
+                else -> RecentActivityTripRow(
+                    trip = trip,
+                    routePoints = routePoints,
+                    mapboxConfig = mapboxConfig,
+                )
             }
         }
     }
 }
 
 @Composable
-private fun MockRecentTripMap(
+private fun RecentActivityTripRow(
+    trip: DriverTrip,
+    routePoints: List<MapPoint>,
+    mapboxConfig: MapboxConfig,
+) {
+    val fareLabel = trip.recentFareLabel()
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        RecentTripMapPreview(
+            routePoints = routePoints,
+            mapboxConfig = mapboxConfig,
+            modifier = Modifier
+                .size(width = 118.dp, height = 76.dp)
+                .clip(RoundedCornerShape(12.dp)),
+        )
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(3.dp),
+        ) {
+            Text(
+                text = trip.passengerName.takeIf { it.isNotBlank() } ?: "Last trip",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                text = trip.routeLabel(),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                text = trip.activityTimestamp().formatApiDateTimeForDisplay(),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            trip.distanceTimeLabel()?.let { label ->
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        }
+        Column(
+            horizontalAlignment = Alignment.End,
+            verticalArrangement = Arrangement.spacedBy(7.dp),
+        ) {
+            Text(
+                text = fareLabel,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+            )
+            RecentActivityStatusPill(status = trip.status)
+        }
+    }
+}
+
+@Composable
+private fun RecentTripMapPreview(
+    routePoints: List<MapPoint>,
+    mapboxConfig: MapboxConfig,
     modifier: Modifier = Modifier,
 ) {
     val primary = MaterialTheme.colorScheme.primary
-    val destination = Color(0xFF21B36B)
-    Canvas(
-        modifier = modifier.background(Color(0xFFEFF4FA)),
+    val outline = MaterialTheme.colorScheme.outlineVariant
+
+    if (routePoints.size < 2) {
+        Surface(
+            modifier = modifier,
+            shape = RoundedCornerShape(12.dp),
+            color = MaterialTheme.colorScheme.surfaceContainerHighest,
+            contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Icon(
+                    imageVector = Heroicons.Outline.MapPin,
+                    contentDescription = null,
+                    modifier = Modifier.size(22.dp),
+                )
+            }
+        }
+        return
+    }
+
+    PlatformMapView(
+        modifier = modifier.border(1.dp, outline.copy(alpha = 0.38f), RoundedCornerShape(12.dp)),
+        config = mapboxConfig,
+        cameraCenter = routePoints.mapCenter(),
+        cameraDefaults = MapCameraDefaults(zoom = routePoints.recentMapZoom()),
+        routeLines = listOf(
+            MapRouteLine(
+                id = "recent-route-glow",
+                points = routePoints,
+                color = primary,
+                width = 7.0,
+                opacity = 0.18,
+            ),
+            MapRouteLine(
+                id = "recent-route",
+                points = routePoints,
+                color = primary,
+                width = 3.5,
+                opacity = 0.95,
+            ),
+        ),
+    )
+}
+
+@Composable
+private fun RecentActivityStatusPill(status: DriverTripStatus) {
+    val (label, container, content) = when (status) {
+        DriverTripStatus.Completed -> Triple("Completed", Color(0xFFE7F8EE), Color(0xFF139650))
+        DriverTripStatus.Cancelled -> Triple("Cancelled", Color(0xFFFFF1E7), Color(0xFFE45514))
+        DriverTripStatus.Expired -> Triple("Expired", Color(0xFFFFF7E6), Color(0xFFB77900))
+        DriverTripStatus.InProgress,
+        DriverTripStatus.ArrivingPickup,
+        DriverTripStatus.Accepted,
+        DriverTripStatus.Offered -> Triple("Ongoing", MaterialTheme.colorScheme.primary.copy(alpha = 0.10f), MaterialTheme.colorScheme.primary)
+        DriverTripStatus.Unknown -> Triple("Trip", MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+
+    Surface(
+        shape = RoundedCornerShape(999.dp),
+        color = container,
+        contentColor = content,
     ) {
-        drawRect(color = Color(0xFFF8FAFC), topLeft = Offset.Zero, size = size)
-
-        val roadColor = Color(0xFFDCE4EE)
-        val parkColor = Color(0xFFBFE7C8)
-        drawRect(
-            color = parkColor,
-            topLeft = Offset(size.width * 0.04f, size.height * 0.08f),
-            size = Size(size.width * 0.18f, size.height * 0.22f),
+        Text(
+            text = label,
+            modifier = Modifier.padding(horizontal = 9.dp, vertical = 4.dp),
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.SemiBold,
+            maxLines = 1,
         )
-        drawRect(
-            color = parkColor,
-            topLeft = Offset(size.width * 0.72f, size.height * 0.70f),
-            size = Size(size.width * 0.22f, size.height * 0.20f),
+    }
+}
+
+@Composable
+private fun RecentActivityLoading() {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(76.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+        Text(
+            text = "Loading recent trip",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+    }
+}
 
-        val thinStroke = 2.2f
-        drawLine(roadColor, Offset(size.width * 0.03f, size.height * 0.45f), Offset(size.width * 0.92f, size.height * 0.12f), thinStroke)
-        drawLine(roadColor, Offset(size.width * 0.05f, size.height * 0.82f), Offset(size.width * 0.92f, size.height * 0.42f), thinStroke)
-        drawLine(roadColor, Offset(size.width * 0.28f, size.height * 0.02f), Offset(size.width * 0.82f, size.height * 0.92f), thinStroke)
-        drawLine(roadColor, Offset(size.width * 0.02f, size.height * 0.18f), Offset(size.width * 0.76f, size.height * 0.88f), thinStroke)
-        drawLine(roadColor, Offset(size.width * 0.46f, 0f), Offset(size.width * 0.16f, size.height), thinStroke)
+@Composable
+private fun RecentActivityError(
+    message: String,
+    onRetryClick: () -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = message,
+            modifier = Modifier.weight(1f),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.error,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+        )
+        Text(
+            text = "Retry",
+            modifier = Modifier
+                .clip(RoundedCornerShape(999.dp))
+                .clickable(onClick = onRetryClick)
+                .padding(horizontal = 10.dp, vertical = 6.dp),
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.primary,
+        )
+    }
+}
 
-        val routeStroke = 3.4f
-        val pickup = Offset(size.width * 0.27f, size.height * 0.30f)
-        val turnOne = Offset(size.width * 0.48f, size.height * 0.48f)
-        val turnTwo = Offset(size.width * 0.64f, size.height * 0.40f)
-        val dropoff = Offset(size.width * 0.83f, size.height * 0.70f)
-        drawLine(primary, pickup, turnOne, routeStroke, cap = StrokeCap.Round)
-        drawLine(primary, turnOne, turnTwo, routeStroke, cap = StrokeCap.Round)
-        drawLine(primary, turnTwo, dropoff, routeStroke, cap = StrokeCap.Round)
-
-        drawCircle(color = Color.White, radius = 8f, center = pickup)
-        drawCircle(color = primary, radius = 5f, center = pickup)
-        drawCircle(color = Color.White, radius = 8f, center = dropoff)
-        drawCircle(color = destination, radius = 5f, center = dropoff)
+@Composable
+private fun RecentActivityEmpty() {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(76.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Surface(
+            modifier = Modifier.size(38.dp),
+            shape = RoundedCornerShape(12.dp),
+            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.10f),
+            contentColor = MaterialTheme.colorScheme.primary,
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Icon(
+                    imageVector = Heroicons.Outline.QueueList,
+                    contentDescription = null,
+                    modifier = Modifier.size(20.dp),
+                )
+            }
+        }
+        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(
+                text = "No trips yet",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Text(
+                text = "Your latest completed trip will appear here.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
     }
 }
 
@@ -1570,6 +1740,64 @@ private fun DriverVehicleInfo.detailLine(): String {
     val yearText = year?.toString()
     val capacityText = passengerCapacity?.let { "$it seats" }
     return listOfNotNull(plateText, yearText, capacityText).joinToString(" / ")
+}
+
+private fun DriverTrip.routeLabel(): String {
+    val pickupLabel = pickup.label?.takeIf { it.isNotBlank() } ?: "Pickup"
+    val dropoffLabel = dropoff.label?.takeIf { it.isNotBlank() } ?: "Drop-off"
+    return "$pickupLabel  →  $dropoffLabel"
+}
+
+private fun DriverTrip.activityTimestamp(): String? {
+    return completedAt
+        ?: canceledAt
+        ?: pickupConfirmedAt
+        ?: acceptedAt
+        ?: assignedAt
+        ?: requestedAt
+}
+
+private fun DriverTrip.recentFareLabel(): String {
+    val fare = finalFare ?: settlement?.grossFare ?: return "-"
+    return formatWalletAmount(fare, currency)
+}
+
+private fun DriverTrip.distanceTimeLabel(): String? {
+    val distance = distanceKm?.takeIf { it > 0.0 }?.let { "${it.formatOneDecimal()} km" }
+    val duration = durationMin?.takeIf { it > 0 }?.let { "${it} min" }
+    return listOfNotNull(distance, duration)
+        .joinToString(" • ")
+        .takeIf { it.isNotBlank() }
+}
+
+private fun List<MapPoint>.mapCenter(): MapPoint {
+    return MapPoint(
+        latitude = sumOf { it.latitude } / size,
+        longitude = sumOf { it.longitude } / size,
+    )
+}
+
+private fun List<MapPoint>.recentMapZoom(): Double {
+    if (size < 2) return 14.0
+
+    val latSpan = maxOf { it.latitude } - minOf { it.latitude }
+    val lngSpan = maxOf { it.longitude } - minOf { it.longitude }
+    val maxSpan = maxOf(abs(latSpan), abs(lngSpan))
+
+    return when {
+        maxSpan < 0.01 -> 14.2
+        maxSpan < 0.025 -> 13.2
+        maxSpan < 0.06 -> 12.0
+        maxSpan < 0.12 -> 11.0
+        else -> 10.0
+    }
+}
+
+private fun Double.formatOneDecimal(): String {
+    val tenths = (this * 10).roundToInt()
+    val whole = tenths / 10
+    val decimal = abs(tenths % 10)
+    return "$whole.$decimal"
 }
 
 private fun formatWalletAmount(amount: Double, currency: String): String {

@@ -72,6 +72,7 @@ final class IosMapboxViewFactory: NSObject, Shared.IosMapboxViewFactory {
         let styleURI = StyleURI(rawValue: request.styleUri) ?? .standard
         let options = MapInitOptions(styleURI: styleURI)
         let mapView = MapView(frame: UIScreen.main.bounds, mapInitOptions: options)
+        configureMapOrnaments(in: mapView)
         let container = MapContainerView(mapView: mapView)
         container.panObserver = PanObserver(mapView: mapView)
         if let observer = container.panObserver {
@@ -99,6 +100,7 @@ final class IosMapboxViewFactory: NSObject, Shared.IosMapboxViewFactory {
         if mapView.mapboxMap.styleURI != styleURI {
             mapView.mapboxMap.loadStyle(styleURI)
         }
+        configureMapOrnaments(in: mapView)
         container.panObserver?.onCameraMoving = request.onCameraMoving
         container.panObserver?.onCameraIdle = request.onCameraIdle
         configureUserLocation(in: mapView, container: container, request: request)
@@ -107,6 +109,10 @@ final class IosMapboxViewFactory: NSObject, Shared.IosMapboxViewFactory {
         applyAntPath(to: mapView, container: container, request: request)
         applyMarkers(to: mapView, container: container, request: request)
         container.lastCameraCenter = CLLocationCoordinate2D(latitude: request.latitude, longitude: request.longitude)
+    }
+
+    private func configureMapOrnaments(in mapView: MapView) {
+        mapView.ornaments.options.scaleBar.visibility = .hidden
     }
 
     private func configureUserLocation(
