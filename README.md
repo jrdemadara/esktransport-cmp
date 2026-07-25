@@ -1,31 +1,77 @@
-This is a Kotlin Multiplatform project targeting Android, iOS.
+# ESK Transport Mobile App
 
-* [/iosApp](./iosApp/iosApp) contains an iOS application. Even if you’re sharing your UI with Compose Multiplatform,
-  you need this entry point for your iOS app. This is also where you should add SwiftUI code for your project.
+ESK Transport is a ride-hailing mobile app built for local transport operations in the province of Sultan Kudarat. It supports passenger booking, driver onboarding, real-time trip tracking, wallet top-ups, trip history, earnings, and driver account management.
 
-* [/shared](./shared/src) is for code that will be shared across your Compose Multiplatform applications.
-  It contains several subfolders:
-  - [commonMain](./shared/src/commonMain/kotlin) is for code that’s common for all targets.
-  - Other folders are for Kotlin code that will be compiled for only the platform indicated in the folder name.
-    For example, if you want to use Apple’s CoreCrypto for the iOS part of your Kotlin app,
-    the [iosMain](./shared/src/iosMain/kotlin) folder would be the right place for such calls.
-    Similarly, if you want to edit the Desktop (JVM) specific part, the [jvmMain](./shared/src/jvmMain/kotlin)
-    folder is the appropriate location.
+The app is designed around provincial transport needs: city and municipality service zones, cash-based rides, kiosk-assisted wallet top-ups, and driver verification before going online.
 
-### Running the apps
+## Demo
 
-Use the run configurations provided by the run widget in your IDE's toolbar. You can also use these commands and options:
+### Driver App
 
-- Android app: `./gradlew :androidApp:assembleDebug`
-- iOS app: open the [/iosApp](./iosApp) directory in Xcode and run it from there.
+<video src="./shared/src/commonMain/composeResources/drawable/driver.mp4" controls muted playsinline width="320"></video>
 
-### Running tests
+[Open driver demo video](./shared/src/commonMain/composeResources/drawable/driver.mp4)
 
-Use the run button in your IDE's editor gutter, or run tests using Gradle tasks:
+### Passenger App
 
-- Android tests: `./gradlew :shared:testAndroidHostTest`
-- iOS tests: `./gradlew :shared:iosSimulatorArm64Test`
+<video src="./shared/src/commonMain/composeResources/drawable/passenger.mp4" controls muted playsinline width="320"></video>
 
----
+[Open passenger demo video](./shared/src/commonMain/composeResources/drawable/passenger.mp4)
 
-Learn more about [Kotlin Multiplatform](https://www.jetbrains.com/help/kotlin-multiplatform-dev/get-started.html)…
+## Core Features
+
+- Passenger ride planning, location search, fare review, booking, live driver tracking, chat, cancellation, and ride feedback.
+- Driver setup flow for identity verification, vehicle registration, and service zone selection.
+- Driver mode for going online, receiving booking offers, navigating trips, confirming pickup, completing drop-off, and sending live location updates.
+- Driver wallet and top-up request flow prepared for kiosk operations.
+- Driver earnings, trip history, account settings, and production-focused home screen.
+- Real-time status updates using Pusher for onboarding, booking, trip, and chat events.
+
+## Tech Stack
+
+- Kotlin Multiplatform for shared Android and iOS business logic.
+- Compose Multiplatform and Material 3 for shared UI.
+- Android native integrations for CameraX, ML Kit face detection, Mapbox Maps, and Mapbox Navigation.
+- iOS native integrations for camera capture, Mapbox Maps, and platform lifecycle behavior.
+- Ktor Client for API networking.
+- Kotlinx Serialization for JSON parsing.
+- Koin for dependency injection.
+- Multiplatform Settings for local session and app state storage.
+- Pusher Channels for real-time events.
+- Laravel backend API with PostgreSQL/PostGIS, Filament admin panel, wallet ledger, onboarding verification, fare quotes, bookings, and trip sessions.
+- Mapbox Directions and map rendering for route previews, trip tracking, and driver navigation.
+
+## Project Structure
+
+- [androidApp](./androidApp) contains the Android application entry point, Android build configuration, and platform bootstrapping.
+- [iosApp](./iosApp) contains the iOS application entry point and Xcode project.
+- [shared](./shared/src) contains the shared Kotlin Multiplatform code.
+- [commonMain](./shared/src/commonMain/kotlin) contains shared UI, domain, data, navigation, and app logic.
+- [androidMain](./shared/src/androidMain/kotlin) contains Android-specific implementations.
+- [iosMain](./shared/src/iosMain/kotlin) contains iOS-specific implementations.
+
+## Running The App
+
+Android:
+
+```bash
+./gradlew :androidApp:assembleDebug
+```
+
+iOS:
+
+Open [iosApp](./iosApp) in Xcode and run the app on a simulator or physical device.
+
+## Validation
+
+Useful checks before shipping changes:
+
+```bash
+./gradlew :shared:compileAndroidMain
+./gradlew :androidApp:compileDebugKotlin
+./gradlew :shared:compileKotlinIosSimulatorArm64
+```
+
+## Product Scope
+
+The first production-testing release focuses on Sultan Kudarat operations, especially passenger booking and verified driver dispatch across configured service zones such as Tacurong City, Isulan, and Koronadal City.
