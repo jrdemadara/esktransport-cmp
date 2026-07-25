@@ -6,13 +6,9 @@ The app is designed around provincial transport needs: city and municipality ser
 
 ## Demo
 
-### Driver App
-
-![Driver app demo](./docs/driver.gif)
-
-### Passenger App
-
-![Passenger app demo](./docs/passenger.gif)
+| Driver App | Passenger App |
+| --- | --- |
+| <img src="./docs/driver.gif" alt="Driver app demo" width="260"> | <img src="./docs/passenger.gif" alt="Passenger app demo" width="260"> |
 
 [Watch full passenger demo](./docs/passenger.mp4)
 
