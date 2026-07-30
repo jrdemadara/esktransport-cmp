@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
@@ -168,6 +169,7 @@ fun CashoutScreen(
                     fontWeight = FontWeight.SemiBold,
                 )
             }
+            Spacer(modifier = Modifier.height(10.dp))
         }
     }
 }
@@ -382,9 +384,9 @@ private fun CashoutQrCard(
         shadowElevation = 0.5.dp,
     ) {
         Column(
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 12.dp),
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 10.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(7.dp),
         ) {
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -405,14 +407,14 @@ private fun CashoutQrCard(
             }
             if (hasReference) {
                 Surface(
-                    modifier = Modifier.width(172.dp).aspectRatio(1f),
+                    modifier = Modifier.width(158.dp).aspectRatio(1f),
                     shape = RoundedCornerShape(12.dp),
                     color = Color.White,
                     shadowElevation = 0.5.dp,
                 ) {
                     QrPreview(
                         payload = qrPayload.orEmpty(),
-                        modifier = Modifier.fillMaxSize().padding(14.dp),
+                        modifier = Modifier.fillMaxSize().padding(12.dp),
                     )
                 }
                 Row(
@@ -441,7 +443,7 @@ private fun CashoutQrCard(
                 border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
             ) {
                 Row(
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 9.dp),
+                    modifier = Modifier.padding(horizontal = 11.dp, vertical = 7.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
@@ -452,7 +454,7 @@ private fun CashoutQrCard(
                         )
                         Text(
                             text = displayReferenceCode ?: "Generate QR first",
-                            style = MaterialTheme.typography.titleLarge,
+                            style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface,
                             maxLines = 1,

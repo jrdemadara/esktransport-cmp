@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
@@ -46,7 +47,6 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -62,7 +62,7 @@ import com.composables.icons.heroicons.outline.QrCode
 import com.composables.icons.heroicons.outline.Share
 import org.koin.compose.viewmodel.koinViewModel
 import org.noztek.esktransport.core.ui.composables.common.AppPrimaryButton
-import kotlin.math.abs
+import org.noztek.esktransport.core.utils.QrCodeMatrix
 
 private val TopUpPresets = listOf(100.0, 200.0, 500.0, 1000.0)
 
@@ -159,6 +159,7 @@ fun TopUpScreen(
                     fontWeight = FontWeight.SemiBold,
                 )
             }
+            Spacer(modifier = Modifier.height(10.dp))
         }
     }
 }
@@ -342,9 +343,9 @@ private fun KioskQrCard(
         shadowElevation = 0.5.dp,
     ) {
         Column(
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 12.dp),
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 10.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(7.dp),
         ) {
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -365,14 +366,14 @@ private fun KioskQrCard(
             }
             if (hasReference) {
                 Surface(
-                    modifier = Modifier.width(172.dp).aspectRatio(1f),
+                    modifier = Modifier.width(158.dp).aspectRatio(1f),
                     shape = RoundedCornerShape(12.dp),
                     color = Color.White,
                     shadowElevation = 0.5.dp,
                 ) {
                     QrPreview(
                         payload = qrPayload.orEmpty(),
-                        modifier = Modifier.fillMaxSize().padding(14.dp),
+                        modifier = Modifier.fillMaxSize().padding(12.dp),
                     )
                 }
                 Row(
@@ -401,7 +402,7 @@ private fun KioskQrCard(
                 border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
             ) {
                 Row(
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 9.dp),
+                    modifier = Modifier.padding(horizontal = 11.dp, vertical = 7.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
@@ -412,7 +413,7 @@ private fun KioskQrCard(
                         )
                         Text(
                             text = displayReferenceCode ?: "Generate QR first",
-                            style = MaterialTheme.typography.titleLarge,
+                            style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface,
                             maxLines = 1,
@@ -568,8 +569,15 @@ private fun QrPreview(
     payload: String,
     modifier: Modifier = Modifier,
 ) {
+    val matrix = remember(payload) {
+        runCatching { QrCodeMatrix.encode(payload) }.getOrDefault(emptyList())
+    }
+
     Canvas(modifier = modifier) {
-        val modules = 29
+        if (matrix.isEmpty()) return@Canvas
+
+        val quietZone = 4
+        val modules = matrix.size + quietZone * 2
         val cell = size.minDimension / modules
         val origin = Offset(
             x = (size.width - cell * modules) / 2f,
@@ -577,49 +585,18 @@ private fun QrPreview(
         )
 
         drawRect(Color.White, topLeft = Offset.Zero, size = size)
-        drawFinder(origin, cell, 0, 0)
-        drawFinder(origin, cell, modules - 7, 0)
-        drawFinder(origin, cell, 0, modules - 7)
-
-        val seed = payload.hashCode()
-        for (row in 0 until modules) {
-            for (column in 0 until modules) {
-                if (isFinderArea(column, row, modules)) continue
-                val value = abs(seed + column * 37 + row * 71 + column * row * 13)
-                if (value % 5 == 0 || value % 11 == 0) {
+        matrix.forEachIndexed { row, modulesRow ->
+            modulesRow.forEachIndexed { column, isDark ->
+                if (isDark) {
                     drawRect(
                         color = Color.Black,
-                        topLeft = origin + Offset(column * cell, row * cell),
-                        size = Size(cell * 0.92f, cell * 0.92f),
+                        topLeft = origin + Offset((column + quietZone) * cell, (row + quietZone) * cell),
+                        size = Size(cell, cell),
                     )
                 }
             }
         }
     }
-}
-
-private fun DrawScope.drawFinder(
-    origin: Offset,
-    cell: Float,
-    column: Int,
-    row: Int,
-) {
-    fun square(offset: Int, span: Int, color: Color) {
-        drawRect(
-            color = color,
-            topLeft = origin + Offset((column + offset) * cell, (row + offset) * cell),
-            size = Size(span * cell, span * cell),
-        )
-    }
-    square(0, 7, Color.Black)
-    square(1, 5, Color.White)
-    square(2, 3, Color.Black)
-}
-
-private fun isFinderArea(column: Int, row: Int, modules: Int): Boolean {
-    return (column < 8 && row < 8) ||
-        (column >= modules - 8 && row < 8) ||
-        (column < 8 && row >= modules - 8)
 }
 
 private fun String.toReadableDateLabel(): String {
