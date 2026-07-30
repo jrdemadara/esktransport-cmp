@@ -8,12 +8,14 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.noztek.esktransport.feature.driver.wallet.domain.usecase.CancelDriverTopupUseCase
 import org.noztek.esktransport.feature.driver.wallet.domain.usecase.CreateDriverTopupUseCase
 import org.noztek.esktransport.feature.driver.wallet.domain.usecase.GetDriverWalletUseCase
 
 class TopUpViewModel(
     private val getDriverWalletUseCase: GetDriverWalletUseCase,
     private val createDriverTopupUseCase: CreateDriverTopupUseCase,
+    private val cancelDriverTopupUseCase: CancelDriverTopupUseCase,
     private val ioDispatcher: CoroutineDispatcher,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(TopUpUiState())
@@ -34,6 +36,7 @@ class TopUpViewModel(
                             isLoading = false,
                             walletBalance = dashboard.wallet.balance,
                             currency = dashboard.wallet.currency,
+                            activeTopup = dashboard.pendingTopups.firstOrNull(),
                             errorMessage = null,
                         )
                     }
@@ -98,6 +101,33 @@ class TopUpViewModel(
                         it.copy(
                             isGenerating = false,
                             errorMessage = throwable.message ?: "Unable to create top up request.",
+                        )
+                    }
+                }
+        }
+    }
+
+    fun cancelTopup() {
+        val referenceCode = _uiState.value.activeTopup?.referenceCode ?: return
+
+        viewModelScope.launch {
+            _uiState.update { it.copy(isCancelling = true, errorMessage = null, statusMessage = null) }
+            val result = withContext(ioDispatcher) { cancelDriverTopupUseCase(referenceCode = referenceCode) }
+            result
+                .onSuccess {
+                    _uiState.update {
+                        it.copy(
+                            isCancelling = false,
+                            activeTopup = null,
+                            statusMessage = "Top-up reference cancelled.",
+                        )
+                    }
+                }
+                .onFailure { throwable ->
+                    _uiState.update {
+                        it.copy(
+                            isCancelling = false,
+                            errorMessage = throwable.message ?: "Unable to cancel top-up request.",
                         )
                     }
                 }

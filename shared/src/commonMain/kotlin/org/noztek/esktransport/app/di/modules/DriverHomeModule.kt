@@ -48,6 +48,7 @@ import org.noztek.esktransport.feature.driver.wallet.data.impl.DriverWalletRepos
 import org.noztek.esktransport.feature.driver.wallet.data.remote.DriverWalletApi
 import org.noztek.esktransport.feature.driver.wallet.domain.repository.DriverWalletRepository
 import org.noztek.esktransport.feature.driver.wallet.domain.usecase.CancelDriverCashoutUseCase
+import org.noztek.esktransport.feature.driver.wallet.domain.usecase.CancelDriverTopupUseCase
 import org.noztek.esktransport.feature.driver.wallet.domain.usecase.CreateDriverCashoutUseCase
 import org.noztek.esktransport.feature.driver.wallet.domain.usecase.CreateDriverTopupUseCase
 import org.noztek.esktransport.feature.driver.wallet.domain.usecase.GetDriverWalletUseCase
@@ -76,6 +77,7 @@ val driverHomeModule = module {
     single { GetDriverServiceZonesUseCase(repository = get()) }
     single { GetDriverWalletUseCase(repository = get()) }
     single { CreateDriverTopupUseCase(repository = get()) }
+    single { CancelDriverTopupUseCase(repository = get()) }
     single { CreateDriverCashoutUseCase(repository = get()) }
     single { CancelDriverCashoutUseCase(repository = get()) }
     single { GetRiderEarningsUseCase(repository = get()) }
@@ -168,6 +170,7 @@ val driverHomeModule = module {
         TopUpViewModel(
             getDriverWalletUseCase = get(),
             createDriverTopupUseCase = get(),
+            cancelDriverTopupUseCase = get(),
             ioDispatcher = get(named(IO_DISPATCHER_QUALIFIER)),
         )
     }

@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -26,16 +27,20 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SheetValue
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -60,12 +65,14 @@ import com.composables.icons.heroicons.outline.ClipboardDocument
 import com.composables.icons.heroicons.outline.Clock
 import com.composables.icons.heroicons.outline.QrCode
 import com.composables.icons.heroicons.outline.Share
+import com.composables.icons.heroicons.outline.XCircle
 import org.koin.compose.viewmodel.koinViewModel
 import org.noztek.esktransport.core.ui.composables.common.AppPrimaryButton
 import org.noztek.esktransport.core.utils.QrCodeMatrix
 
 private val TopUpPresets = listOf(100.0, 200.0, 500.0, 1000.0)
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TopUpScreen(
     onBackClick: () -> Unit,
@@ -76,6 +83,10 @@ fun TopUpScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
+    val referenceSheetState = rememberModalBottomSheetState(
+        skipPartiallyExpanded = true,
+        confirmValueChange = { it != SheetValue.Hidden },
+    )
 
     LaunchedEffect(uiState.errorMessage) {
         uiState.errorMessage?.let { snackbarHostState.showSnackbar(it) }
@@ -111,14 +122,6 @@ fun TopUpScreen(
                 onAmountChange = viewModel::onAmountChange,
                 onPresetClick = viewModel::selectPreset,
             )
-            uiState.activeTopup?.let { topup ->
-                KioskQrCard(
-                    qrPayload = topup.qrPayload,
-                    referenceCode = topup.referenceCode,
-                    expiresAt = topup.expiresAt,
-                    onCopyClick = onCopyReferenceClick,
-                )
-            }
             TopUpStepsCard()
             AppPrimaryButton(
                 text = if (uiState.isGenerating) "Generating..." else "Generate New QR",
@@ -141,25 +144,28 @@ fun TopUpScreen(
                     }
                 },
             )
-            OutlinedButton(
-                onClick = { uiState.activeTopup?.referenceCode?.toReferenceDisplay()?.let(onShareReferenceClick) },
-                modifier = Modifier.fillMaxWidth().height(46.dp),
-                enabled = uiState.activeTopup != null,
-                shape = RoundedCornerShape(10.dp),
-            ) {
-                Icon(
-                    imageVector = Heroicons.Outline.Share,
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp),
-                )
-                Text(
-                    text = "Share Reference",
-                    modifier = Modifier.padding(start = 8.dp),
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.SemiBold,
-                )
-            }
             Spacer(modifier = Modifier.height(10.dp))
+        }
+    }
+
+    uiState.activeTopup?.let { topup ->
+        ModalBottomSheet(
+            onDismissRequest = {},
+            sheetState = referenceSheetState,
+            dragHandle = null,
+            containerColor = MaterialTheme.colorScheme.surface,
+            contentColor = MaterialTheme.colorScheme.onSurface,
+        ) {
+            TopUpReferenceSheet(
+                qrPayload = topup.qrPayload,
+                referenceCode = topup.referenceCode,
+                expiresAt = topup.expiresAt,
+                isCancelling = uiState.isCancelling,
+                canCancel = uiState.canCancel,
+                onCopyReferenceClick = onCopyReferenceClick,
+                onShareReferenceClick = onShareReferenceClick,
+                onCancelClick = viewModel::cancelTopup,
+            )
         }
     }
 }
@@ -366,14 +372,14 @@ private fun KioskQrCard(
             }
             if (hasReference) {
                 Surface(
-                    modifier = Modifier.width(158.dp).aspectRatio(1f),
+                    modifier = Modifier.fillMaxWidth(0.72f).widthIn(max = 220.dp).aspectRatio(1f),
                     shape = RoundedCornerShape(12.dp),
                     color = Color.White,
                     shadowElevation = 0.5.dp,
                 ) {
                     QrPreview(
                         payload = qrPayload.orEmpty(),
-                        modifier = Modifier.fillMaxSize().padding(12.dp),
+                        modifier = Modifier.fillMaxSize().padding(14.dp),
                     )
                 }
                 Row(
@@ -440,6 +446,90 @@ private fun KioskQrCard(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun TopUpReferenceSheet(
+    qrPayload: String,
+    referenceCode: String,
+    expiresAt: String?,
+    isCancelling: Boolean,
+    canCancel: Boolean,
+    onCopyReferenceClick: (String) -> Unit,
+    onShareReferenceClick: (String) -> Unit,
+    onCancelClick: () -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(
+                text = "Top-up reference",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Text(
+                text = "Keep this open until the kiosk confirms or cancel this request.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        KioskQrCard(
+            qrPayload = qrPayload,
+            referenceCode = referenceCode,
+            expiresAt = expiresAt,
+            onCopyClick = onCopyReferenceClick,
+        )
+        OutlinedButton(
+            onClick = { referenceCode.toReferenceDisplay().let(onShareReferenceClick) },
+            modifier = Modifier.fillMaxWidth().height(44.dp),
+            enabled = !isCancelling,
+            shape = RoundedCornerShape(10.dp),
+        ) {
+            Icon(
+                imageVector = Heroicons.Outline.Share,
+                contentDescription = null,
+                modifier = Modifier.size(18.dp),
+            )
+            Text(
+                text = "Share Reference",
+                modifier = Modifier.padding(start = 8.dp),
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.SemiBold,
+            )
+        }
+        OutlinedButton(
+            onClick = onCancelClick,
+            modifier = Modifier.fillMaxWidth().height(44.dp),
+            enabled = canCancel,
+            shape = RoundedCornerShape(10.dp),
+        ) {
+            if (isCancelling) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(17.dp),
+                    strokeWidth = 2.dp,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            } else {
+                Icon(
+                    imageVector = Heroicons.Outline.XCircle,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp),
+                )
+            }
+            Text(
+                text = if (isCancelling) "Cancelling..." else "Cancel Top-up",
+                modifier = Modifier.padding(start = 8.dp),
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.SemiBold,
+            )
+        }
+        Spacer(modifier = Modifier.height(12.dp))
     }
 }
 

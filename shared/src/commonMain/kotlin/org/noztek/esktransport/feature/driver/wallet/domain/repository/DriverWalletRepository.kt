@@ -12,6 +12,8 @@ interface DriverWalletRepository {
         currency: String = "PHP",
     ): Result<DriverWalletTopup>
 
+    suspend fun cancelTopup(referenceCode: String): Result<DriverWalletTopup>
+
     suspend fun createCashout(
         amount: Double,
         currency: String = "PHP",

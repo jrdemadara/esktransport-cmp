@@ -39,6 +39,16 @@ class DriverWalletRepositoryImpl(
         }
     }
 
+    override suspend fun cancelTopup(referenceCode: String): Result<DriverWalletTopup> {
+        return try {
+            val response = api.cancelTopup(referenceCode = referenceCode)
+            Result.success(response.data.toDomain())
+        } catch (throwable: Throwable) {
+            val message = ApiErrorParser.parse(throwable, "Failed to cancel top-up reference.")
+            Result.failure(IllegalStateException(message))
+        }
+    }
+
     override suspend fun createCashout(
         amount: Double,
         currency: String,

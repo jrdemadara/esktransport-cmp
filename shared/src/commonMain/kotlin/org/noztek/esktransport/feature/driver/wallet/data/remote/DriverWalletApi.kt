@@ -28,6 +28,12 @@ class DriverWalletApi(
         }.body()
     }
 
+    suspend fun cancelTopup(referenceCode: String): DriverWalletTopupResponseDto {
+        return client.post("${baseUrl.trimEnd('/')}/api/v1/rider/wallet/topups/$referenceCode/cancel") {
+            contentType(ContentType.Application.Json)
+        }.body()
+    }
+
     suspend fun createCashout(request: CreateDriverCashoutRequestDto): DriverWalletCashoutResponseDto {
         return client.post("${baseUrl.trimEnd('/')}/api/v1/rider/wallet/cashouts") {
             contentType(ContentType.Application.Json)
