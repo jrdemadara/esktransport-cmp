@@ -17,7 +17,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -41,7 +40,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
@@ -70,8 +68,6 @@ import org.koin.compose.viewmodel.koinViewModel
 import org.noztek.esktransport.core.platform.AppBuildInfo
 import org.noztek.esktransport.core.ui.composables.driver.DriverBottomBar
 import org.noztek.esktransport.core.ui.composables.driver.DriverBottomBarRoute
-import org.noztek.esktransport.core.utils.uppercaseFirstLetterOfEachWord
-import org.noztek.esktransport.feature.driver.onboarding.presentation.CapturedDocumentPreviewImage
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -112,8 +108,6 @@ fun DriverSettingsScreen(
                 .padding(innerPadding)
                 .padding(start = 20.dp, top = 4.dp, end = 20.dp, bottom = 6.dp),
         ) {
-            SettingsProfileRow(uiState = uiState)
-            SettingsDivider()
             settingsMenuItems.forEachIndexed { index, item ->
                 SettingsMenuRow(
                     item = item,
@@ -183,72 +177,6 @@ private fun SettingsTopBar(onBackClick: () -> Unit) {
             )
         },
     )
-}
-
-@Composable
-private fun SettingsProfileRow(uiState: DriverSettingsUiState) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = 10.dp, bottom = 16.dp),
-        horizontalArrangement = Arrangement.spacedBy(14.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Surface(
-            modifier = Modifier.size(58.dp),
-            shape = CircleShape,
-            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.10f),
-            contentColor = MaterialTheme.colorScheme.primary,
-        ) {
-            Box(contentAlignment = Alignment.Center) {
-                if (uiState.profilePhotoBytes != null) {
-                    CapturedDocumentPreviewImage(
-                        bytes = uiState.profilePhotoBytes,
-                        contentDescription = "Driver profile photo",
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.surfaceVariant, CircleShape),
-                        contentScale = ContentScale.Crop,
-                    )
-                } else {
-                    Icon(
-                        imageVector = Heroicons.Outline.User,
-                        contentDescription = null,
-                        modifier = Modifier.size(30.dp),
-                    )
-                }
-            }
-        }
-
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(5.dp),
-        ) {
-            Text(
-                text = uiState.name.takeIf { it.isNotBlank() }?.uppercaseFirstLetterOfEachWord() ?: "Driver",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onBackground,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Text(
-                text = uiState.driverId.driverIdLabel(),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
-
-        Icon(
-            imageVector = Heroicons.Outline.ChevronRight,
-            contentDescription = null,
-            modifier = Modifier.size(20.dp),
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-    }
 }
 
 @Composable

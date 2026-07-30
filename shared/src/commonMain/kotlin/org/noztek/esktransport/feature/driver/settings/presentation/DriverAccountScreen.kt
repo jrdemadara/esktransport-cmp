@@ -42,7 +42,6 @@ import androidx.compose.ui.unit.dp
 import com.composables.icons.heroicons.Heroicons
 import com.composables.icons.heroicons.outline.ArrowLeft
 import com.composables.icons.heroicons.outline.ArrowLeftOnRectangle
-import com.composables.icons.heroicons.outline.CalendarDays
 import com.composables.icons.heroicons.outline.Camera
 import com.composables.icons.heroicons.outline.CheckCircle
 import com.composables.icons.heroicons.outline.ChevronRight
@@ -99,7 +98,9 @@ fun DriverAccountScreen(
             AccountInfoRow(
                 icon = Heroicons.Outline.User,
                 title = "Full Name",
-                value = uiState.name.displayValue(),
+                value = uiState.name.capitalizedDisplayValue(),
+                valueFontWeight = FontWeight.SemiBold,
+                showChevron = false,
             )
             SettingsSectionDivider()
             AccountInfoRow(
@@ -111,12 +112,6 @@ fun DriverAccountScreen(
             AccountInfoRow(
                 icon = Heroicons.Outline.Envelope,
                 title = "Email Address",
-                value = "Not provided",
-            )
-            SettingsSectionDivider()
-            AccountInfoRow(
-                icon = Heroicons.Outline.CalendarDays,
-                title = "Date of Birth",
                 value = "Not provided",
             )
             SettingsSectionDivider()
@@ -315,6 +310,8 @@ private fun AccountInfoRow(
     title: String,
     value: String,
     valueColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
+    valueFontWeight: FontWeight = FontWeight.Normal,
+    showChevron: Boolean = true,
 ) {
     Row(
         modifier = Modifier
@@ -342,16 +339,19 @@ private fun AccountInfoRow(
             text = value,
             modifier = Modifier.weight(1.05f),
             style = MaterialTheme.typography.bodyMedium,
+            fontWeight = valueFontWeight,
             color = valueColor,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
-        Icon(
-            imageVector = Heroicons.Outline.ChevronRight,
-            contentDescription = null,
-            modifier = Modifier.size(19.dp),
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+        if (showChevron) {
+            Icon(
+                imageVector = Heroicons.Outline.ChevronRight,
+                contentDescription = null,
+                modifier = Modifier.size(19.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
     }
 }
 
@@ -404,3 +404,7 @@ private fun SettingsSectionDivider(modifier: Modifier = Modifier) {
 }
 
 private fun String.displayValue(): String = takeIf { it.isNotBlank() } ?: "Not provided"
+
+private fun String.capitalizedDisplayValue(): String {
+    return takeIf { it.isNotBlank() }?.uppercaseFirstLetterOfEachWord() ?: "Not provided"
+}
