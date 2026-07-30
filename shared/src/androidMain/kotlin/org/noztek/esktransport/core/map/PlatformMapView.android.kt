@@ -50,7 +50,6 @@ import com.mapbox.maps.plugin.annotation.generated.PointAnnotationOptions
 import com.mapbox.maps.plugin.annotation.generated.createPointAnnotationManager
 import com.mapbox.maps.plugin.locationcomponent.OnIndicatorPositionChangedListener
 import com.mapbox.maps.plugin.locationcomponent.location
-import com.mapbox.maps.plugin.scalebar.scalebar
 import com.mapbox.maps.plugin.gestures.OnMoveListener
 import com.mapbox.maps.plugin.gestures.gestures
 import kotlinx.coroutines.delay
@@ -110,12 +109,9 @@ actual fun PlatformMapView(
     MapboxMap(
         modifier = modifier,
         mapViewportState = viewportState,
+        scaleBar = {},
         style = { MapStyle(style = adaptiveStyle.uri) },
     ) {
-        MapEffect(Unit) { mapView ->
-            mapView.scalebar.enabled = false
-        }
-
         MapEffect(showUserLocation, userLocationColor, cameraDefaults) { mapView ->
             val location = mapView.location
             if (!showUserLocation) {
