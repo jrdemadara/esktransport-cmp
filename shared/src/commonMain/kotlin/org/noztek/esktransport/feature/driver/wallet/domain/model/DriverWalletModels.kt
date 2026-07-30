@@ -5,6 +5,7 @@ data class DriverWalletDashboard(
     val driverModeRequirement: DriverModeWalletRequirement,
     val recentLedgerEntries: List<DriverWalletLedgerEntry>,
     val pendingTopups: List<DriverWalletTopup>,
+    val pendingCashouts: List<DriverWalletCashout>,
 )
 
 data class DriverModeWalletRequirement(
@@ -22,6 +23,18 @@ data class DriverWallet(
 )
 
 data class DriverWalletTopup(
+    val publicId: String,
+    val referenceCode: String,
+    val qrPayload: String,
+    val amount: Double,
+    val currency: String,
+    val status: String,
+    val expiresAt: String?,
+    val completedAt: String?,
+    val createdAt: String?,
+)
+
+data class DriverWalletCashout(
     val publicId: String,
     val referenceCode: String,
     val qrPayload: String,

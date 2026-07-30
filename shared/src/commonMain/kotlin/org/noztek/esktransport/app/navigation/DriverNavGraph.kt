@@ -21,6 +21,7 @@ import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 import org.noztek.esktransport.core.ui.composables.driver.DriverBottomBarRoute
 import org.noztek.esktransport.core.map.MapboxConfig
+import org.noztek.esktransport.feature.common.cashout.presentation.CashoutScreen
 import org.noztek.esktransport.feature.common.chat.domain.model.TripChatParticipantRole
 import org.noztek.esktransport.feature.common.chat.presentation.TripChatScreen
 import org.noztek.esktransport.feature.common.presence.domain.lifecycle.UserPresenceCoordinator
@@ -47,6 +48,7 @@ private const val ROUTE_DRIVER_IDENTITY_VERIFICATION = "driver-onboarding/identi
 private const val ROUTE_DRIVER_VEHICLE_REGISTRATION = "driver-onboarding/vehicle-registration"
 private const val ROUTE_DRIVER_SERVICE_ZONE = "driver-onboarding/service-zone"
 private const val ROUTE_DRIVER_TOP_UP = "driver/wallet/top-up"
+private const val ROUTE_DRIVER_CASHOUT = "driver/wallet/cashout"
 private const val ROUTE_DRIVER_ACCOUNT_SETTINGS = "driver/settings/account"
 private const val DRIVER_HOME_STATS_REFRESH_TOKEN = "driver_home_stats_refresh_token"
 
@@ -115,10 +117,20 @@ fun NavGraphBuilder.driverNavGraph(
                         launchSingleTop = true
                     }
                 },
+                onCashoutClick = {
+                    navController.navigate(ROUTE_DRIVER_CASHOUT) {
+                        launchSingleTop = true
+                    }
+                },
             )
         }
         composable(route = ROUTE_DRIVER_TOP_UP) {
             TopUpScreen(
+                onBackClick = { navController.popBackStack() },
+            )
+        }
+        composable(route = ROUTE_DRIVER_CASHOUT) {
+            CashoutScreen(
                 onBackClick = { navController.popBackStack() },
             )
         }

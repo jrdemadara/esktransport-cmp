@@ -1,5 +1,6 @@
 package org.noztek.esktransport.feature.driver.settings.presentation
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -61,6 +62,9 @@ import com.composables.icons.heroicons.outline.Star
 import com.composables.icons.heroicons.outline.Truck
 import com.composables.icons.heroicons.outline.User
 import com.composables.icons.heroicons.outline.Wallet
+import esktransport.shared.generated.resources.Res
+import esktransport.shared.generated.resources.logo_nobg
+import org.jetbrains.compose.resources.painterResource
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 import org.noztek.esktransport.core.platform.AppBuildInfo
@@ -383,11 +387,20 @@ private fun SettingsInfoSheetHeader(sheet: SettingsInfoSheet) {
             contentColor = MaterialTheme.colorScheme.primary,
         ) {
             Box(contentAlignment = Alignment.Center) {
-                Icon(
-                    imageVector = sheet.icon,
-                    contentDescription = null,
-                    modifier = Modifier.size(22.dp),
-                )
+                if (sheet == SettingsInfoSheet.About) {
+                    Image(
+                        painter = painterResource(Res.drawable.logo_nobg),
+                        contentDescription = null,
+                        modifier = Modifier.size(28.dp),
+                        contentScale = ContentScale.Fit,
+                    )
+                } else {
+                    Icon(
+                        imageVector = sheet.icon,
+                        contentDescription = null,
+                        modifier = Modifier.size(22.dp),
+                    )
+                }
             }
         }
         Column(
@@ -465,13 +478,13 @@ private enum class SettingsInfoSheet(
 ) {
     Terms(
         title = "Terms and Conditions",
-        subtitle = "Service rules for using ESK Transport.",
+        subtitle = "Service rules for using eSKTransport.",
         icon = Heroicons.Outline.DocumentText,
         sections = listOf(
             SettingsInfoSection(
                 title = "Using the service",
                 paragraphs = listOf(
-                    "ESK Transport provides mobile booking, driver dispatch, trip tracking, wallet, and support features for local transport services in supported Sultan Kudarat service zones. By using the app, you agree to use these features only for lawful transport-related activity and to provide accurate account, booking, contact, vehicle, and service-zone information.",
+                    "eSKTransport provides mobile booking, driver dispatch, trip tracking, wallet, and support features for local transport services in supported Sultan Kudarat service zones. By using the app, you agree to use these features only for lawful transport-related activity and to provide accurate account, booking, contact, vehicle, and service-zone information.",
                     "You must not misuse the app, interfere with dispatch, submit false verification documents, abuse chat or safety tools, attempt unauthorized access, or use the service in a way that may harm passengers, drivers, operators, or the platform.",
                 ),
             ),
@@ -485,7 +498,7 @@ private enum class SettingsInfoSheet(
             SettingsInfoSection(
                 title = "Safety, policy, and account action",
                 paragraphs = listOf(
-                    "ESK Transport may restrict, suspend, or review accounts, bookings, wallet actions, or driver access when there are safety, fraud, verification, payment, legal, or policy concerns. Trip records, location events, chat records, document review records, and wallet ledger entries may be used to investigate disputes and support requests.",
+                    "eSKTransport may restrict, suspend, or review accounts, bookings, wallet actions, or driver access when there are safety, fraud, verification, payment, legal, or policy concerns. Trip records, location events, chat records, document review records, and wallet ledger entries may be used to investigate disputes and support requests.",
                     "The app is intended to comply with applicable laws and Google Play policies. Features that use sensitive information are limited to app functionality that users can reasonably expect from a ride-hailing and driver operations service.",
                 ),
             ),
@@ -499,7 +512,7 @@ private enum class SettingsInfoSheet(
             SettingsInfoSection(
                 title = "Data we collect",
                 paragraphs = listOf(
-                    "ESK Transport collects account details such as name, phone number, role, session information, and account status. For drivers, the app may collect identity and vehicle verification data, including license details, license images, selfie, vehicle registration document, vehicle photo, plate number, vehicle details, selected service zones, and verification review status.",
+                    "eSKTransport collects account details such as name, phone number, role, session information, and account status. For drivers, the app may collect identity and vehicle verification data, including license details, license images, selfie, vehicle registration document, vehicle photo, plate number, vehicle details, selected service zones, and verification review status.",
                     "The app collects ride and operational data needed to provide the service, including pickup and drop-off locations, fare quote, booking status, route information, chat messages, trip feedback, cancellation records, driver availability, and driver location while the driver is online or while a trip is active. Wallet and top-up request records are collected for balance management, kiosk-assisted top-ups, and ledger tracing.",
                 ),
             ),
@@ -507,7 +520,7 @@ private enum class SettingsInfoSheet(
                 title = "How we use and share data",
                 paragraphs = listOf(
                     "Data is used to create and secure accounts, verify drivers, match passengers with nearby available drivers, calculate fares, complete trips, sync real-time booking and trip events, process wallet top-up requests, provide support, improve reliability, prevent abuse, and resolve safety or operational issues.",
-                    "Operational data is shared only where needed for app functionality. Passengers and drivers may see relevant booking, trip, contact, chat, vehicle, route, fare, and location information for an active ride. Authorized administrators may access verification, trip, wallet, and support records to operate the service. Service providers such as hosting, maps, notifications, analytics, and real-time messaging may process data only as needed to support the app. ESK Transport does not sell personal or sensitive user data.",
+                    "Operational data is shared only where needed for app functionality. Passengers and drivers may see relevant booking, trip, contact, chat, vehicle, route, fare, and location information for an active ride. Authorized administrators may access verification, trip, wallet, and support records to operate the service. Service providers such as hosting, maps, notifications, analytics, and real-time messaging may process data only as needed to support the app. eSKTransport does not sell personal or sensitive user data.",
                 ),
             ),
             SettingsInfoSection(
@@ -515,26 +528,26 @@ private enum class SettingsInfoSheet(
                 paragraphs = listOf(
                     "Personal and sensitive data is handled using security measures appropriate for a production transport service, including secure transmission for network requests and restricted access to private verification files. Permissions such as camera and location are requested only when needed for app features such as document capture, selfie capture, dispatch, navigation, and trip tracking.",
                     "Records are retained while needed for account operation, driver verification, trip history, wallet ledger tracing, support, audit, dispute handling, safety, and legal compliance. Users may request account or data deletion through the app support channel or operator support process. Some records may be kept when retention is required for legal, security, fraud prevention, accounting, or dispute-resolution reasons.",
-                    "This Privacy Policy is intended to match the app's Google Play Data safety disclosures. If app data practices change, ESK Transport should update this in-app policy and the Play Console Data safety section before release.",
+                    "This Privacy Policy is intended to match the app's Google Play Data safety disclosures. If app data practices change, eSKTransport should update this in-app policy and the Play Console Data safety section before release.",
                 ),
             ),
             SettingsInfoSection(
                 title = "Privacy contact",
                 paragraphs = listOf(
-                    "For privacy questions, data access requests, correction requests, or deletion requests, contact ESK Transport support through the official support channel provided by the operator.",
+                    "For privacy questions, data access requests, correction requests, or deletion requests, contact eSKTransport support through the official support channel provided by the operator.",
                 ),
             ),
         ),
     ),
     About(
-        title = "About ESK Transport",
+        title = "About eSKTransport",
         subtitle = "Built for local mobility in Sultan Kudarat.",
         icon = Heroicons.Outline.InformationCircle,
         sections = listOf(
             SettingsInfoSection(
                 title = "Purpose",
                 paragraphs = listOf(
-                    "ESK Transport is a mobile transport platform for passengers, drivers, and operators serving Sultan Kudarat communities.",
+                    "eSKTransport is a mobile transport platform for passengers, drivers, and operators serving Sultan Kudarat communities.",
                     "Passengers can plan rides, review fare details, book trips, track drivers, chat, and send ride feedback. Drivers can complete onboarding, select service zones, receive booking offers, navigate trips, and monitor wallet, trips, and earnings. Operators can review driver identity and vehicle documents, manage settings, and support safe local dispatch.",
                 ),
             ),
@@ -542,12 +555,6 @@ private enum class SettingsInfoSheet(
                 title = "Coverage",
                 paragraphs = listOf(
                     "The initial production-testing release focuses on configured service zones in and around Sultan Kudarat, including areas such as Tacurong City and nearby operating zones.",
-                ),
-            ),
-            SettingsInfoSection(
-                title = "Technology",
-                paragraphs = listOf(
-                    "The mobile app is built with Kotlin Multiplatform and Compose Multiplatform for Android and iOS. The platform uses Mapbox, Ktor, Koin, Pusher, Laravel, PostgreSQL/PostGIS, and Filament for mapping, networking, real-time events, backend operations, and administration.",
                 ),
             ),
         ),

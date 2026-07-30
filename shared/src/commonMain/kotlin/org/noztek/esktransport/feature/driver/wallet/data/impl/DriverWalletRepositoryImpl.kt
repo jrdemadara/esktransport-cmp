@@ -2,7 +2,9 @@ package org.noztek.esktransport.feature.driver.wallet.data.impl
 
 import org.noztek.esktransport.core.network.ApiErrorParser
 import org.noztek.esktransport.feature.driver.wallet.data.remote.DriverWalletApi
+import org.noztek.esktransport.feature.driver.wallet.data.remote.dto.CreateDriverCashoutRequestDto
 import org.noztek.esktransport.feature.driver.wallet.data.remote.dto.CreateDriverTopupRequestDto
+import org.noztek.esktransport.feature.driver.wallet.domain.model.DriverWalletCashout
 import org.noztek.esktransport.feature.driver.wallet.domain.model.DriverWalletDashboard
 import org.noztek.esktransport.feature.driver.wallet.domain.model.DriverWalletTopup
 import org.noztek.esktransport.feature.driver.wallet.domain.repository.DriverWalletRepository
@@ -33,6 +35,34 @@ class DriverWalletRepositoryImpl(
             Result.success(response.data.toDomain())
         } catch (throwable: Throwable) {
             val message = ApiErrorParser.parse(throwable, "Failed to create top-up reference.")
+            Result.failure(IllegalStateException(message))
+        }
+    }
+
+    override suspend fun createCashout(
+        amount: Double,
+        currency: String,
+    ): Result<DriverWalletCashout> {
+        return try {
+            val response = api.createCashout(
+                CreateDriverCashoutRequestDto(
+                    amount = amount,
+                    currency = currency,
+                ),
+            )
+            Result.success(response.data.toDomain())
+        } catch (throwable: Throwable) {
+            val message = ApiErrorParser.parse(throwable, "Failed to create cashout reference.")
+            Result.failure(IllegalStateException(message))
+        }
+    }
+
+    override suspend fun cancelCashout(referenceCode: String): Result<DriverWalletCashout> {
+        return try {
+            val response = api.cancelCashout(referenceCode = referenceCode)
+            Result.success(response.data.toDomain())
+        } catch (throwable: Throwable) {
+            val message = ApiErrorParser.parse(throwable, "Failed to cancel cashout reference.")
             Result.failure(IllegalStateException(message))
         }
     }

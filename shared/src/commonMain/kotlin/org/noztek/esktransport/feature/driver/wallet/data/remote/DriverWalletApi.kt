@@ -7,7 +7,9 @@ import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
+import org.noztek.esktransport.feature.driver.wallet.data.remote.dto.CreateDriverCashoutRequestDto
 import org.noztek.esktransport.feature.driver.wallet.data.remote.dto.CreateDriverTopupRequestDto
+import org.noztek.esktransport.feature.driver.wallet.data.remote.dto.DriverWalletCashoutResponseDto
 import org.noztek.esktransport.feature.driver.wallet.data.remote.dto.DriverWalletResponseDto
 import org.noztek.esktransport.feature.driver.wallet.data.remote.dto.DriverWalletTopupResponseDto
 
@@ -23,6 +25,19 @@ class DriverWalletApi(
         return client.post("${baseUrl.trimEnd('/')}/api/v1/rider/wallet/topups") {
             contentType(ContentType.Application.Json)
             setBody(request)
+        }.body()
+    }
+
+    suspend fun createCashout(request: CreateDriverCashoutRequestDto): DriverWalletCashoutResponseDto {
+        return client.post("${baseUrl.trimEnd('/')}/api/v1/rider/wallet/cashouts") {
+            contentType(ContentType.Application.Json)
+            setBody(request)
+        }.body()
+    }
+
+    suspend fun cancelCashout(referenceCode: String): DriverWalletCashoutResponseDto {
+        return client.post("${baseUrl.trimEnd('/')}/api/v1/rider/wallet/cashouts/$referenceCode/cancel") {
+            contentType(ContentType.Application.Json)
         }.body()
     }
 }

@@ -17,6 +17,8 @@ data class DriverWalletDashboardDto(
     val recentLedgerEntries: List<DriverWalletLedgerEntryDto> = emptyList(),
     @SerialName("pending_topups")
     val pendingTopups: List<DriverWalletTopupDto> = emptyList(),
+    @SerialName("pending_cashouts")
+    val pendingCashouts: List<DriverWalletCashoutDto> = emptyList(),
 )
 
 @Serializable
@@ -59,6 +61,25 @@ data class DriverWalletTopupDto(
 )
 
 @Serializable
+data class DriverWalletCashoutDto(
+    @SerialName("public_id")
+    val publicId: String,
+    @SerialName("reference_code")
+    val referenceCode: String,
+    @SerialName("qr_payload")
+    val qrPayload: String,
+    val amount: Double,
+    val currency: String,
+    val status: String,
+    @SerialName("expires_at")
+    val expiresAt: String? = null,
+    @SerialName("completed_at")
+    val completedAt: String? = null,
+    @SerialName("created_at")
+    val createdAt: String? = null,
+)
+
+@Serializable
 data class DriverWalletLedgerEntryDto(
     @SerialName("public_id")
     val publicId: String,
@@ -83,7 +104,19 @@ data class CreateDriverTopupRequestDto(
 )
 
 @Serializable
+data class CreateDriverCashoutRequestDto(
+    val amount: Double,
+    val currency: String = "PHP",
+)
+
+@Serializable
 data class DriverWalletTopupResponseDto(
     val message: String? = null,
     val data: DriverWalletTopupDto,
+)
+
+@Serializable
+data class DriverWalletCashoutResponseDto(
+    val message: String? = null,
+    val data: DriverWalletCashoutDto,
 )
