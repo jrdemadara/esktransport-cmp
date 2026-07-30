@@ -111,12 +111,14 @@ fun TopUpScreen(
                 onAmountChange = viewModel::onAmountChange,
                 onPresetClick = viewModel::selectPreset,
             )
-            KioskQrCard(
-                qrPayload = uiState.activeTopup?.qrPayload,
-                referenceCode = uiState.activeTopup?.referenceCode,
-                expiresAt = uiState.activeTopup?.expiresAt,
-                onCopyClick = onCopyReferenceClick,
-            )
+            uiState.activeTopup?.let { topup ->
+                KioskQrCard(
+                    qrPayload = topup.qrPayload,
+                    referenceCode = topup.referenceCode,
+                    expiresAt = topup.expiresAt,
+                    onCopyClick = onCopyReferenceClick,
+                )
+            }
             TopUpStepsCard()
             AppPrimaryButton(
                 text = if (uiState.isGenerating) "Generating..." else "Generate New QR",
@@ -306,8 +308,8 @@ private fun PresetAmountButton(
 ) {
     Surface(
         onClick = onClick,
-        modifier = modifier.height(38.dp),
-        shape = RoundedCornerShape(10.dp),
+        modifier = modifier.height(32.dp),
+        shape = RoundedCornerShape(8.dp),
         color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface,
         contentColor = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
         border = if (selected) null else BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
@@ -315,7 +317,7 @@ private fun PresetAmountButton(
         Box(contentAlignment = Alignment.Center) {
             Text(
                 text = formatWalletAmount(amount, "PHP").replace(".00", ""),
-                style = MaterialTheme.typography.labelLarge,
+                style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.Bold,
             )
         }
