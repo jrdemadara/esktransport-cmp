@@ -122,6 +122,11 @@ fun NavGraphBuilder.driverNavGraph(
                         launchSingleTop = true
                     }
                 },
+                onProfileClick = {
+                    navController.navigate(ROUTE_DRIVER_ACCOUNT_SETTINGS) {
+                        launchSingleTop = true
+                    }
+                },
             )
         }
         composable(route = ROUTE_DRIVER_TOP_UP) {
