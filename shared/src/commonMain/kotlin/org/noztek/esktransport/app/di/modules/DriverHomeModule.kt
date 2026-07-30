@@ -109,6 +109,7 @@ val driverHomeModule = module {
             getDriverWalletUseCase = get(),
             getRiderEarningsUseCase = get(),
             getDriverTripsUseCase = get(),
+            getDriverProfilePhotoUseCase = get(),
             mapboxDirectionsClient = get(),
             ioDispatcher = get(named(IO_DISPATCHER_QUALIFIER)),
         )

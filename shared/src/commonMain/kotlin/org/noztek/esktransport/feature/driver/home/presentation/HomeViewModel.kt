@@ -23,6 +23,7 @@ import org.noztek.esktransport.feature.driver.onboarding.domain.usecase.GetDrive
 import org.noztek.esktransport.feature.driver.onboarding.domain.usecase.ObserveDriverOnboardingStatusChangedUseCase
 import org.noztek.esktransport.feature.driver.onboarding.domain.usecase.SubscribeDriverOnboardingRealtimeUseCase
 import org.noztek.esktransport.feature.driver.onboarding.domain.usecase.UnsubscribeDriverOnboardingRealtimeUseCase
+import org.noztek.esktransport.feature.driver.settings.domain.usecase.GetDriverProfilePhotoUseCase
 import org.noztek.esktransport.feature.driver.trips.domain.model.DriverTrip
 import org.noztek.esktransport.feature.driver.trips.domain.model.DriverTripStatus
 import org.noztek.esktransport.feature.driver.trips.domain.usecase.GetDriverTripsUseCase
@@ -31,6 +32,7 @@ import org.noztek.esktransport.feature.driver.wallet.domain.usecase.GetDriverWal
 
 data class HomeUiState(
     val userName: String? = null,
+    val profilePhotoBytes: ByteArray? = null,
     val isLoadingSetup: Boolean = true,
     val isLoadingStats: Boolean = true,
     val isLoadingWallet: Boolean = true,
@@ -60,6 +62,7 @@ class HomeViewModel(
     private val getDriverWalletUseCase: GetDriverWalletUseCase,
     private val getRiderEarningsUseCase: GetRiderEarningsUseCase,
     private val getDriverTripsUseCase: GetDriverTripsUseCase,
+    private val getDriverProfilePhotoUseCase: GetDriverProfilePhotoUseCase,
     private val mapboxDirectionsClient: MapboxDirectionsClient,
     private val ioDispatcher: CoroutineDispatcher,
 ) : ViewModel() {
@@ -74,6 +77,7 @@ class HomeViewModel(
         refreshWallet()
         refreshEarnings()
         refreshRecentActivity()
+        refreshProfilePhoto()
     }
 
     fun refreshOnboardingStatus(
@@ -181,6 +185,15 @@ class HomeViewModel(
                     }
                 },
             )
+        }
+    }
+
+    fun refreshProfilePhoto() {
+        viewModelScope.launch {
+            val result = withContext(ioDispatcher) { getDriverProfilePhotoUseCase() }
+            result.onSuccess { bytes ->
+                _uiState.update { it.copy(profilePhotoBytes = bytes) }
+            }
         }
     }
 

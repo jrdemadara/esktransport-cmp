@@ -40,6 +40,7 @@ import esktransport.shared.generated.resources.Res
 import esktransport.shared.generated.resources.logo_nobg
 import org.jetbrains.compose.resources.painterResource
 import org.noztek.esktransport.core.utils.uppercaseFirstLetterOfEachWord
+import org.noztek.esktransport.feature.driver.onboarding.presentation.CapturedDocumentPreviewImage
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -48,6 +49,7 @@ fun DriverTopBar(
     onProfileClick: () -> Unit,
     modifier: Modifier = Modifier,
     profilePainter: Painter? = null,
+    profilePhotoBytes: ByteArray? = null,
     hasUnreadNotifications: Boolean = false,
     greetingName: String? = null,
 ) {
@@ -83,7 +85,10 @@ fun DriverTopBar(
                     }
                 }
                 IconButton(onClick = onProfileClick) {
-                    DriverProfileAvatar(profilePainter = profilePainter)
+                    DriverProfileAvatar(
+                        profilePainter = profilePainter,
+                        profilePhotoBytes = profilePhotoBytes,
+                    )
                 }
             }
         },
@@ -133,14 +138,26 @@ private fun DriverLogoBadge() {
 }
 
 @Composable
-private fun DriverProfileAvatar(profilePainter: Painter?) {
+private fun DriverProfileAvatar(
+    profilePainter: Painter?,
+    profilePhotoBytes: ByteArray?,
+) {
     Surface(
         modifier = Modifier.size(32.dp),
         shape = CircleShape,
         color = MaterialTheme.colorScheme.primaryContainer,
         contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
     ) {
-        if (profilePainter != null) {
+        if (profilePhotoBytes != null) {
+            CapturedDocumentPreviewImage(
+                bytes = profilePhotoBytes,
+                contentDescription = "Profile",
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clip(CircleShape),
+                contentScale = ContentScale.Crop,
+            )
+        } else if (profilePainter != null) {
             Image(
                 painter = profilePainter,
                 contentDescription = "Profile",

@@ -116,6 +116,7 @@ fun HomeScreen(
                 viewModel.refreshWallet(showLoading = false)
                 viewModel.refreshEarnings(showLoading = false)
                 viewModel.refreshRecentActivity(showLoading = false)
+                viewModel.refreshProfilePhoto()
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
@@ -144,6 +145,7 @@ fun HomeScreen(
                 onNotificationClick = onNotificationClick,
                 onProfileClick = onProfileClick,
                 greetingName = uiState.userName,
+                profilePhotoBytes = uiState.profilePhotoBytes,
             )
         },
         bottomBar = {
