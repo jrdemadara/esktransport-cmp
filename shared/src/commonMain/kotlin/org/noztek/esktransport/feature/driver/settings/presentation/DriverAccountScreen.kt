@@ -1,6 +1,7 @@
 package org.noztek.esktransport.feature.driver.settings.presentation
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,20 +17,30 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -37,6 +48,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.composables.icons.heroicons.Heroicons
@@ -52,11 +65,13 @@ import com.composables.icons.heroicons.outline.Phone
 import com.composables.icons.heroicons.outline.ShieldCheck
 import com.composables.icons.heroicons.outline.User
 import org.koin.compose.viewmodel.koinViewModel
+import org.noztek.esktransport.core.ui.composables.common.AppPrimaryButton
 import org.noztek.esktransport.core.ui.composables.driver.DriverBottomBar
 import org.noztek.esktransport.core.ui.composables.driver.DriverBottomBarRoute
 import org.noztek.esktransport.core.utils.uppercaseFirstLetterOfEachWord
 import org.noztek.esktransport.feature.driver.onboarding.presentation.CapturedDocumentPreviewImage
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DriverAccountScreen(
     onBackClick: () -> Unit,
@@ -65,6 +80,8 @@ fun DriverAccountScreen(
     viewModel: DriverSettingsViewModel = koinViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val snackbarHostState = remember { SnackbarHostState() }
+    val editSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     LaunchedEffect(uiState.isLoggedOut) {
         if (uiState.isLoggedOut) {
@@ -73,8 +90,15 @@ fun DriverAccountScreen(
         }
     }
 
+    LaunchedEffect(uiState.statusMessage) {
+        val message = uiState.statusMessage ?: return@LaunchedEffect
+        snackbarHostState.showSnackbar(message)
+        viewModel.clearStatusMessage()
+    }
+
     Scaffold(
         topBar = { AccountTopBar(onBackClick = onBackClick) },
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         bottomBar = {
             DriverBottomBar(
                 currentRoute = DriverBottomBarRoute.PROFILE,
@@ -112,13 +136,15 @@ fun DriverAccountScreen(
             AccountInfoRow(
                 icon = Heroicons.Outline.Envelope,
                 title = "Email Address",
-                value = "Not provided",
+                value = uiState.email.displayValue(),
+                onClick = viewModel::editEmail,
             )
             SettingsSectionDivider()
             AccountInfoRow(
                 icon = Heroicons.Outline.MapPin,
                 title = "Address",
-                value = "Not provided",
+                value = uiState.address.displayValue(),
+                onClick = viewModel::editAddress,
             )
             SettingsSectionDivider(modifier = Modifier.padding(top = 22.dp, bottom = 22.dp))
             AccountSectionTitle("Account Security")
@@ -147,6 +173,28 @@ fun DriverAccountScreen(
                     color = MaterialTheme.colorScheme.error,
                 )
             }
+        }
+    }
+
+    uiState.activeEditField?.let { field ->
+        ModalBottomSheet(
+            onDismissRequest = {
+                if (!uiState.isSavingAccount) {
+                    viewModel.dismissAccountEditor()
+                }
+            },
+            sheetState = editSheetState,
+            containerColor = MaterialTheme.colorScheme.surface,
+        ) {
+            AccountEditSheet(
+                field = field,
+                value = uiState.editValue,
+                isSaving = uiState.isSavingAccount,
+                errorMessage = uiState.errorMessage,
+                onValueChange = viewModel::onEditValueChange,
+                onSave = viewModel::saveAccountEdit,
+                onCancel = viewModel::dismissAccountEditor,
+            )
         }
     }
 }
@@ -312,10 +360,18 @@ private fun AccountInfoRow(
     valueColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
     valueFontWeight: FontWeight = FontWeight.Normal,
     showChevron: Boolean = true,
+    onClick: (() -> Unit)? = null,
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .then(
+                if (onClick != null) {
+                    Modifier.clickable(onClick = onClick)
+                } else {
+                    Modifier
+                },
+            )
             .padding(vertical = 14.dp),
         horizontalArrangement = Arrangement.spacedBy(18.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -350,6 +406,86 @@ private fun AccountInfoRow(
                 contentDescription = null,
                 modifier = Modifier.size(19.dp),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+@Composable
+private fun AccountEditSheet(
+    field: DriverAccountEditableField,
+    value: String,
+    isSaving: Boolean,
+    errorMessage: String?,
+    onValueChange: (String) -> Unit,
+    onSave: () -> Unit,
+    onCancel: () -> Unit,
+) {
+    val title = when (field) {
+        DriverAccountEditableField.Email -> "Email Address"
+        DriverAccountEditableField.Address -> "Address"
+    }
+    val keyboardType = when (field) {
+        DriverAccountEditableField.Email -> KeyboardType.Email
+        DriverAccountEditableField.Address -> KeyboardType.Text
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 22.dp)
+            .padding(bottom = 24.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp),
+    ) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+        OutlinedTextField(
+            value = value,
+            onValueChange = onValueChange,
+            modifier = Modifier.fillMaxWidth(),
+            enabled = !isSaving,
+            singleLine = field == DriverAccountEditableField.Email,
+            minLines = if (field == DriverAccountEditableField.Address) 3 else 1,
+            label = { Text(title) },
+            keyboardOptions = KeyboardOptions(
+                keyboardType = keyboardType,
+                imeAction = ImeAction.Done,
+            ),
+            shape = RoundedCornerShape(12.dp),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+            ),
+        )
+        errorMessage?.let { message ->
+            Text(
+                text = message,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error,
+            )
+        }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            TextButton(
+                onClick = onCancel,
+                enabled = !isSaving,
+                modifier = Modifier.weight(1f),
+            ) {
+                Text("Cancel")
+            }
+            AppPrimaryButton(
+                text = if (isSaving) "Saving..." else "Save",
+                onClick = onSave,
+                enabled = !isSaving,
+                modifier = Modifier.weight(1f),
+                height = 44.dp,
             )
         }
     }

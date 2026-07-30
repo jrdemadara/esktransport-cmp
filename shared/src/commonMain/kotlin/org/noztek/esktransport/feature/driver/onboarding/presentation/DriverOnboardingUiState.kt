@@ -14,6 +14,7 @@ data class DriverOnboardingUiState(
     val errorMessage: String? = null,
     val successMessage: String? = null,
     val licenseNo: String = "",
+    val address: String = "",
     val licenseExpiry: String = "",
     val vehicleTypeCode: String = "motorcycle",
     val plate: String = "",

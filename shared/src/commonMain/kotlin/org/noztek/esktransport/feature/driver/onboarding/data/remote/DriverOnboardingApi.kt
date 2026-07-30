@@ -74,6 +74,7 @@ class DriverOnboardingApi(
             url = "${baseUrl.trimEnd('/')}/api/v1/rider/onboarding/identity",
             formData = formData {
                 append("license_no", payload.licenseNo)
+                append("address", payload.address)
                 append("license_expiry", payload.licenseExpiry)
                 appendIdentityFile("license_front", payload.licenseFront)
                 appendIdentityFile("license_back", payload.licenseBack)

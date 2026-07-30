@@ -68,6 +68,10 @@ class DriverOnboardingViewModel(
         _uiState.update { it.copy(licenseNo = value) }
     }
 
+    fun updateAddress(value: String) {
+        _uiState.update { it.copy(address = value) }
+    }
+
     fun updateLicenseExpiry(value: String) {
         _uiState.update { it.copy(licenseExpiry = value) }
     }
@@ -161,6 +165,7 @@ class DriverOnboardingViewModel(
     fun submitIdentityVerification(onSuccess: () -> Unit) {
         val state = _uiState.value
         val licenseNo = state.licenseNo.trim()
+        val address = state.address.trim()
         val licenseExpiry = state.licenseExpiry.trim()
         val licenseFront = state.capturedPreviews[DriverOnboardingDocumentType.LicenseFront]
         val licenseBack = state.capturedPreviews[DriverOnboardingDocumentType.LicenseBack]
@@ -169,6 +174,10 @@ class DriverOnboardingViewModel(
         when {
             licenseNo.isBlank() -> {
                 _uiState.update { it.copy(errorMessage = "License number is required.") }
+                return
+            }
+            address.isBlank() -> {
+                _uiState.update { it.copy(errorMessage = "Address is required.") }
                 return
             }
             licenseExpiry.isBlank() -> {
@@ -195,6 +204,7 @@ class DriverOnboardingViewModel(
                 submitDriverIdentityVerificationUseCase(
                     DriverIdentityVerificationPayload(
                         licenseNo = licenseNo,
+                        address = address,
                         licenseExpiry = licenseExpiry,
                         licenseFront = licenseFront.toUpload(DriverOnboardingDocumentType.LicenseFront),
                         licenseBack = licenseBack.toUpload(DriverOnboardingDocumentType.LicenseBack),
@@ -326,6 +336,7 @@ class DriverOnboardingViewModel(
                 errorMessage = null,
                 successMessage = successMessage,
                 licenseNo = status.license.licenseNo ?: it.licenseNo,
+                address = status.address ?: it.address,
                 licenseExpiry = status.license.licenseExpiry ?: it.licenseExpiry,
                 vehicleTypeCode = status.vehicle.vehicleTypeCode ?: it.vehicleTypeCode,
                 plate = status.vehicle.plate ?: it.plate,

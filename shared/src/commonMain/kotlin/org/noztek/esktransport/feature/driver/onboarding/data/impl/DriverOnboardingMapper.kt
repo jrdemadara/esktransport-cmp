@@ -16,6 +16,7 @@ internal fun DriverOnboardingDataDto.toDomain(): DriverOnboardingStatus {
     return DriverOnboardingStatus(
         driverId = driverId,
         driverStatus = driverStatus,
+        address = address,
         status = status.toDriverOnboardingState(),
         canGo = canGo,
         blockingReasons = blockingReasons,

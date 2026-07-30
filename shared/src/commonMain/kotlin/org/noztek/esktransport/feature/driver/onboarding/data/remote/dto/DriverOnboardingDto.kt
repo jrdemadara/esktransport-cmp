@@ -20,6 +20,7 @@ data class DriverOnboardingDataDto(
     val driverId: Long,
     @SerialName("driver_status")
     val driverStatus: String,
+    val address: String? = null,
     val status: String,
     @SerialName("can_go")
     val canGo: Boolean,

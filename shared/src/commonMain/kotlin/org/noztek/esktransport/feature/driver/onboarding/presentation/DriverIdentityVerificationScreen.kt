@@ -104,6 +104,7 @@ fun DriverIdentityVerificationScreen(
         state = state,
         onBack = onBack,
         onLicenseNoChange = viewModel::updateLicenseNo,
+        onAddressChange = viewModel::updateAddress,
         onLicenseExpiryChange = viewModel::updateLicenseExpiry,
         onCaptureClick = { type -> captureType = type },
         onContinue = { viewModel.submitIdentityVerification(onSuccess = onContinue) },
@@ -118,6 +119,7 @@ private fun DriverIdentityVerificationContent(
     state: DriverOnboardingUiState,
     onBack: () -> Unit,
     onLicenseNoChange: (String) -> Unit,
+    onAddressChange: (String) -> Unit,
     onLicenseExpiryChange: (String) -> Unit,
     onCaptureClick: (DriverOnboardingDocumentType) -> Unit,
     onContinue: () -> Unit,
@@ -171,6 +173,7 @@ private fun DriverIdentityVerificationContent(
             IdentityLicenseSection(
                 state = state,
                 onLicenseNoChange = onLicenseNoChange,
+                onAddressChange = onAddressChange,
                 onLicenseExpiryChange = onLicenseExpiryChange,
             )
             IdentityDocumentsSection(
@@ -222,6 +225,7 @@ private fun IdentityStepHeader() {
 private fun IdentityLicenseSection(
     state: DriverOnboardingUiState,
     onLicenseNoChange: (String) -> Unit,
+    onAddressChange: (String) -> Unit,
     onLicenseExpiryChange: (String) -> Unit,
 ) {
     IdentitySectionSurface(title = "License details") {
@@ -230,6 +234,14 @@ private fun IdentityLicenseSection(
             onValueChange = onLicenseNoChange,
             label = "License number",
             modifier = Modifier.fillMaxWidth(),
+        )
+        AppInputField(
+            value = state.address,
+            onValueChange = onAddressChange,
+            label = "Home address",
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = false,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
         )
         AppInputField(
             value = state.licenseExpiry,

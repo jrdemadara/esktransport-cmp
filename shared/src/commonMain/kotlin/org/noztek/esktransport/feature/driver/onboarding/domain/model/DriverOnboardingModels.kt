@@ -3,6 +3,7 @@ package org.noztek.esktransport.feature.driver.onboarding.domain.model
 data class DriverOnboardingStatus(
     val driverId: Long,
     val driverStatus: String,
+    val address: String?,
     val status: DriverOnboardingState,
     val canGo: Boolean,
     val blockingReasons: List<String>,
@@ -112,6 +113,7 @@ data class DriverOnboardingDocumentUpload(
 
 data class DriverIdentityVerificationPayload(
     val licenseNo: String,
+    val address: String,
     val licenseExpiry: String,
     val licenseFront: DriverOnboardingDocumentUpload,
     val licenseBack: DriverOnboardingDocumentUpload,

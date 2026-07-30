@@ -36,7 +36,9 @@ import org.noztek.esktransport.feature.driver.onboarding.presentation.DriverOnbo
 import org.noztek.esktransport.feature.driver.settings.data.impl.DriverSettingsRepositoryImpl
 import org.noztek.esktransport.feature.driver.settings.data.remote.DriverSettingsApi
 import org.noztek.esktransport.feature.driver.settings.domain.repository.DriverSettingsRepository
+import org.noztek.esktransport.feature.driver.settings.domain.usecase.GetDriverAccountUseCase
 import org.noztek.esktransport.feature.driver.settings.domain.usecase.GetDriverProfilePhotoUseCase
+import org.noztek.esktransport.feature.driver.settings.domain.usecase.UpdateDriverAccountUseCase
 import org.noztek.esktransport.feature.driver.settings.presentation.DriverSettingsViewModel
 import org.noztek.esktransport.feature.driver.session.presentation.DriverSessionViewModel
 import org.noztek.esktransport.feature.driver.trips.data.impl.DriverTripsRepositoryImpl
@@ -82,6 +84,8 @@ val driverHomeModule = module {
     single { CancelDriverCashoutUseCase(repository = get()) }
     single { GetRiderEarningsUseCase(repository = get()) }
     single { GetDriverTripsUseCase(repository = get()) }
+    single { GetDriverAccountUseCase(repository = get()) }
+    single { UpdateDriverAccountUseCase(repository = get()) }
     single { GetDriverProfilePhotoUseCase(repository = get()) }
     single { ObserveDriverOnboardingStatusChangedUseCase(realtime = get()) }
     single { SubscribeDriverOnboardingRealtimeUseCase(realtime = get()) }
@@ -162,6 +166,8 @@ val driverHomeModule = module {
         DriverSettingsViewModel(
             observeCurrentSessionUseCase = get(),
             logoutUseCase = get(),
+            getDriverAccountUseCase = get(),
+            updateDriverAccountUseCase = get(),
             getDriverProfilePhotoUseCase = get(),
             getDriverOnboardingStatusUseCase = get(),
             ioDispatcher = get(named(IO_DISPATCHER_QUALIFIER)),
