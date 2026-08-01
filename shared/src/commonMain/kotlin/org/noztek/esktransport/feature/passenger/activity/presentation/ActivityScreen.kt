@@ -314,6 +314,8 @@ private fun RecentRidesSection(
 
 @Composable
 private fun RideActivityRow(ride: RideActivityItem) {
+    val cancelledColor = MaterialTheme.colorScheme.error
+    val iconColor = if (ride.status == RideActivityStatus.Cancelled) cancelledColor else MaterialTheme.colorScheme.primary
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -321,7 +323,7 @@ private fun RideActivityRow(ride: RideActivityItem) {
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-                ActivityIconBubble(icon = ride.icon, color = ride.iconColor)
+        ActivityIconBubble(icon = ride.icon, color = iconColor)
         Column(
             modifier = Modifier.weight(1f),
             verticalArrangement = Arrangement.spacedBy(3.dp),
@@ -393,6 +395,7 @@ private fun PendingBookingsSection(
 
 @Composable
 private fun PendingBookingRow(booking: PendingBookingItem) {
+    val pendingColor = MaterialTheme.colorScheme.tertiary
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -402,7 +405,7 @@ private fun PendingBookingRow(booking: PendingBookingItem) {
     ) {
         ActivityIconBubble(
             icon = booking.icon,
-            color = booking.iconColor,
+            color = pendingColor,
             backgroundAlpha = 0.12f,
         )
         Column(
@@ -420,7 +423,7 @@ private fun PendingBookingRow(booking: PendingBookingItem) {
             Text(
                 text = booking.statusLabel,
                 style = MaterialTheme.typography.bodySmall,
-                color = booking.iconColor,
+                color = pendingColor,
             )
             Text(
                 text = booking.subtitle,
@@ -463,6 +466,8 @@ private fun WalletActivitySection(rows: List<WalletActivityRowItem>) {
 
 @Composable
 private fun WalletActivityRow(row: WalletActivityRowItem) {
+    val creditColor = MaterialTheme.colorScheme.tertiary
+    val debitColor = MaterialTheme.colorScheme.primary
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -470,7 +475,7 @@ private fun WalletActivityRow(row: WalletActivityRowItem) {
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        ActivityIconBubble(icon = row.icon, color = row.color)
+        ActivityIconBubble(icon = row.icon, color = if (row.isCredit) creditColor else debitColor)
         Column(
             modifier = Modifier.weight(1f),
             verticalArrangement = Arrangement.spacedBy(2.dp),
@@ -493,7 +498,7 @@ private fun WalletActivityRow(row: WalletActivityRowItem) {
             text = row.amount,
             style = MaterialTheme.typography.bodyMedium,
             fontWeight = FontWeight.SemiBold,
-            color = if (row.isCredit) CreditGreen else MaterialTheme.colorScheme.onSurface,
+            color = if (row.isCredit) creditColor else MaterialTheme.colorScheme.onSurface,
         )
         Icon(
             imageVector = Heroicons.Outline.ChevronRight,
@@ -558,8 +563,8 @@ private fun ActivityIconBubble(
 @Composable
 private fun StatusPill(status: RideActivityStatus) {
     val color = when (status) {
-        RideActivityStatus.Completed -> CreditGreen
-        RideActivityStatus.Cancelled -> Color(0xFFE53935)
+        RideActivityStatus.Completed -> MaterialTheme.colorScheme.tertiary
+        RideActivityStatus.Cancelled -> MaterialTheme.colorScheme.error
     }
     val label = when (status) {
         RideActivityStatus.Completed -> "Completed"
@@ -625,7 +630,6 @@ private fun PassengerRideActivity.toRideActivityItem(): RideActivityItem {
         timeLabel = (activityAt ?: completedAt ?: canceledAt ?: requestedAt).formatApiDateTimeForDisplay(),
         status = displayStatus,
         icon = if (displayStatus == RideActivityStatus.Cancelled) Heroicons.Outline.XCircle else Heroicons.Outline.Truck,
-        iconColor = if (displayStatus == RideActivityStatus.Cancelled) Color(0xFFE53935) else MaterialThemeBlue,
     )
 }
 
@@ -646,7 +650,6 @@ private fun PassengerPendingBooking.toPendingBookingItem(): PendingBookingItem {
         subtitle = "$routeLabel • ${requestedAt.formatApiDateTimeForDisplay()}",
         fare = finalFare?.let { formatWalletAmount(it, currency) } ?: "—",
         icon = Heroicons.Outline.Truck,
-        iconColor = Color(0xFFF06423),
     )
 }
 
@@ -703,7 +706,6 @@ private fun WalletLedgerEntry.toWalletActivityRow(): WalletActivityRowItem {
         subtitle = createdAt.formatApiDateTimeForDisplay(),
         amount = "${if (isCredit) "+" else "-"}${formatWalletAmount(amount, currency)}",
         icon = icon,
-        color = if (isCredit) CreditGreen else MaterialThemeBlue,
         isCredit = isCredit,
     )
 }
@@ -747,7 +749,6 @@ private data class RideActivityItem(
     val timeLabel: String,
     val status: RideActivityStatus,
     val icon: ImageVector,
-    val iconColor: Color,
 )
 
 private data class PendingBookingItem(
@@ -756,7 +757,6 @@ private data class PendingBookingItem(
     val subtitle: String,
     val fare: String,
     val icon: ImageVector,
-    val iconColor: Color,
 )
 
 private data class WalletActivityRowItem(
@@ -764,9 +764,5 @@ private data class WalletActivityRowItem(
     val subtitle: String,
     val amount: String,
     val icon: ImageVector,
-    val color: Color,
     val isCredit: Boolean,
 )
-
-private val CreditGreen = Color(0xFF118447)
-private val MaterialThemeBlue = Color(0xFF2563EB)
