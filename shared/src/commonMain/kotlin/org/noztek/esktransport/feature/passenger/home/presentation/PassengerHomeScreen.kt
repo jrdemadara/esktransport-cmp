@@ -26,6 +26,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
@@ -50,13 +52,22 @@ import esktransport.shared.generated.resources.home_scooter
 import esktransport.shared.generated.resources.home_tricycle
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
+import org.koin.compose.viewmodel.koinViewModel
+import org.noztek.esktransport.feature.passenger.home.domain.model.KnownPlace
+import org.noztek.esktransport.feature.passenger.location_search.domain.model.GeoPoint
+import org.noztek.esktransport.feature.passenger.settings.domain.model.SavedPlace
+import org.noztek.esktransport.feature.passenger.settings.domain.model.SavedPlaceType
 
 @Composable
 fun PassengerHomeScreen(
     onWhereToClick: () -> Unit = {},
+    onPlaceClick: (label: String, point: GeoPoint?) -> Unit = { _, _ -> },
     onSuggestionClick: (Int) -> Unit = {},
     contentPadding: PaddingValues = PaddingValues(0.dp),
+    viewModel: PassengerHomeViewModel = koinViewModel(),
 ) {
+    val uiState by viewModel.uiState.collectAsState()
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -67,12 +78,18 @@ fun PassengerHomeScreen(
     ) {
         SearchRow(onWhereToClick = onWhereToClick)
         Spacer(modifier = Modifier.height(10.dp))
-        PlaceSuggestionsRow()
+        PlaceSuggestionsRow(
+            places = uiState.knownPlaces,
+            isLoading = uiState.isLoading,
+            onPlaceClick = onPlaceClick,
+        )
         Spacer(modifier = Modifier.height(14.dp))
 
-        AddressCard(title = "Command Center", subtitle = "Kenram, Isulan", icon = Heroicons.Outline.Clock)
-        Spacer(modifier = Modifier.height(8.dp))
-        AddressCard(title = "Home", subtitle = "Mabini Street, Poblacion, Tacurong City", icon = Heroicons.Outline.MapPin)
+        SavedPlacesSection(
+            places = uiState.savedPlaces,
+            isLoading = uiState.isLoading,
+            onPlaceClick = onPlaceClick,
+        )
         Spacer(modifier = Modifier.height(8.dp))
 
         Row(
@@ -112,33 +129,180 @@ fun PassengerHomeScreen(
 }
 
 @Composable
-private fun PlaceSuggestionsRow() {
+private fun PlaceSuggestionsRow(
+    places: List<KnownPlace>,
+    isLoading: Boolean,
+    onPlaceClick: (label: String, point: GeoPoint?) -> Unit,
+) {
     LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        rowItems(placeSuggestions) { place ->
-            Surface(
-                shape = RoundedCornerShape(6.dp),
-                color = MaterialTheme.colorScheme.surfaceContainerLow,
-                contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                tonalElevation = 0.dp,
-            ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    Icon(
-                        place.icon,
-                        contentDescription = place.name,
-                        modifier = Modifier.size(16.dp),
-                        tint = MaterialTheme.colorScheme.primary,
-                    )
-                    Text(
-                        text = place.name,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+        if (isLoading && places.isEmpty()) {
+            rowItems(listOf("Loading places")) { label ->
+                PlaceSuggestionChip(name = label, icon = Heroicons.Outline.MapPin, enabled = false)
+            }
+        } else {
+            rowItems(places) { place ->
+                PlaceSuggestionChip(
+                    name = place.name,
+                    icon = place.category.knownPlaceIcon(),
+                    enabled = place.latitude != null && place.longitude != null,
+                    onClick = {
+                        onPlaceClick(
+                            place.name,
+                            place.toGeoPoint(),
+                        )
+                    },
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun PlaceSuggestionChip(
+    name: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    enabled: Boolean,
+    onClick: () -> Unit = {},
+) {
+    Surface(
+        shape = RoundedCornerShape(6.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
+        contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+        tonalElevation = 0.dp,
+        onClick = onClick,
+        enabled = enabled,
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Icon(
+                icon,
+                contentDescription = name,
+                modifier = Modifier.size(16.dp),
+                tint = MaterialTheme.colorScheme.primary,
+            )
+            Text(
+                text = name,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+@Composable
+private fun SavedPlacesSection(
+    places: List<SavedPlace>,
+    isLoading: Boolean,
+    onPlaceClick: (label: String, point: GeoPoint?) -> Unit,
+) {
+    val visiblePlaces = places.take(2)
+    when {
+        isLoading && places.isEmpty() -> {
+            AddressCard(title = "Loading saved places", subtitle = "Checking your saved addresses", icon = Heroicons.Outline.Clock)
+        }
+        visiblePlaces.isEmpty() -> {
+            AddressCard(
+                title = "Save your places",
+                subtitle = "Add Home or Work from Settings for faster booking.",
+                icon = Heroicons.Outline.MapPin,
+            )
+        }
+        else -> {
+            visiblePlaces.forEachIndexed { index, place ->
+                AddressCard(
+                    title = place.label,
+                    subtitle = place.address,
+                    icon = place.placeType.savedPlaceIcon(),
+                    onClick = {
+                        onPlaceClick(place.label, place.toGeoPoint())
+                    },
+                )
+                if (index < visiblePlaces.lastIndex) {
+                    Spacer(modifier = Modifier.height(8.dp))
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun AddressCard(
+    title: String,
+    subtitle: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    onClick: (() -> Unit)? = null,
+) {
+    if (onClick != null) {
+        Card(
+            onClick = onClick,
+            shape = RoundedCornerShape(8.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surface,
+                contentColor = MaterialTheme.colorScheme.onSurface,
+            ),
+            modifier = Modifier.fillMaxWidth(),
+            border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant),
+        ) {
+            AddressCardContent(title = title, subtitle = subtitle, icon = icon)
+        }
+    } else {
+        Card(
+            shape = RoundedCornerShape(8.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surface,
+                contentColor = MaterialTheme.colorScheme.onSurface,
+            ),
+            modifier = Modifier.fillMaxWidth(),
+            border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant),
+        ) {
+            AddressCardContent(title = title, subtitle = subtitle, icon = icon)
+        }
+    }
+}
+
+@Composable
+private fun AddressCardContent(
+    title: String,
+    subtitle: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+) {
+    Row(
+        modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Surface(
+            color = MaterialTheme.colorScheme.primaryContainer,
+            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+            shape = RoundedCornerShape(10.dp),
+            modifier = Modifier.size(34.dp),
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Icon(
+                    icon,
+                    contentDescription = null,
+                    modifier = Modifier.size(17.dp),
+                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                )
+            }
+        }
+        Column {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
         }
     }
 }
@@ -192,56 +356,6 @@ private fun SearchRow(onWhereToClick: () -> Unit) {
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-            }
-        }
-    }
-}
-
-@Composable
-private fun AddressCard(title: String, subtitle: String, icon: androidx.compose.ui.graphics.vector.ImageVector) {
-    Card(
-        shape = RoundedCornerShape(8.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface,
-            contentColor = MaterialTheme.colorScheme.onSurface,
-        ),
-        modifier = Modifier.fillMaxWidth(),
-        border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant),
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            Surface(
-                color = MaterialTheme.colorScheme.primaryContainer,
-                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                shape = RoundedCornerShape(10.dp),
-                modifier = Modifier.size(34.dp),
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        icon,
-                        contentDescription = null,
-                        modifier = Modifier.size(17.dp),
-                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                    )
-                }
-            }
-            Column {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Medium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-                Text(
-                    text = subtitle,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
             }
         }
     }
@@ -380,8 +494,38 @@ private data class SuggestionItem(
     val image: DrawableResource,
     val vehicleTypeIndex: Int,
 )
-private data class PlaceSuggestion(val name: String, val icon: androidx.compose.ui.graphics.vector.ImageVector)
 private data class RentalVehicleItem(val label: String, val image: DrawableResource)
+
+private fun SavedPlace.toGeoPoint(): GeoPoint? {
+    val lat = latitude ?: return null
+    val lng = longitude ?: return null
+    return GeoPoint(lat, lng)
+}
+
+private fun KnownPlace.toGeoPoint(): GeoPoint? {
+    val lat = latitude ?: return null
+    val lng = longitude ?: return null
+    return GeoPoint(lat, lng)
+}
+
+private fun SavedPlaceType.savedPlaceIcon(): androidx.compose.ui.graphics.vector.ImageVector {
+    return when (this) {
+        SavedPlaceType.Home -> Heroicons.Outline.MapPin
+        SavedPlaceType.Work -> Heroicons.Outline.BuildingStorefront
+        SavedPlaceType.Custom -> Heroicons.Outline.Clock
+    }
+}
+
+private fun String.knownPlaceIcon(): androidx.compose.ui.graphics.vector.ImageVector {
+    return when (lowercase()) {
+        "mall", "market" -> Heroicons.Outline.BuildingStorefront
+        "school", "university" -> Heroicons.Outline.AcademicCap
+        "government" -> Heroicons.Outline.BuildingLibrary
+        "airport", "terminal" -> Heroicons.Outline.PaperAirplane
+        "church" -> Heroicons.Outline.BookOpen
+        else -> Heroicons.Outline.MapPin
+    }
+}
 
 private val suggestions = listOf(
     SuggestionItem("Moto", Res.drawable.home_scooter, vehicleTypeIndex = 0),
@@ -394,13 +538,4 @@ private val rentalVehicles = listOf(
     RentalVehicleItem("Van", Res.drawable.home_car),
     RentalVehicleItem("Truck", Res.drawable.home_big_truck),
     RentalVehicleItem("Pickup", Res.drawable.home_big_truck),
-)
-
-private val placeSuggestions = listOf(
-    PlaceSuggestion("SM Mall", Heroicons.Outline.BuildingStorefront),
-    PlaceSuggestion("State University", Heroicons.Outline.AcademicCap),
-    PlaceSuggestion("St. Louis", Heroicons.Outline.BuildingLibrary),
-    PlaceSuggestion("Public Market", Heroicons.Outline.BuildingStorefront),
-    PlaceSuggestion("Airport", Heroicons.Outline.PaperAirplane),
-    PlaceSuggestion("Church", Heroicons.Outline.BookOpen),
 )

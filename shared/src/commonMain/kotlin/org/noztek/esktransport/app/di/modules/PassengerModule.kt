@@ -14,6 +14,11 @@ import org.noztek.esktransport.feature.passenger.activity.data.remote.PassengerA
 import org.noztek.esktransport.feature.passenger.activity.domain.repository.PassengerActivityRepository
 import org.noztek.esktransport.feature.passenger.activity.domain.usecase.GetPassengerActivityUseCase
 import org.noztek.esktransport.feature.passenger.activity.presentation.ActivityViewModel
+import org.noztek.esktransport.feature.passenger.home.data.impl.KnownPlacesRepositoryImpl
+import org.noztek.esktransport.feature.passenger.home.data.remote.KnownPlacesApi
+import org.noztek.esktransport.feature.passenger.home.domain.repository.KnownPlacesRepository
+import org.noztek.esktransport.feature.passenger.home.domain.usecase.GetKnownPlacesUseCase
+import org.noztek.esktransport.feature.passenger.home.presentation.PassengerHomeViewModel
 import org.noztek.esktransport.feature.passenger.location_search.data.impl.LocationRepositoryImpl
 import org.noztek.esktransport.feature.passenger.location_search.data.impl.PlaceSearchRepositoryImpl
 import org.noztek.esktransport.feature.passenger.location_search.data.impl.ReverseGeocodeRepositoryImpl
@@ -57,6 +62,17 @@ import org.noztek.esktransport.feature.common.wallet.domain.usecase.GetWalletUse
 import org.noztek.esktransport.feature.passenger.wallet.presentation.WalletViewModel
 
 val passengerModule = module {
+    single { KnownPlacesApi(client = get(), baseUrl = get(named(API_BASE_URL_QUALIFIER))) }
+    single<KnownPlacesRepository> { KnownPlacesRepositoryImpl(api = get()) }
+    single { GetKnownPlacesUseCase(repository = get()) }
+    factory {
+        PassengerHomeViewModel(
+            getSavedPlacesUseCase = get(),
+            getKnownPlacesUseCase = get(),
+            ioDispatcher = get(named(IO_DISPATCHER_QUALIFIER)),
+        )
+    }
+
     single<LocationRepository> { LocationRepositoryImpl(currentLocationProvider = get()) }
     single<PlaceSearchRepository> { PlaceSearchRepositoryImpl() }
     single<ReverseGeocodeRepository> { ReverseGeocodeRepositoryImpl(client = get(), mapboxConfig = get()) }

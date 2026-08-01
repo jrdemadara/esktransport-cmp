@@ -57,6 +57,7 @@ import androidx.compose.ui.unit.dp
 import com.composables.icons.heroicons.Heroicons
 import com.composables.icons.heroicons.outline.ChatBubbleOvalLeft
 import com.composables.icons.heroicons.outline.EllipsisVertical
+import com.composables.icons.heroicons.outline.Home
 import com.composables.icons.heroicons.outline.Phone
 import com.composables.icons.heroicons.outline.User
 import com.composables.icons.heroicons.solid.Star
@@ -88,6 +89,7 @@ fun TripTrackingScreen(
     bookingId: String,
     onCancelled: () -> Unit,
     onCompleted: () -> Unit,
+    onHomeClick: () -> Unit,
     onChatClick: () -> Unit,
     viewModel: TripTrackingViewModel = koinViewModel(),
     mapboxConfig: MapboxConfig = koinInject(),
@@ -182,6 +184,7 @@ fun TripTrackingScreen(
 
             TripTrackingTopAppBar(
                 statusLabel = sessionStatusLabel(uiState.stage),
+                onHomeClick = onHomeClick,
                 onChatClick = onChatClick,
                 modifier = Modifier.align(Alignment.TopCenter),
             )
@@ -330,6 +333,7 @@ private fun TripTrackingSheet(
 @Composable
 private fun TripTrackingTopAppBar(
     statusLabel: String,
+    onHomeClick: () -> Unit,
     onChatClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -342,6 +346,14 @@ private fun TripTrackingTopAppBar(
             titleContentColor = MaterialTheme.colorScheme.onSurface,
             actionIconContentColor = MaterialTheme.colorScheme.onSurface,
         ),
+        navigationIcon = {
+            IconButton(onClick = onHomeClick) {
+                Icon(
+                    Heroicons.Outline.Home,
+                    contentDescription = "Home",
+                )
+            }
+        },
         title = {
             Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
                 Text(

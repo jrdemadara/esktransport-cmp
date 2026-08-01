@@ -124,6 +124,9 @@ private fun ActiveBookingCard(
     onTrackTripClick: (String) -> Unit,
 ) {
     val primary = MaterialTheme.colorScheme.primary
+    val onPrimary = MaterialTheme.colorScheme.onPrimary
+    val activeCardControl = MaterialTheme.colorScheme.primaryContainer
+    val activeCardOnControl = MaterialTheme.colorScheme.onPrimaryContainer
     val canTrack = activeBooking?.status.canTrackTrip()
     val destinationLabel = activeBooking?.destination?.label?.takeIf { it.isNotBlank() } ?: "Destination"
     val driverName = activeBooking?.driver?.name?.takeIf { it.isNotBlank() } ?: "Finding driver"
@@ -139,10 +142,17 @@ private fun ActiveBookingCard(
         "$vehicleLabel • $driverName • $fareLabel"
     }
     Surface(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(
+                enabled = canTrack,
+                onClick = {
+                    activeBooking?.bookingPublicId?.let(onTrackTripClick)
+                },
+            ),
         shape = RoundedCornerShape(14.dp),
         color = Color.Transparent,
-        contentColor = Color.White,
+        contentColor = onPrimary,
     ) {
         Box(
             modifier = Modifier
@@ -164,8 +174,8 @@ private fun ActiveBookingCard(
                 Surface(
                     modifier = Modifier.size(54.dp),
                     shape = CircleShape,
-                    color = Color.White,
-                    contentColor = primary,
+                    color = activeCardControl,
+                    contentColor = activeCardOnControl,
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
@@ -183,27 +193,27 @@ private fun ActiveBookingCard(
                         text = "Active booking",
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.SemiBold,
-                        color = Color.White.copy(alpha = 0.92f),
+                        color = onPrimary.copy(alpha = 0.92f),
                     )
                     Text(
                         text = if (isLoading) "Loading..." else "To $destinationLabel",
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
-                        color = Color.White,
+                        color = onPrimary,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
                     Text(
                         text = detailLabel,
                         style = MaterialTheme.typography.bodySmall,
-                        color = Color.White.copy(alpha = 0.88f),
+                        color = onPrimary.copy(alpha = 0.88f),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
                     Text(
                         text = activeBooking?.status.statusDescription(isLoading),
                         style = MaterialTheme.typography.bodySmall,
-                        color = Color.White.copy(alpha = 0.84f),
+                        color = onPrimary.copy(alpha = 0.84f),
                     )
                 }
                 Column(
@@ -212,8 +222,8 @@ private fun ActiveBookingCard(
                 ) {
                     Surface(
                         shape = RoundedCornerShape(999.dp),
-                        color = Color.White.copy(alpha = 0.92f),
-                        contentColor = primary,
+                        color = activeCardControl.copy(alpha = 0.94f),
+                        contentColor = activeCardOnControl,
                     ) {
                         Text(
                             text = activeBooking?.status.statusLabel(isLoading),
@@ -230,8 +240,8 @@ private fun ActiveBookingCard(
                             },
                         ),
                         shape = RoundedCornerShape(10.dp),
-                        color = Color.White.copy(alpha = if (canTrack) 1f else 0.72f),
-                        contentColor = primary,
+                        color = activeCardControl.copy(alpha = if (canTrack) 1f else 0.72f),
+                        contentColor = activeCardOnControl,
                     ) {
                         Text(
                             text = if (canTrack) "Track trip" else "Waiting",
