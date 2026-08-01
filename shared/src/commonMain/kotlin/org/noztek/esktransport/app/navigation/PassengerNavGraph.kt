@@ -65,17 +65,17 @@ import androidx.savedstate.read
 import com.composables.icons.heroicons.outline.ArrowLeft
 import com.composables.icons.heroicons.outline.Bell
 import com.composables.icons.heroicons.outline.Cog6Tooth
-import com.composables.icons.heroicons.outline.Sparkles
 import com.composables.icons.heroicons.outline.Home
 import com.composables.icons.heroicons.Heroicons
 import com.composables.icons.heroicons.outline.User
 import com.composables.icons.heroicons.outline.RectangleStack
 import com.composables.icons.heroicons.outline.Wallet
 import esktransport.shared.generated.resources.Res
-import esktransport.shared.generated.resources.logo
+import esktransport.shared.generated.resources.chatbot
 import esktransport.shared.generated.resources.logo_nobg
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
@@ -311,7 +311,17 @@ private fun PassengerShell(onLogout: () -> Unit) {
                                     restoreState = true
                                 }
                             },
-                            icon = { Icon(tab.icon, contentDescription = tab.label) },
+                            icon = {
+                                if (tab.drawableIcon != null) {
+                                    Image(
+                                        painter = painterResource(tab.drawableIcon),
+                                        contentDescription = tab.label,
+                                        modifier = Modifier.size(24.dp),
+                                    )
+                                } else if (tab.vectorIcon != null) {
+                                    Icon(tab.vectorIcon, contentDescription = tab.label)
+                                }
+                            },
                             label = { Text(tab.label) },
                             colors = NavigationBarItemDefaults.colors(
                                 selectedIconColor = MaterialTheme.colorScheme.primary,
@@ -742,15 +752,16 @@ private fun PlaceholderTabScreen(title: String) {
 private data class PassengerTab(
     val route: String,
     val label: String,
-    val icon: androidx.compose.ui.graphics.vector.ImageVector,
+    val vectorIcon: androidx.compose.ui.graphics.vector.ImageVector? = null,
+    val drawableIcon: DrawableResource? = null,
 )
 
 private val passengerTabs = listOf(
-    PassengerTab(ROUTE_HOME, "Home", Heroicons.Outline.Home),
-    PassengerTab(ROUTE_WALLET, "Wallet", Heroicons.Outline.Wallet),
-    PassengerTab(ROUTE_KUDI, "Ask Kudi", Heroicons.Outline.Sparkles),
-    PassengerTab(ROUTE_ACTIVITY, "Activity", Heroicons.Outline.RectangleStack),
-    PassengerTab(ROUTE_PROFILE, "Settings", Heroicons.Outline.Cog6Tooth),
+    PassengerTab(ROUTE_HOME, "Home", vectorIcon = Heroicons.Outline.Home),
+    PassengerTab(ROUTE_WALLET, "Wallet", vectorIcon = Heroicons.Outline.Wallet),
+    PassengerTab(ROUTE_KUDI, "Ask Kudi", drawableIcon = Res.drawable.chatbot),
+    PassengerTab(ROUTE_ACTIVITY, "Activity", vectorIcon = Heroicons.Outline.RectangleStack),
+    PassengerTab(ROUTE_PROFILE, "Settings", vectorIcon = Heroicons.Outline.Cog6Tooth),
 )
 
 private fun String?.toUserPresenceContext(isSearchingForRider: Boolean): UserPresenceContext {

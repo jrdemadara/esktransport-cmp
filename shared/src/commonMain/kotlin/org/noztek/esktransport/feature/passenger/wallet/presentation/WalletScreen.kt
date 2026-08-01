@@ -100,11 +100,10 @@ private fun WalletBalanceCard(
     onTopUpClick: () -> Unit,
     onCashoutClick: () -> Unit,
 ) {
-    val primary = MaterialTheme.colorScheme.primary
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(14.dp),
-        color = Color.Transparent,
+        color = Color(0xFF075BE8),
         contentColor = Color.White,
         shadowElevation = 0.dp,
     ) {
@@ -112,28 +111,14 @@ private fun WalletBalanceCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(
-                    brush = Brush.verticalGradient(
+                    Brush.verticalGradient(
                         colors = listOf(
-                            primary,
-                            primary.copy(alpha = 0.90f),
+                            Color(0xFF0F6BF2).copy(alpha = 0.16f),
+                            Color(0xFF0649C7).copy(alpha = 0.70f),
                         ),
                     ),
                 ),
         ) {
-            Box(
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .fillMaxWidth()
-                    .height(112.dp)
-                    .background(
-                        brush = Brush.verticalGradient(
-                            colors = listOf(
-                                Color.Transparent,
-                                Color(0xFF062A74).copy(alpha = 0.48f),
-                            ),
-                        ),
-                    ),
-            )
             Column(
                 modifier = Modifier.padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -193,8 +178,12 @@ private fun WalletActionTray(
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
-        color = Color.White.copy(alpha = 0.96f),
-        contentColor = MaterialTheme.colorScheme.primary,
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.94f),
+        contentColor = MaterialTheme.colorScheme.onSurface,
+        border = BorderStroke(
+            width = 0.5.dp,
+            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.42f),
+        ),
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp),

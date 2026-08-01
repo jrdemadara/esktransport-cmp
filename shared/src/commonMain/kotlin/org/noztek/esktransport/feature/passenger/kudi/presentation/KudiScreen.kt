@@ -18,7 +18,6 @@ import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -43,7 +42,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.TextStyle
@@ -55,12 +53,13 @@ import com.composables.icons.heroicons.outline.ArrowsUpDown
 import com.composables.icons.heroicons.outline.ChartBar
 import com.composables.icons.heroicons.outline.Clock
 import com.composables.icons.heroicons.outline.MapPin
-import com.composables.icons.heroicons.outline.PencilSquare
 import com.composables.icons.heroicons.outline.PaperAirplane
+import com.composables.icons.heroicons.outline.PencilSquare
 import com.composables.icons.heroicons.outline.Sparkles
 import com.composables.icons.heroicons.outline.Truck
 import com.composables.icons.heroicons.outline.User
 import esktransport.shared.generated.resources.Res
+import esktransport.shared.generated.resources.chatbot
 import esktransport.shared.generated.resources.home_big_truck
 import esktransport.shared.generated.resources.home_car
 import org.jetbrains.compose.resources.DrawableResource
@@ -168,8 +167,8 @@ private fun KudiTopBar(
             contentColor = MaterialTheme.colorScheme.primary,
         ) {
             Box(contentAlignment = Alignment.Center) {
-                Icon(
-                    imageVector = Heroicons.Outline.Sparkles,
+                Image(
+                    painter = painterResource(Res.drawable.chatbot),
                     contentDescription = null,
                     modifier = Modifier.size(21.dp),
                 )
@@ -177,8 +176,8 @@ private fun KudiTopBar(
         }
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = "Kudi AI",
-                style = MaterialTheme.typography.titleLarge,
+                text = "Ask Kudi",
+                style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onBackground,
             )
