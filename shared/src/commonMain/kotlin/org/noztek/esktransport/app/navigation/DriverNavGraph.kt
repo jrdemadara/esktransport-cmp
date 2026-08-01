@@ -42,6 +42,7 @@ import org.noztek.esktransport.feature.driver.session.presentation.DriverSession
 import org.noztek.esktransport.feature.driver.session.presentation.DriverSessionViewModel
 import org.noztek.esktransport.feature.driver.trip_navigation.presentation.TripNavigationScreen
 import org.noztek.esktransport.feature.driver.trips.presentation.TripsScreen
+import org.noztek.esktransport.feature.driver.wallet.presentation.TransactionHistoryScreen
 
 private const val ROUTE_DRIVER_TRIP_TRACKING = "driver-trip-tracking"
 private const val ROUTE_DRIVER_IDENTITY_VERIFICATION = "driver-onboarding/identity"
@@ -49,6 +50,7 @@ private const val ROUTE_DRIVER_VEHICLE_REGISTRATION = "driver-onboarding/vehicle
 private const val ROUTE_DRIVER_SERVICE_ZONE = "driver-onboarding/service-zone"
 private const val ROUTE_DRIVER_TOP_UP = "driver/wallet/top-up"
 private const val ROUTE_DRIVER_CASHOUT = "driver/wallet/cashout"
+private const val ROUTE_DRIVER_WALLET_HISTORY = "driver/wallet/history"
 private const val ROUTE_DRIVER_ACCOUNT_SETTINGS = "driver/settings/account"
 private const val DRIVER_HOME_STATS_REFRESH_TOKEN = "driver_home_stats_refresh_token"
 
@@ -122,6 +124,11 @@ fun NavGraphBuilder.driverNavGraph(
                         launchSingleTop = true
                     }
                 },
+                onTransactionHistoryClick = {
+                    navController.navigate(ROUTE_DRIVER_WALLET_HISTORY) {
+                        launchSingleTop = true
+                    }
+                },
                 onProfileClick = {
                     navController.navigate(ROUTE_DRIVER_ACCOUNT_SETTINGS) {
                         launchSingleTop = true
@@ -136,6 +143,11 @@ fun NavGraphBuilder.driverNavGraph(
         }
         composable(route = ROUTE_DRIVER_CASHOUT) {
             CashoutScreen(
+                onBackClick = { navController.popBackStack() },
+            )
+        }
+        composable(route = ROUTE_DRIVER_WALLET_HISTORY) {
+            TransactionHistoryScreen(
                 onBackClick = { navController.popBackStack() },
             )
         }

@@ -54,6 +54,7 @@ import org.noztek.esktransport.feature.driver.wallet.domain.usecase.CancelDriver
 import org.noztek.esktransport.feature.driver.wallet.domain.usecase.CreateDriverCashoutUseCase
 import org.noztek.esktransport.feature.driver.wallet.domain.usecase.CreateDriverTopupUseCase
 import org.noztek.esktransport.feature.driver.wallet.domain.usecase.GetDriverWalletUseCase
+import org.noztek.esktransport.feature.driver.wallet.presentation.TransactionHistoryViewModel
 import org.noztek.esktransport.feature.common.cashout.presentation.CashoutViewModel
 import org.noztek.esktransport.feature.common.topup.presentation.TopUpViewModel
 
@@ -170,6 +171,12 @@ val driverHomeModule = module {
             updateDriverAccountUseCase = get(),
             getDriverProfilePhotoUseCase = get(),
             getDriverOnboardingStatusUseCase = get(),
+            ioDispatcher = get(named(IO_DISPATCHER_QUALIFIER)),
+        )
+    }
+    factory {
+        TransactionHistoryViewModel(
+            getDriverWalletUseCase = get(),
             ioDispatcher = get(named(IO_DISPATCHER_QUALIFIER)),
         )
     }

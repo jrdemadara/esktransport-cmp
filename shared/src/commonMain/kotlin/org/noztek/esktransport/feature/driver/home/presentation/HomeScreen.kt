@@ -101,6 +101,7 @@ fun HomeScreen(
     onDriverModeClick: () -> Unit = {},
     onTopUpClick: () -> Unit = {},
     onCashoutClick: () -> Unit = {},
+    onTransactionHistoryClick: () -> Unit = {},
     viewModel: HomeViewModel = koinViewModel(),
     mapboxConfig: MapboxConfig = koinInject(),
 ) {
@@ -182,6 +183,7 @@ fun HomeScreen(
                 errorMessage = uiState.walletErrorMessage,
                 onTopUpClick = onTopUpClick,
                 onCashoutClick = onCashoutClick,
+                onHistoryClick = onTransactionHistoryClick,
                 onRetryClick = viewModel::refreshWallet,
             )
             PerformancePanel(
@@ -561,6 +563,7 @@ private fun DriverWalletStrip(
     errorMessage: String?,
     onTopUpClick: () -> Unit,
     onCashoutClick: () -> Unit,
+    onHistoryClick: () -> Unit,
     onRetryClick: () -> Unit,
 ) {
     val balanceLabel = dashboard?.wallet?.let { formatWalletAmount(it.balance, it.currency) } ?: "PHP 0.00"
@@ -653,7 +656,7 @@ private fun DriverWalletStrip(
                         icon = Heroicons.Outline.QueueList,
                         color = MaterialTheme.colorScheme.tertiary,
                         enabled = !isLoading,
-                        onClick = {},
+                        onClick = onHistoryClick,
                     )
                 }
             }
