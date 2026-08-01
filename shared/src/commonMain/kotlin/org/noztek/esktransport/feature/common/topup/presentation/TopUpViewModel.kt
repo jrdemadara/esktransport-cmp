@@ -36,7 +36,6 @@ class TopUpViewModel(
                             isLoading = false,
                             walletBalance = dashboard.wallet.balance,
                             currency = dashboard.wallet.currency,
-                            activeTopup = dashboard.pendingTopups.firstOrNull(),
                             errorMessage = null,
                         )
                     }

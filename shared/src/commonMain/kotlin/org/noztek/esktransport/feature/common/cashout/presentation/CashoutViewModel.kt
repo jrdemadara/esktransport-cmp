@@ -39,7 +39,6 @@ class CashoutViewModel(
                             walletBalance = dashboard.wallet.balance,
                             minimumWalletBalance = dashboard.driverModeRequirement.minimumWalletBalance,
                             currency = dashboard.wallet.currency,
-                            activeCashout = dashboard.pendingCashouts.firstOrNull(),
                             errorMessage = null,
                         )
                     }

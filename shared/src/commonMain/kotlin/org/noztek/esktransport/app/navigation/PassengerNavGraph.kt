@@ -82,11 +82,13 @@ import org.koin.compose.viewmodel.koinViewModel
 import org.noztek.esktransport.core.realtime.passenger.PassengerRealtimeCoordinator
 import org.noztek.esktransport.core.session.SessionManager
 import org.noztek.esktransport.core.utils.uppercaseFirstLetterOfEachWord
+import org.noztek.esktransport.feature.common.cashout.presentation.CashoutScreen
 import org.noztek.esktransport.feature.common.chat.domain.model.TripChatParticipantRole
 import org.noztek.esktransport.feature.common.chat.presentation.TripChatScreen
 import org.noztek.esktransport.feature.common.presence.domain.lifecycle.UserPresenceCoordinator
 import org.noztek.esktransport.feature.common.presence.domain.model.UserPresenceContext
 import org.noztek.esktransport.feature.common.presence.domain.model.UserPresenceRole
+import org.noztek.esktransport.feature.common.topup.presentation.TopUpScreen
 import org.noztek.esktransport.feature.passenger.booking_review.domain.model.BookingReviewInput
 import org.noztek.esktransport.feature.passenger.booking_review.presentation.BookingReviewScreen
 import org.noztek.esktransport.feature.passenger.booking_review.presentation.BookingReviewUiEvent
@@ -120,6 +122,8 @@ private const val ROUTE_ACTIVITY = "activity"
 private const val ROUTE_PROFILE = "profile"
 private const val ROUTE_PASSENGER_ACCOUNT_SETTINGS = "passenger/settings/account"
 private const val ROUTE_PASSENGER_SAVED_PLACES = "passenger/settings/saved-places"
+private const val ROUTE_PASSENGER_TOP_UP = "passenger/wallet/top-up"
+private const val ROUTE_PASSENGER_CASHOUT = "passenger/wallet/cashout"
 
 fun NavGraphBuilder.passengerNavGraph(navController: NavHostController) {
     navigation(startDestination = PassengerRoute.HOME, route = RootRoute.PASSENGER) {
@@ -156,6 +160,8 @@ private fun PassengerShell(onLogout: () -> Unit) {
     val showChrome = !isTripTrackingActive &&
         !isRidePlannerRoute &&
         currentRoute != ROUTE_BOOKING_REVIEW &&
+        currentRoute != ROUTE_PASSENGER_TOP_UP &&
+        currentRoute != ROUTE_PASSENGER_CASHOUT &&
         currentRoute?.startsWith("location-search/") != true
 
     LaunchedEffect(currentRoute, bookingReviewUiState.isSearchingForRider, activeTripTrackingBookingId) {
@@ -253,6 +259,8 @@ private fun PassengerShell(onLogout: () -> Unit) {
                 currentRoute == ROUTE_PROFILE -> Unit
                 currentRoute == ROUTE_PASSENGER_ACCOUNT_SETTINGS -> Unit
                 currentRoute == ROUTE_PASSENGER_SAVED_PLACES -> Unit
+                currentRoute == ROUTE_PASSENGER_TOP_UP -> Unit
+                currentRoute == ROUTE_PASSENGER_CASHOUT -> Unit
                 currentRoute?.startsWith("location-search/") == true -> {
                     PassengerBackTopBar(if (locationMode == "pickup") "Search Pickup" else "Search Destination") {
                         navController.popBackStack()
@@ -426,7 +434,25 @@ private fun PassengerShell(onLogout: () -> Unit) {
             }
             composable(ROUTE_SERVICES) { PlaceholderTabScreen("Services") }
             composable(ROUTE_WALLET) {
-                WalletScreen(contentPadding = innerPadding)
+                WalletScreen(
+                    contentPadding = innerPadding,
+                    onTopUpClick = {
+                        navController.navigate(ROUTE_PASSENGER_TOP_UP) {
+                            launchSingleTop = true
+                        }
+                    },
+                    onCashoutClick = {
+                        navController.navigate(ROUTE_PASSENGER_CASHOUT) {
+                            launchSingleTop = true
+                        }
+                    },
+                )
+            }
+            composable(ROUTE_PASSENGER_TOP_UP) {
+                TopUpScreen(onBackClick = { navController.popBackStack() })
+            }
+            composable(ROUTE_PASSENGER_CASHOUT) {
+                CashoutScreen(onBackClick = { navController.popBackStack() })
             }
             composable(ROUTE_KUDI) { PlaceholderTabScreen("Kudi AI") }
             composable(ROUTE_ACTIVITY) { PlaceholderTabScreen("Activity") }

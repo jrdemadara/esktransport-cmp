@@ -45,6 +45,11 @@ import org.noztek.esktransport.feature.passenger.trip_tracking.domain.usecase.Su
 import org.noztek.esktransport.feature.passenger.trip_tracking.domain.usecase.TripTrackingUseCase
 import org.noztek.esktransport.feature.passenger.trip_tracking.presentation.TripTrackingViewModel
 import org.noztek.esktransport.feature.passenger.session.presentation.PassengerSessionViewModel
+import org.noztek.esktransport.feature.common.wallet.data.impl.WalletRepositoryImpl
+import org.noztek.esktransport.feature.common.wallet.data.remote.WalletApi
+import org.noztek.esktransport.feature.common.wallet.domain.repository.WalletRepository
+import org.noztek.esktransport.feature.common.wallet.domain.usecase.GetWalletUseCase
+import org.noztek.esktransport.feature.passenger.wallet.presentation.WalletViewModel
 
 val passengerModule = module {
     single<LocationRepository> { LocationRepositoryImpl(currentLocationProvider = get()) }
@@ -114,6 +119,16 @@ val passengerModule = module {
     factory {
         PassengerSessionViewModel(
             getPassengerActiveBookingUseCase = get(),
+            ioDispatcher = get(named(IO_DISPATCHER_QUALIFIER)),
+        )
+    }
+
+    single { WalletApi(client = get(), baseUrl = get(named(API_BASE_URL_QUALIFIER))) }
+    single<WalletRepository> { WalletRepositoryImpl(api = get()) }
+    single { GetWalletUseCase(repository = get()) }
+    factory {
+        WalletViewModel(
+            getWalletUseCase = get(),
             ioDispatcher = get(named(IO_DISPATCHER_QUALIFIER)),
         )
     }

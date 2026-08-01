@@ -2,6 +2,7 @@ package org.noztek.esktransport.feature.passenger.wallet.presentation
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,12 +18,15 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -36,17 +40,31 @@ import com.composables.icons.heroicons.outline.ArrowDownTray
 import com.composables.icons.heroicons.outline.ArrowPath
 import com.composables.icons.heroicons.outline.ArrowUpTray
 import com.composables.icons.heroicons.outline.ChevronRight
-import com.composables.icons.heroicons.outline.Clock
 import com.composables.icons.heroicons.outline.PaperAirplane
 import com.composables.icons.heroicons.outline.Plus
 import com.composables.icons.heroicons.outline.ShieldCheck
 import com.composables.icons.heroicons.outline.Truck
 import com.composables.icons.heroicons.outline.Wallet
+import org.koin.compose.viewmodel.koinViewModel
+import org.noztek.esktransport.core.utils.formatApiDateTimeForDisplay
+import org.noztek.esktransport.feature.common.wallet.domain.model.WalletLedgerEntry
 
 @Composable
 fun WalletScreen(
     contentPadding: PaddingValues = PaddingValues(0.dp),
+    onTopUpClick: () -> Unit = {},
+    onCashoutClick: () -> Unit = {},
+    viewModel: WalletViewModel = koinViewModel(),
 ) {
+    val uiState by viewModel.uiState.collectAsState()
+    val pendingTopupAmount = uiState.pendingTopups
+        .filter { it.status == "pending" }
+        .sumOf { it.amount }
+    val pendingCashoutAmount = uiState.pendingCashouts
+        .filter { it.status == "pending" }
+        .sumOf { it.amount }
+    val transactions = uiState.recentLedgerEntries.map { it.toWalletTransactionItem() }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -56,16 +74,32 @@ fun WalletScreen(
             .padding(horizontal = 18.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        WalletBalanceCard()
-        WalletSummaryCard()
-        RecentTransactionsSection(transactions = sampleWalletTransactions)
+        WalletBalanceCard(
+            balanceLabel = formatWalletAmount(uiState.balance, uiState.currency),
+            isLoading = uiState.isLoading,
+            onTopUpClick = onTopUpClick,
+            onCashoutClick = onCashoutClick,
+        )
+        WalletSummaryCard(
+            pendingTopupLabel = formatWalletAmount(pendingTopupAmount, uiState.currency),
+            pendingCashoutLabel = formatWalletAmount(pendingCashoutAmount, uiState.currency),
+        )
+        uiState.errorMessage?.let { message ->
+            WalletNoticeCard(message = message)
+        }
+        RecentTransactionsSection(transactions = transactions)
         PaymentsProtectedCard()
         Spacer(modifier = Modifier.height(4.dp))
     }
 }
 
 @Composable
-private fun WalletBalanceCard() {
+private fun WalletBalanceCard(
+    balanceLabel: String,
+    isLoading: Boolean,
+    onTopUpClick: () -> Unit,
+    onCashoutClick: () -> Unit,
+) {
     val primary = MaterialTheme.colorScheme.primary
     Surface(
         modifier = Modifier.fillMaxWidth(),
@@ -116,7 +150,7 @@ private fun WalletBalanceCard() {
                             color = Color.White.copy(alpha = 0.88f),
                         )
                         Text(
-                            text = "PHP 1,248.00",
+                            text = if (isLoading) "Loading..." else balanceLabel,
                             style = MaterialTheme.typography.headlineLarge,
                             fontWeight = FontWeight.Bold,
                             color = Color.White,
@@ -127,21 +161,35 @@ private fun WalletBalanceCard() {
                             color = Color.White.copy(alpha = 0.82f),
                         )
                     }
-                    Icon(
-                        imageVector = Heroicons.Outline.Wallet,
-                        contentDescription = null,
-                        modifier = Modifier.size(58.dp),
-                        tint = Color.White.copy(alpha = 0.72f),
-                    )
+                    if (isLoading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(28.dp),
+                            strokeWidth = 2.dp,
+                            color = Color.White.copy(alpha = 0.88f),
+                        )
+                    } else {
+                        Icon(
+                            imageVector = Heroicons.Outline.Wallet,
+                            contentDescription = null,
+                            modifier = Modifier.size(58.dp),
+                            tint = Color.White.copy(alpha = 0.72f),
+                        )
+                    }
                 }
-                WalletActionTray()
+                WalletActionTray(
+                    onTopUpClick = onTopUpClick,
+                    onCashoutClick = onCashoutClick,
+                )
             }
         }
     }
 }
 
 @Composable
-private fun WalletActionTray() {
+private fun WalletActionTray(
+    onTopUpClick: () -> Unit,
+    onCashoutClick: () -> Unit,
+) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
@@ -155,18 +203,21 @@ private fun WalletActionTray() {
             WalletTrayAction(
                 label = "Top up",
                 icon = Heroicons.Outline.Plus,
+                onClick = onTopUpClick,
                 modifier = Modifier.weight(1f),
             )
             VerticalDivider(height = 30.dp, alpha = 0.38f)
             WalletTrayAction(
                 label = "Send",
                 icon = Heroicons.Outline.PaperAirplane,
+                onClick = {},
                 modifier = Modifier.weight(1f),
             )
             VerticalDivider(height = 30.dp, alpha = 0.38f)
             WalletTrayAction(
                 label = "Withdraw",
                 icon = Heroicons.Outline.ArrowDownTray,
+                onClick = onCashoutClick,
                 modifier = Modifier.weight(1f),
             )
         }
@@ -177,10 +228,11 @@ private fun WalletActionTray() {
 private fun WalletTrayAction(
     label: String,
     icon: ImageVector,
+    onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Row(
-        modifier = modifier,
+        modifier = modifier.clickable(onClick = onClick),
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -203,7 +255,10 @@ private fun WalletTrayAction(
 }
 
 @Composable
-private fun WalletSummaryCard() {
+private fun WalletSummaryCard(
+    pendingTopupLabel: String,
+    pendingCashoutLabel: String,
+) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(14.dp),
@@ -216,15 +271,15 @@ private fun WalletSummaryCard() {
             verticalAlignment = Alignment.CenterVertically,
         ) {
             WalletSummaryCell(
-                title = "Pending refund",
-                value = "PHP 120.00",
+                title = "Pending top-up",
+                value = pendingTopupLabel,
                 icon = Heroicons.Outline.ArrowPath,
                 modifier = Modifier.weight(1f),
             )
             VerticalDivider(height = 42.dp)
             WalletSummaryCell(
-                title = "Promo credits",
-                value = "PHP 75.00",
+                title = "Pending cashout",
+                value = pendingCashoutLabel,
                 icon = Heroicons.Outline.Wallet,
                 modifier = Modifier.weight(1f),
             )
@@ -294,13 +349,22 @@ private fun RecentTransactionsSection(transactions: List<WalletTransactionItem>)
             border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.42f)),
         ) {
             Column {
-                transactions.forEachIndexed { index, transaction ->
-                    WalletTransactionRow(transaction = transaction)
-                    if (index < transactions.lastIndex) {
-                        HorizontalDivider(
-                            modifier = Modifier.padding(start = 66.dp),
-                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.38f),
-                        )
+                if (transactions.isEmpty()) {
+                    Text(
+                        text = "No wallet activity yet.",
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 18.dp),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                } else {
+                    transactions.forEachIndexed { index, transaction ->
+                        WalletTransactionRow(transaction = transaction)
+                        if (index < transactions.lastIndex) {
+                            HorizontalDivider(
+                                modifier = Modifier.padding(start = 66.dp),
+                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.38f),
+                            )
+                        }
                     }
                 }
             }
@@ -355,13 +419,29 @@ private fun WalletTransactionRow(transaction: WalletTransactionItem) {
             text = transaction.amount,
             style = MaterialTheme.typography.bodyMedium,
             fontWeight = FontWeight.SemiBold,
-            color = transaction.amountColor,
+            color = if (transaction.isCredit) CreditGreen else MaterialTheme.colorScheme.onSurface,
         )
         Icon(
             imageVector = Heroicons.Outline.ChevronRight,
             contentDescription = null,
             modifier = Modifier.size(18.dp),
             tint = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+@Composable
+private fun WalletNoticeCard(message: String) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.42f),
+        contentColor = MaterialTheme.colorScheme.onErrorContainer,
+    ) {
+        Text(
+            text = message,
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+            style = MaterialTheme.typography.bodySmall,
         )
     }
 }
@@ -437,44 +517,52 @@ private data class WalletTransactionItem(
     val amount: String,
     val icon: ImageVector,
     val color: Color,
-    val amountColor: Color,
+    val isCredit: Boolean,
 )
 
 private val CreditGreen = Color(0xFF118447)
 private val DebitRed = Color(0xFFE53935)
 private val AccentBlue = Color(0xFF2563EB)
 
-private val sampleWalletTransactions = listOf(
-    WalletTransactionItem(
-        title = "Moto ride to SM Mall",
-        subtitle = "Today, 1:05 PM",
-        amount = "-PHP 42.00",
-        icon = Heroicons.Outline.Wallet,
-        color = AccentBlue,
-        amountColor = Color(0xFF111827),
-    ),
-    WalletTransactionItem(
-        title = "Top up via GCash",
-        subtitle = "Today, 12:40 PM",
-        amount = "+PHP 500.00",
-        icon = Heroicons.Outline.ArrowUpTray,
-        color = CreditGreen,
-        amountColor = CreditGreen,
-    ),
-    WalletTransactionItem(
-        title = "Rental booking deposit",
-        subtitle = "Jul 31, 6:20 PM",
-        amount = "-PHP 300.00",
-        icon = Heroicons.Outline.Truck,
-        color = AccentBlue,
-        amountColor = Color(0xFF111827),
-    ),
-    WalletTransactionItem(
-        title = "Refund from cancelled trip",
-        subtitle = "Jul 30, 8:18 AM",
-        amount = "+PHP 120.00",
-        icon = Heroicons.Outline.ArrowPath,
-        color = CreditGreen,
-        amountColor = CreditGreen,
-    ),
-)
+private fun WalletLedgerEntry.toWalletTransactionItem(): WalletTransactionItem {
+    val isCredit = direction.equals("credit", ignoreCase = true)
+    val icon = when (entryType) {
+        "topup_credit" -> Heroicons.Outline.ArrowUpTray
+        "cashout_debit" -> Heroicons.Outline.ArrowDownTray
+        "refund_credit" -> Heroicons.Outline.ArrowPath
+        "platform_fee_debit" -> Heroicons.Outline.Wallet
+        else -> if (isCredit) Heroicons.Outline.ArrowUpTray else Heroicons.Outline.Wallet
+    }
+    val color = when {
+        isCredit -> CreditGreen
+        entryType == "cashout_debit" -> DebitRed
+        else -> AccentBlue
+    }
+    return WalletTransactionItem(
+        title = description?.takeIf { it.isNotBlank() } ?: entryType.toWalletTitle(),
+        subtitle = createdAt.formatApiDateTimeForDisplay(),
+        amount = "${if (isCredit) "+" else "-"}${formatWalletAmount(amount, currency)}",
+        icon = icon,
+        color = color,
+        isCredit = isCredit,
+    )
+}
+
+private fun String.toWalletTitle(): String {
+    return when (this) {
+        "topup_credit" -> "Wallet top-up"
+        "cashout_debit" -> "Cashout"
+        "platform_fee_debit" -> "Platform fee"
+        "adjustment_credit", "adjustment_debit" -> "Wallet adjustment"
+        "refund_credit" -> "Refund"
+        else -> replace("_", " ").replaceFirstChar { it.uppercase() }
+    }
+}
+
+private fun formatWalletAmount(amount: Double, currency: String): String {
+    val prefix = if (currency.equals("PHP", ignoreCase = true)) "₱" else "$currency "
+    val rounded = (amount * 100).toInt()
+    val whole = rounded / 100
+    val decimals = (rounded % 100).toString().padStart(2, '0')
+    return "$prefix$whole.$decimals"
+}
