@@ -19,6 +19,13 @@ import org.noztek.esktransport.feature.passenger.home.data.remote.KnownPlacesApi
 import org.noztek.esktransport.feature.passenger.home.domain.repository.KnownPlacesRepository
 import org.noztek.esktransport.feature.passenger.home.domain.usecase.GetKnownPlacesUseCase
 import org.noztek.esktransport.feature.passenger.home.presentation.PassengerHomeViewModel
+import org.noztek.esktransport.feature.passenger.kudi.data.impl.KudiRepositoryImpl
+import org.noztek.esktransport.feature.passenger.kudi.data.remote.KudiApi
+import org.noztek.esktransport.feature.passenger.kudi.domain.repository.KudiRepository
+import org.noztek.esktransport.feature.passenger.kudi.domain.usecase.CreateKudiSessionUseCase
+import org.noztek.esktransport.feature.passenger.kudi.domain.usecase.GetCurrentKudiSessionUseCase
+import org.noztek.esktransport.feature.passenger.kudi.domain.usecase.SendKudiMessageUseCase
+import org.noztek.esktransport.feature.passenger.kudi.presentation.KudiViewModel
 import org.noztek.esktransport.feature.passenger.location_search.data.impl.LocationRepositoryImpl
 import org.noztek.esktransport.feature.passenger.location_search.data.impl.PlaceSearchRepositoryImpl
 import org.noztek.esktransport.feature.passenger.location_search.data.impl.ReverseGeocodeRepositoryImpl
@@ -69,6 +76,20 @@ val passengerModule = module {
         PassengerHomeViewModel(
             getSavedPlacesUseCase = get(),
             getKnownPlacesUseCase = get(),
+            ioDispatcher = get(named(IO_DISPATCHER_QUALIFIER)),
+        )
+    }
+
+    single { KudiApi(client = get(), baseUrl = get(named(API_BASE_URL_QUALIFIER))) }
+    single<KudiRepository> { KudiRepositoryImpl(api = get()) }
+    single { GetCurrentKudiSessionUseCase(repository = get()) }
+    single { CreateKudiSessionUseCase(repository = get()) }
+    single { SendKudiMessageUseCase(repository = get()) }
+    factory {
+        KudiViewModel(
+            getCurrentKudiSessionUseCase = get(),
+            createKudiSessionUseCase = get(),
+            sendKudiMessageUseCase = get(),
             ioDispatcher = get(named(IO_DISPATCHER_QUALIFIER)),
         )
     }

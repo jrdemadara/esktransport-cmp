@@ -95,6 +95,7 @@ import org.noztek.esktransport.feature.passenger.booking_review.presentation.Boo
 import org.noztek.esktransport.feature.passenger.booking_review.presentation.BookingReviewViewModel
 import org.noztek.esktransport.feature.passenger.activity.presentation.ActivityScreen
 import org.noztek.esktransport.feature.passenger.home.presentation.PassengerHomeScreen
+import org.noztek.esktransport.feature.passenger.kudi.presentation.KudiScreen
 import org.noztek.esktransport.feature.passenger.location_search.presentation.LocationSearchScreen
 import org.noztek.esktransport.feature.passenger.location_search.presentation.SelectedLocation
 import org.noztek.esktransport.feature.passenger.ride_planner.presentation.RidePlannerScreen
@@ -162,6 +163,7 @@ private fun PassengerShell(onLogout: () -> Unit) {
     val showChrome = !isTripTrackingActive &&
         !isRidePlannerRoute &&
         currentRoute != ROUTE_BOOKING_REVIEW &&
+        currentRoute != ROUTE_KUDI &&
         currentRoute != ROUTE_PASSENGER_TOP_UP &&
         currentRoute != ROUTE_PASSENGER_CASHOUT &&
         currentRoute?.startsWith("location-search/") != true
@@ -262,6 +264,7 @@ private fun PassengerShell(onLogout: () -> Unit) {
                 isTripTrackingActive -> Unit
                 isRidePlannerRoute -> PassengerBackTopBar("Plan your trip") { navController.popBackStack() }
                 currentRoute == ROUTE_BOOKING_REVIEW -> PassengerBackTopBar("Review Booking") { navController.popBackStack() }
+                currentRoute == ROUTE_KUDI -> Unit
                 currentRoute == ROUTE_PROFILE -> Unit
                 currentRoute == ROUTE_PASSENGER_ACCOUNT_SETTINGS -> Unit
                 currentRoute == ROUTE_PASSENGER_SAVED_PLACES -> Unit
@@ -468,7 +471,15 @@ private fun PassengerShell(onLogout: () -> Unit) {
             composable(ROUTE_PASSENGER_CASHOUT) {
                 CashoutScreen(onBackClick = { navController.popBackStack() })
             }
-            composable(ROUTE_KUDI) { PlaceholderTabScreen("Kudi AI") }
+            composable(ROUTE_KUDI) {
+                KudiScreen(
+                    onProfileClick = {
+                        navController.navigate(ROUTE_PROFILE) {
+                            launchSingleTop = true
+                        }
+                    },
+                )
+            }
             composable(ROUTE_ACTIVITY) {
                 ActivityScreen(
                     contentPadding = innerPadding,
@@ -743,7 +754,7 @@ private data class PassengerTab(
 private val passengerTabs = listOf(
     PassengerTab(ROUTE_HOME, "Home", Heroicons.Outline.Home),
     PassengerTab(ROUTE_WALLET, "Wallet", Heroicons.Outline.Wallet),
-    PassengerTab(ROUTE_KUDI, "Kudi AI", Heroicons.Outline.Sparkles),
+    PassengerTab(ROUTE_KUDI, "Ask Kudi", Heroicons.Outline.Sparkles),
     PassengerTab(ROUTE_ACTIVITY, "Activity", Heroicons.Outline.RectangleStack),
     PassengerTab(ROUTE_PROFILE, "Settings", Heroicons.Outline.Cog6Tooth),
 )
