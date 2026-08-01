@@ -93,6 +93,7 @@ import org.noztek.esktransport.feature.passenger.booking_review.domain.model.Boo
 import org.noztek.esktransport.feature.passenger.booking_review.presentation.BookingReviewScreen
 import org.noztek.esktransport.feature.passenger.booking_review.presentation.BookingReviewUiEvent
 import org.noztek.esktransport.feature.passenger.booking_review.presentation.BookingReviewViewModel
+import org.noztek.esktransport.feature.passenger.activity.presentation.ActivityScreen
 import org.noztek.esktransport.feature.passenger.home.presentation.PassengerHomeScreen
 import org.noztek.esktransport.feature.passenger.location_search.presentation.LocationSearchScreen
 import org.noztek.esktransport.feature.passenger.location_search.presentation.SelectedLocation
@@ -268,7 +269,11 @@ private fun PassengerShell(onLogout: () -> Unit) {
                 }
                 else -> PassengerHomeTopBar(
                     greetingName = passengerName,
-                    title = if (currentRoute == ROUTE_WALLET) "Wallet" else null,
+                    title = when (currentRoute) {
+                        ROUTE_WALLET -> "Wallet"
+                        ROUTE_ACTIVITY -> "Activity"
+                        else -> null
+                    },
                     onProfileClick = {
                         navController.navigate(ROUTE_PROFILE) {
                             popUpTo(navController.graph.startDestinationId) { saveState = true }
@@ -455,7 +460,14 @@ private fun PassengerShell(onLogout: () -> Unit) {
                 CashoutScreen(onBackClick = { navController.popBackStack() })
             }
             composable(ROUTE_KUDI) { PlaceholderTabScreen("Kudi AI") }
-            composable(ROUTE_ACTIVITY) { PlaceholderTabScreen("Activity") }
+            composable(ROUTE_ACTIVITY) {
+                ActivityScreen(
+                    contentPadding = innerPadding,
+                    onTrackTripClick = { bookingId ->
+                        activeTripTrackingBookingId = bookingId
+                    },
+                )
+            }
                 composable(ROUTE_PROFILE) {
                     SettingsScreen(
                         onBackClick = {

@@ -9,6 +9,11 @@ import org.noztek.esktransport.feature.passenger.booking_review.domain.usecase.C
 import org.noztek.esktransport.feature.passenger.booking_review.domain.usecase.CreateBookingUseCase
 import org.noztek.esktransport.feature.passenger.booking_review.domain.usecase.CreateFareQuoteUseCase
 import org.noztek.esktransport.feature.passenger.booking_review.presentation.BookingReviewViewModel
+import org.noztek.esktransport.feature.passenger.activity.data.impl.PassengerActivityRepositoryImpl
+import org.noztek.esktransport.feature.passenger.activity.data.remote.PassengerActivityApi
+import org.noztek.esktransport.feature.passenger.activity.domain.repository.PassengerActivityRepository
+import org.noztek.esktransport.feature.passenger.activity.domain.usecase.GetPassengerActivityUseCase
+import org.noztek.esktransport.feature.passenger.activity.presentation.ActivityViewModel
 import org.noztek.esktransport.feature.passenger.location_search.data.impl.LocationRepositoryImpl
 import org.noztek.esktransport.feature.passenger.location_search.data.impl.PlaceSearchRepositoryImpl
 import org.noztek.esktransport.feature.passenger.location_search.data.impl.ReverseGeocodeRepositoryImpl
@@ -119,6 +124,16 @@ val passengerModule = module {
     factory {
         PassengerSessionViewModel(
             getPassengerActiveBookingUseCase = get(),
+            ioDispatcher = get(named(IO_DISPATCHER_QUALIFIER)),
+        )
+    }
+    single { PassengerActivityApi(client = get(), baseUrl = get(named(API_BASE_URL_QUALIFIER))) }
+    single<PassengerActivityRepository> { PassengerActivityRepositoryImpl(api = get()) }
+    single { GetPassengerActivityUseCase(repository = get()) }
+    factory {
+        ActivityViewModel(
+            getPassengerActiveBookingUseCase = get(),
+            getPassengerActivityUseCase = get(),
             ioDispatcher = get(named(IO_DISPATCHER_QUALIFIER)),
         )
     }
