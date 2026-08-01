@@ -472,13 +472,7 @@ private fun PassengerShell(onLogout: () -> Unit) {
                 CashoutScreen(onBackClick = { navController.popBackStack() })
             }
             composable(ROUTE_KUDI) {
-                KudiScreen(
-                    onProfileClick = {
-                        navController.navigate(ROUTE_PROFILE) {
-                            launchSingleTop = true
-                        }
-                    },
-                )
+                KudiScreen()
             }
             composable(ROUTE_ACTIVITY) {
                 ActivityScreen(

@@ -52,7 +52,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.composables.icons.heroicons.Heroicons
 import com.composables.icons.heroicons.outline.ArrowsUpDown
-import com.composables.icons.heroicons.outline.Bell
 import com.composables.icons.heroicons.outline.ChartBar
 import com.composables.icons.heroicons.outline.Clock
 import com.composables.icons.heroicons.outline.MapPin
@@ -72,7 +71,6 @@ import org.noztek.esktransport.feature.passenger.kudi.domain.model.KudiMessageSe
 
 @Composable
 fun KudiScreen(
-    onProfileClick: () -> Unit = {},
     viewModel: KudiViewModel = koinViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -90,7 +88,6 @@ fun KudiScreen(
     Scaffold(
         topBar = {
             KudiTopBar(
-                onProfileClick = onProfileClick,
                 onNewChatClick = {
                     message = ""
                     viewModel.startNewSession()
@@ -154,7 +151,6 @@ fun KudiScreen(
 
 @Composable
 private fun KudiTopBar(
-    onProfileClick: () -> Unit,
     onNewChatClick: () -> Unit,
 ) {
     Row(
@@ -165,44 +161,41 @@ private fun KudiTopBar(
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        Surface(
+            modifier = Modifier.size(38.dp),
+            shape = RoundedCornerShape(12.dp),
+            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.10f),
+            contentColor = MaterialTheme.colorScheme.primary,
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Icon(
+                    imageVector = Heroicons.Outline.Sparkles,
+                    contentDescription = null,
+                    modifier = Modifier.size(21.dp),
+                )
+            }
+        }
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = "Kudi AI",
-                style = MaterialTheme.typography.headlineLarge,
-                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onBackground,
             )
             Text(
                 text = "Find rides, rentals, and cargo vehicles",
-                style = MaterialTheme.typography.bodyMedium,
+                style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
         }
-        Box {
-            IconButton(onClick = onNewChatClick) {
-                Icon(
-                    imageVector = Heroicons.Outline.PencilSquare,
-                    contentDescription = "New chat",
-                    tint = MaterialTheme.colorScheme.onBackground,
-                )
-            }
-        }
-        Surface(
-            modifier = Modifier.size(42.dp),
-            shape = CircleShape,
-            color = MaterialTheme.colorScheme.primary,
-            contentColor = MaterialTheme.colorScheme.onPrimary,
-            onClick = onProfileClick,
-        ) {
-            Box(contentAlignment = Alignment.Center) {
-                Icon(
-                    imageVector = Heroicons.Outline.User,
-                    contentDescription = "Profile",
-                    modifier = Modifier.size(23.dp),
-                )
-            }
+        IconButton(onClick = onNewChatClick) {
+            Icon(
+                imageVector = Heroicons.Outline.PencilSquare,
+                contentDescription = "New chat",
+                tint = MaterialTheme.colorScheme.onBackground,
+            )
         }
     }
 }
