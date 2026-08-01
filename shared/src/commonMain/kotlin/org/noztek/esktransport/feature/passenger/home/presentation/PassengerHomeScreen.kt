@@ -18,9 +18,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items as rowItems
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -45,6 +42,7 @@ import com.composables.icons.heroicons.Heroicons
 import com.composables.icons.heroicons.outline.MapPin
 import com.composables.icons.heroicons.outline.PaperAirplane
 import com.composables.icons.heroicons.outline.MagnifyingGlass
+import com.composables.icons.heroicons.outline.Truck
 import esktransport.shared.generated.resources.Res
 import esktransport.shared.generated.resources.home_big_truck
 import esktransport.shared.generated.resources.home_car
@@ -96,15 +94,20 @@ fun PassengerHomeScreen(
         }
         Spacer(modifier = Modifier.height(10.dp))
 
-        LazyVerticalGrid(
-            columns = GridCells.Fixed(4),
+        Row(
+            modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(10.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            items(suggestions) { item ->
-                SuggestionCard(item = item, onClick = { onSuggestionClick(item.vehicleTypeIndex) })
+            suggestions.forEach { item ->
+                SuggestionCard(
+                    item = item,
+                    onClick = { onSuggestionClick(item.vehicleTypeIndex) },
+                    modifier = Modifier.weight(1f),
+                )
             }
         }
+        Spacer(modifier = Modifier.height(14.dp))
+        RentalVehicleCard()
     }
 }
 
@@ -245,7 +248,101 @@ private fun AddressCard(title: String, subtitle: String, icon: androidx.compose.
 }
 
 @Composable
-private fun SuggestionCard(item: SuggestionItem, onClick: () -> Unit) {
+private fun RentalVehicleCard() {
+    Card(
+        shape = RoundedCornerShape(14.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface,
+            contentColor = MaterialTheme.colorScheme.onSurface,
+        ),
+        modifier = Modifier.fillMaxWidth(),
+        border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant),
+    ) {
+        Column(
+            modifier = Modifier.padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Surface(
+                    modifier = Modifier.size(36.dp),
+                    shape = RoundedCornerShape(10.dp),
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.10f),
+                    contentColor = MaterialTheme.colorScheme.primary,
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = Heroicons.Outline.Truck,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp),
+                        )
+                    }
+                }
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Rent a vehicle",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                    Text(
+                        text = "Long distance, family trips or bulk loads.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                rentalVehicles.forEach { item ->
+                    RentalVehicleOption(item = item, modifier = Modifier.weight(1f))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun RentalVehicleOption(item: RentalVehicleItem, modifier: Modifier = Modifier) {
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(10.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
+        contentColor = MaterialTheme.colorScheme.onSurface,
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 10.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+        ) {
+            Image(
+                painter = painterResource(item.image),
+                contentDescription = item.label,
+                contentScale = ContentScale.Fit,
+                modifier = Modifier.size(38.dp),
+            )
+            Spacer(modifier = Modifier.height(6.dp))
+            Text(
+                text = item.label,
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+    }
+}
+
+@Composable
+private fun SuggestionCard(item: SuggestionItem, onClick: () -> Unit, modifier: Modifier = Modifier) {
     Card(
         onClick = onClick,
         shape = RoundedCornerShape(14.dp),
@@ -253,6 +350,7 @@ private fun SuggestionCard(item: SuggestionItem, onClick: () -> Unit) {
             containerColor = MaterialTheme.colorScheme.surfaceContainer,
             contentColor = MaterialTheme.colorScheme.onSurface,
         ),
+        modifier = modifier,
     ) {
         Column(
             modifier = Modifier.fillMaxWidth().heightIn(min = 86.dp).padding(8.dp),
@@ -283,12 +381,19 @@ private data class SuggestionItem(
     val vehicleTypeIndex: Int,
 )
 private data class PlaceSuggestion(val name: String, val icon: androidx.compose.ui.graphics.vector.ImageVector)
+private data class RentalVehicleItem(val label: String, val image: DrawableResource)
 
 private val suggestions = listOf(
     SuggestionItem("Moto", Res.drawable.home_scooter, vehicleTypeIndex = 0),
     SuggestionItem("Trike", Res.drawable.home_tricycle, vehicleTypeIndex = 1),
     SuggestionItem("Car", Res.drawable.home_car, vehicleTypeIndex = 2),
     SuggestionItem("Rentals", Res.drawable.home_big_truck, vehicleTypeIndex = 3),
+)
+
+private val rentalVehicles = listOf(
+    RentalVehicleItem("Van", Res.drawable.home_car),
+    RentalVehicleItem("Truck", Res.drawable.home_big_truck),
+    RentalVehicleItem("Pickup", Res.drawable.home_big_truck),
 )
 
 private val placeSuggestions = listOf(

@@ -23,6 +23,7 @@ actual fun PlatformMapView(
     markers: List<MapMarker>,
     routeLines: List<MapRouteLine>,
     showUserLocation: Boolean,
+    syncCameraPosition: Boolean,
     onCameraMoving: ((MapPoint) -> Unit)?,
     onCameraIdle: ((MapPoint) -> Unit)?,
 ) {
@@ -63,6 +64,7 @@ actual fun PlatformMapView(
                 antPathColorHex = antRoute?.color?.toHexColorString() ?: "#2563EB",
                 antPathWidth = antRoute?.width ?: 6.0,
                 showUserLocation = showUserLocation,
+                syncCameraPosition = syncCameraPosition,
                 onCameraMoving = onCameraMoving,
                 onCameraIdle = onCameraIdle,
             )

@@ -104,7 +104,9 @@ final class IosMapboxViewFactory: NSObject, Shared.IosMapboxViewFactory {
         container.panObserver?.onCameraMoving = request.onCameraMoving
         container.panObserver?.onCameraIdle = request.onCameraIdle
         configureUserLocation(in: mapView, container: container, request: request)
-        applyCamera(to: mapView, container: container, request: request, force: false)
+        if request.syncCameraPosition {
+            applyCamera(to: mapView, container: container, request: request, force: false)
+        }
         applyStaticRoutes(to: mapView, container: container, request: request)
         applyAntPath(to: mapView, container: container, request: request)
         applyMarkers(to: mapView, container: container, request: request)

@@ -65,6 +65,7 @@ actual fun PlatformMapView(
     markers: List<MapMarker>,
     routeLines: List<MapRouteLine>,
     showUserLocation: Boolean,
+    syncCameraPosition: Boolean,
     onCameraMoving: ((MapPoint) -> Unit)?,
     onCameraIdle: ((MapPoint) -> Unit)?,
 ) {
@@ -87,6 +88,7 @@ actual fun PlatformMapView(
     }
 
     LaunchedEffect(cameraCenter, cameraDefaults) {
+        if (!syncCameraPosition) return@LaunchedEffect
         viewportState.setCameraOptions {
             center(cameraCenter.toPoint())
             zoom(cameraDefaults.zoom)

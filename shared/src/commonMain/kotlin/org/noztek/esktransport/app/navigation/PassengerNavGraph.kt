@@ -64,12 +64,13 @@ import androidx.navigation.navigation
 import androidx.savedstate.read
 import com.composables.icons.heroicons.outline.ArrowLeft
 import com.composables.icons.heroicons.outline.Bell
+import com.composables.icons.heroicons.outline.Cog6Tooth
 import com.composables.icons.heroicons.outline.Sparkles
-import com.composables.icons.heroicons.outline.SquaresPlus
 import com.composables.icons.heroicons.outline.Home
 import com.composables.icons.heroicons.Heroicons
 import com.composables.icons.heroicons.outline.User
 import com.composables.icons.heroicons.outline.RectangleStack
+import com.composables.icons.heroicons.outline.Wallet
 import esktransport.shared.generated.resources.Res
 import esktransport.shared.generated.resources.logo
 import esktransport.shared.generated.resources.logo_nobg
@@ -91,18 +92,22 @@ import org.noztek.esktransport.feature.passenger.booking_review.presentation.Boo
 import org.noztek.esktransport.feature.passenger.booking_review.presentation.BookingReviewUiEvent
 import org.noztek.esktransport.feature.passenger.booking_review.presentation.BookingReviewViewModel
 import org.noztek.esktransport.feature.passenger.home.presentation.PassengerHomeScreen
-import org.noztek.esktransport.feature.passenger.home.presentation.PassengerProfileScreen
 import org.noztek.esktransport.feature.passenger.location_search.presentation.LocationSearchScreen
 import org.noztek.esktransport.feature.passenger.location_search.presentation.SelectedLocation
 import org.noztek.esktransport.feature.passenger.ride_planner.presentation.RidePlannerScreen
 import org.noztek.esktransport.feature.passenger.ride_planner.presentation.RidePlannerUiEvent
 import org.noztek.esktransport.feature.passenger.ride_planner.presentation.RidePlannerViewModel
+import org.noztek.esktransport.feature.passenger.settings.presentation.AccountSettingsScreen
+import org.noztek.esktransport.feature.passenger.settings.presentation.SavedPlacesScreen
+import org.noztek.esktransport.feature.passenger.settings.presentation.SettingsScreen
 import org.noztek.esktransport.feature.passenger.session.presentation.PassengerSessionUiEvent
 import org.noztek.esktransport.feature.passenger.session.presentation.PassengerSessionViewModel
 import org.noztek.esktransport.feature.passenger.trip_tracking.presentation.TripTrackingScreen
+import org.noztek.esktransport.feature.passenger.wallet.presentation.WalletScreen
 import org.noztek.esktransport.feature.driver.onboarding.presentation.CapturedDocumentPreviewImage
 
 private const val ROUTE_HOME = "home"
+private const val ROUTE_WALLET = "wallet"
 private const val ROUTE_RIDE_PLANNER = "ride-planner"
 private const val ROUTE_RIDE_PLANNER_WITH_VEHICLE = "ride-planner/{vehicleTypeIndex}"
 private const val ROUTE_BOOKING_REVIEW = "booking-review"
@@ -113,6 +118,8 @@ private const val ROUTE_SERVICES = "services"
 private const val ROUTE_KUDI = "kudi"
 private const val ROUTE_ACTIVITY = "activity"
 private const val ROUTE_PROFILE = "profile"
+private const val ROUTE_PASSENGER_ACCOUNT_SETTINGS = "passenger/settings/account"
+private const val ROUTE_PASSENGER_SAVED_PLACES = "passenger/settings/saved-places"
 
 fun NavGraphBuilder.passengerNavGraph(navController: NavHostController) {
     navigation(startDestination = PassengerRoute.HOME, route = RootRoute.PASSENGER) {
@@ -243,6 +250,9 @@ private fun PassengerShell(onLogout: () -> Unit) {
                 isTripTrackingActive -> Unit
                 isRidePlannerRoute -> PassengerBackTopBar("Plan your trip") { navController.popBackStack() }
                 currentRoute == ROUTE_BOOKING_REVIEW -> PassengerBackTopBar("Review Booking") { navController.popBackStack() }
+                currentRoute == ROUTE_PROFILE -> Unit
+                currentRoute == ROUTE_PASSENGER_ACCOUNT_SETTINGS -> Unit
+                currentRoute == ROUTE_PASSENGER_SAVED_PLACES -> Unit
                 currentRoute?.startsWith("location-search/") == true -> {
                     PassengerBackTopBar(if (locationMode == "pickup") "Search Pickup" else "Search Destination") {
                         navController.popBackStack()
@@ -250,6 +260,7 @@ private fun PassengerShell(onLogout: () -> Unit) {
                 }
                 else -> PassengerHomeTopBar(
                     greetingName = passengerName,
+                    title = if (currentRoute == ROUTE_WALLET) "Wallet" else null,
                     onProfileClick = {
                         navController.navigate(ROUTE_PROFILE) {
                             popUpTo(navController.graph.startDestinationId) { saveState = true }
@@ -414,9 +425,46 @@ private fun PassengerShell(onLogout: () -> Unit) {
                 }
             }
             composable(ROUTE_SERVICES) { PlaceholderTabScreen("Services") }
+            composable(ROUTE_WALLET) {
+                WalletScreen(contentPadding = innerPadding)
+            }
             composable(ROUTE_KUDI) { PlaceholderTabScreen("Kudi AI") }
             composable(ROUTE_ACTIVITY) { PlaceholderTabScreen("Activity") }
-                composable(ROUTE_PROFILE) { PassengerProfileScreen(onLogout = onLogout, contentPadding = innerPadding) }
+                composable(ROUTE_PROFILE) {
+                    SettingsScreen(
+                        onBackClick = {
+                            navController.navigate(ROUTE_HOME) {
+                                popUpTo(navController.graph.startDestinationId) { saveState = true }
+                                launchSingleTop = true
+                                restoreState = true
+                            }
+                        },
+                        contentPadding = innerPadding,
+                        onAccountClick = {
+                            navController.navigate(ROUTE_PASSENGER_ACCOUNT_SETTINGS) {
+                                launchSingleTop = true
+                            }
+                        },
+                        onSavedPlacesClick = {
+                            navController.navigate(ROUTE_PASSENGER_SAVED_PLACES) {
+                                launchSingleTop = true
+                            }
+                        },
+                    )
+                }
+                composable(ROUTE_PASSENGER_ACCOUNT_SETTINGS) {
+                    AccountSettingsScreen(
+                        onBackClick = { navController.popBackStack() },
+                        onLogout = onLogout,
+                        contentPadding = innerPadding,
+                    )
+                }
+                composable(ROUTE_PASSENGER_SAVED_PLACES) {
+                    SavedPlacesScreen(
+                        onBackClick = { navController.popBackStack() },
+                        contentPadding = innerPadding,
+                    )
+                }
             }
 
             activeTripTrackingBookingId?.let { bookingId ->
@@ -484,6 +532,7 @@ private fun PassengerBackTopBar(title: String, onBack: () -> Unit) {
 @Composable
 private fun PassengerHomeTopBar(
     greetingName: String?,
+    title: String? = null,
     onProfileClick: () -> Unit,
     profilePhotoBytes: ByteArray? = null,
 ) {
@@ -495,7 +544,7 @@ private fun PassengerHomeTopBar(
             navigationIconContentColor = MaterialTheme.colorScheme.onBackground,
         ),
         title = {
-            PassengerTopBarBrand(greetingName = greetingName)
+            PassengerTopBarBrand(greetingName = greetingName, title = title)
         },
         actions = {
             Row(horizontalArrangement = Arrangement.spacedBy(2.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -523,7 +572,10 @@ private fun PassengerHomeTopBar(
 }
 
 @Composable
-private fun PassengerTopBarBrand(greetingName: String?) {
+private fun PassengerTopBarBrand(
+    greetingName: String?,
+    title: String?,
+) {
     val displayName = greetingName
         ?.trim()
         ?.uppercaseFirstLetterOfEachWord()
@@ -534,7 +586,17 @@ private fun PassengerTopBarBrand(greetingName: String?) {
         verticalAlignment = Alignment.CenterVertically,
     ) {
         AppLogoBadge()
-        if (!displayName.isNullOrBlank()) {
+        if (!title.isNullOrBlank()) {
+            Text(
+                text = title,
+                modifier = Modifier.weight(1f),
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onBackground,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        } else if (!displayName.isNullOrBlank()) {
             Text(
                 text = "Hello, $displayName!",
                 modifier = Modifier.weight(1f),
@@ -622,10 +684,10 @@ private data class PassengerTab(
 
 private val passengerTabs = listOf(
     PassengerTab(ROUTE_HOME, "Home", Heroicons.Outline.Home),
-    PassengerTab(ROUTE_SERVICES, "Services", Heroicons.Outline.SquaresPlus),
+    PassengerTab(ROUTE_WALLET, "Wallet", Heroicons.Outline.Wallet),
     PassengerTab(ROUTE_KUDI, "Kudi AI", Heroicons.Outline.Sparkles),
     PassengerTab(ROUTE_ACTIVITY, "Activity", Heroicons.Outline.RectangleStack),
-    PassengerTab(ROUTE_PROFILE, "Profile", Heroicons.Outline.User),
+    PassengerTab(ROUTE_PROFILE, "Settings", Heroicons.Outline.Cog6Tooth),
 )
 
 private fun String?.toUserPresenceContext(isSearchingForRider: Boolean): UserPresenceContext {
@@ -635,7 +697,6 @@ private fun String?.toUserPresenceContext(isSearchingForRider: Boolean): UserPre
         this == ROUTE_HOME -> UserPresenceContext.PassengerHome
         this == ROUTE_RIDE_PLANNER || this == ROUTE_RIDE_PLANNER_WITH_VEHICLE -> UserPresenceContext.RidePlanner
         this?.startsWith("location-search/") == true -> UserPresenceContext.LocationSearch
-        this == ROUTE_SERVICES -> UserPresenceContext.Services
         this == ROUTE_KUDI -> UserPresenceContext.Kudi
         this == ROUTE_ACTIVITY -> UserPresenceContext.Activity
         this == ROUTE_PROFILE -> UserPresenceContext.Profile

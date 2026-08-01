@@ -12,6 +12,7 @@ expect fun PlatformMapView(
     markers: List<MapMarker> = emptyList(),
     routeLines: List<MapRouteLine> = emptyList(),
     showUserLocation: Boolean = false,
+    syncCameraPosition: Boolean = true,
     onCameraMoving: ((MapPoint) -> Unit)? = null,
     onCameraIdle: ((MapPoint) -> Unit)? = null,
 )

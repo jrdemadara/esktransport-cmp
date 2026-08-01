@@ -29,6 +29,14 @@ import org.noztek.esktransport.feature.passenger.ride_planner.domain.usecase.Get
 import org.noztek.esktransport.feature.passenger.ride_planner.domain.usecase.ResolveCurrentLocationLabelUseCase
 import org.noztek.esktransport.feature.passenger.ride_planner.domain.usecase.ResolveCurrentLocationPointUseCase
 import org.noztek.esktransport.feature.passenger.ride_planner.presentation.RidePlannerViewModel
+import org.noztek.esktransport.feature.passenger.settings.data.impl.SavedPlacesRepositoryImpl
+import org.noztek.esktransport.feature.passenger.settings.data.remote.SavedPlacesApi
+import org.noztek.esktransport.feature.passenger.settings.domain.repository.SavedPlacesRepository
+import org.noztek.esktransport.feature.passenger.settings.domain.usecase.CreateSavedPlaceUseCase
+import org.noztek.esktransport.feature.passenger.settings.domain.usecase.DeleteSavedPlaceUseCase
+import org.noztek.esktransport.feature.passenger.settings.domain.usecase.GetSavedPlacesUseCase
+import org.noztek.esktransport.feature.passenger.settings.domain.usecase.UpdateSavedPlaceUseCase
+import org.noztek.esktransport.feature.passenger.settings.presentation.SavedPlacesViewModel
 import org.noztek.esktransport.feature.passenger.trip_tracking.data.impl.TripTrackingRepositoryImpl
 import org.noztek.esktransport.feature.passenger.trip_tracking.data.remote.TripTrackingApi
 import org.noztek.esktransport.feature.passenger.trip_tracking.domain.repository.TripTrackingRepository
@@ -106,6 +114,24 @@ val passengerModule = module {
     factory {
         PassengerSessionViewModel(
             getPassengerActiveBookingUseCase = get(),
+            ioDispatcher = get(named(IO_DISPATCHER_QUALIFIER)),
+        )
+    }
+
+    single { SavedPlacesApi(client = get(), baseUrl = get(named(API_BASE_URL_QUALIFIER))) }
+    single<SavedPlacesRepository> { SavedPlacesRepositoryImpl(api = get()) }
+    single { GetSavedPlacesUseCase(repository = get()) }
+    single { CreateSavedPlaceUseCase(repository = get()) }
+    single { UpdateSavedPlaceUseCase(repository = get()) }
+    single { DeleteSavedPlaceUseCase(repository = get()) }
+    factory {
+        SavedPlacesViewModel(
+            getSavedPlacesUseCase = get(),
+            createSavedPlaceUseCase = get(),
+            updateSavedPlaceUseCase = get(),
+            deleteSavedPlaceUseCase = get(),
+            getCurrentLocationUseCase = get(),
+            resolveTapLabelUseCase = get(),
             ioDispatcher = get(named(IO_DISPATCHER_QUALIFIER)),
         )
     }
