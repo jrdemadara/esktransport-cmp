@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -43,7 +44,11 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraphBuilder
@@ -74,6 +79,8 @@ import org.jetbrains.compose.resources.painterResource
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 import org.noztek.esktransport.core.realtime.passenger.PassengerRealtimeCoordinator
+import org.noztek.esktransport.core.session.SessionManager
+import org.noztek.esktransport.core.utils.uppercaseFirstLetterOfEachWord
 import org.noztek.esktransport.feature.common.chat.domain.model.TripChatParticipantRole
 import org.noztek.esktransport.feature.common.chat.presentation.TripChatScreen
 import org.noztek.esktransport.feature.common.presence.domain.lifecycle.UserPresenceCoordinator
@@ -93,6 +100,7 @@ import org.noztek.esktransport.feature.passenger.ride_planner.presentation.RideP
 import org.noztek.esktransport.feature.passenger.session.presentation.PassengerSessionUiEvent
 import org.noztek.esktransport.feature.passenger.session.presentation.PassengerSessionViewModel
 import org.noztek.esktransport.feature.passenger.trip_tracking.presentation.TripTrackingScreen
+import org.noztek.esktransport.feature.driver.onboarding.presentation.CapturedDocumentPreviewImage
 
 private const val ROUTE_HOME = "home"
 private const val ROUTE_RIDE_PLANNER = "ride-planner"
@@ -123,6 +131,8 @@ private fun PassengerShell(onLogout: () -> Unit) {
     val passengerSessionViewModel: PassengerSessionViewModel = koinViewModel()
     val passengerRealtimeCoordinator: PassengerRealtimeCoordinator = koinInject()
     val userPresenceCoordinator: UserPresenceCoordinator = koinInject()
+    val sessionManager: SessionManager = koinInject()
+    val passengerName by sessionManager.userName.collectAsState(initial = null)
     val bookingReviewUiState by bookingReviewViewModel.uiState.collectAsState()
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -238,13 +248,16 @@ private fun PassengerShell(onLogout: () -> Unit) {
                         navController.popBackStack()
                     }
                 }
-                else -> PassengerHomeTopBar(onProfileClick = {
-                    navController.navigate(ROUTE_PROFILE) {
-                        popUpTo(navController.graph.startDestinationId) { saveState = true }
-                        launchSingleTop = true
-                        restoreState = true
-                    }
-                })
+                else -> PassengerHomeTopBar(
+                    greetingName = passengerName,
+                    onProfileClick = {
+                        navController.navigate(ROUTE_PROFILE) {
+                            popUpTo(navController.graph.startDestinationId) { saveState = true }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    },
+                )
             }
         },
         bottomBar = {
@@ -469,16 +482,21 @@ private fun PassengerBackTopBar(title: String, onBack: () -> Unit) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun PassengerHomeTopBar(onProfileClick: () -> Unit) {
-    CenterAlignedTopAppBar(
+private fun PassengerHomeTopBar(
+    greetingName: String?,
+    onProfileClick: () -> Unit,
+    profilePhotoBytes: ByteArray? = null,
+) {
+    TopAppBar(
         windowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top),
         colors = TopAppBarDefaults.topAppBarColors(
             containerColor = MaterialTheme.colorScheme.background,
             actionIconContentColor = MaterialTheme.colorScheme.onBackground,
             navigationIconContentColor = MaterialTheme.colorScheme.onBackground,
         ),
-        title = {},
-        navigationIcon = { AppLogoBadge() },
+        title = {
+            PassengerTopBarBrand(greetingName = greetingName)
+        },
         actions = {
             Row(horizontalArrangement = Arrangement.spacedBy(2.dp), verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = {}) {
@@ -494,25 +512,73 @@ private fun PassengerHomeTopBar(onProfileClick: () -> Unit) {
                     }
                 }
                 IconButton(onClick = onProfileClick) {
-                    Surface(
-                        modifier = Modifier.size(28.dp),
-                        shape = CircleShape,
-                        color = MaterialTheme.colorScheme.primaryContainer,
-                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(
-                                Heroicons.Outline.User,
-                                contentDescription = "Profile",
-                                modifier = Modifier.size(18.dp),
-                                tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                            )
-                        }
-                    }
+                    PassengerProfileAvatar(
+                        name = greetingName,
+                        profilePhotoBytes = profilePhotoBytes,
+                    )
                 }
             }
         },
     )
+}
+
+@Composable
+private fun PassengerTopBarBrand(greetingName: String?) {
+    val displayName = greetingName
+        ?.trim()
+        ?.uppercaseFirstLetterOfEachWord()
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        AppLogoBadge()
+        if (!displayName.isNullOrBlank()) {
+            Text(
+                text = "Hello, $displayName!",
+                modifier = Modifier.weight(1f),
+                style = MaterialTheme.typography.titleMediumEmphasized,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onBackground,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+    }
+}
+
+@Composable
+private fun PassengerProfileAvatar(
+    name: String?,
+    profilePhotoBytes: ByteArray?,
+) {
+    Surface(
+        modifier = Modifier.size(32.dp),
+        shape = CircleShape,
+        color = MaterialTheme.colorScheme.primaryContainer,
+        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+    ) {
+        if (profilePhotoBytes != null) {
+            CapturedDocumentPreviewImage(
+                bytes = profilePhotoBytes,
+                contentDescription = "Profile",
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clip(CircleShape),
+                contentScale = ContentScale.Crop,
+            )
+        } else {
+            Box(contentAlignment = Alignment.Center) {
+                Text(
+                    text = name.initials(),
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                )
+            }
+        }
+    }
 }
 
 @Composable
@@ -522,8 +588,23 @@ private fun AppLogoBadge() {
             painter = painterResource(Res.drawable.logo_nobg),
             contentDescription = "eSK0Transport",
             modifier = Modifier.fillMaxSize(),
+            contentScale = ContentScale.Fit,
         )
     }
+}
+
+private fun String?.initials(): String {
+    val parts = this
+        ?.trim()
+        ?.split(Regex("\\s+"))
+        ?.filter { it.isNotBlank() }
+        .orEmpty()
+
+    return parts
+        .take(2)
+        .mapNotNull { it.firstOrNull()?.uppercaseChar()?.toString() }
+        .joinToString("")
+        .ifBlank { "P" }
 }
 
 @Composable

@@ -233,14 +233,12 @@ private fun DriverMainStatusCard(
     val hasRequiredBalance = walletRequirement?.hasMinimumWalletBalance != false
     val canOpenDriverMode = canGo && hasRequiredBalance
     val todaysEarningLabel = formatWalletAmount(todaysEarning ?: 0.0, earningsCurrency)
-    val cardShape = RoundedCornerShape(22.dp)
-
     Surface(
         modifier = Modifier
             .fillMaxWidth()
             .height(240.dp)
-            .clip(cardShape),
-        shape = cardShape,
+            .clip(RoundedCornerShape(14.dp)),
+        shape = RoundedCornerShape(14.dp),
         color = Color(0xFF075BE8),
         tonalElevation = 0.dp,
         shadowElevation = 0.dp,
@@ -248,7 +246,7 @@ private fun DriverMainStatusCard(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .clip(cardShape),
+                .clip(RoundedCornerShape(14.dp)),
         ) {
             Image(
                 painter = painterResource(Res.drawable.driver_main_card_background),
@@ -573,7 +571,7 @@ private fun DriverWalletStrip(
     ) {
         Surface(
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(20.dp),
+            shape = RoundedCornerShape(14.dp),
             color = MaterialTheme.colorScheme.surfaceContainer,
             contentColor = MaterialTheme.colorScheme.onSurface,
             shadowElevation = 0.5.dp,
@@ -812,7 +810,7 @@ private fun PerformancePanel(
 ) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
+        shape = RoundedCornerShape(14.dp),
         color = MaterialTheme.colorScheme.surfaceContainer,
         contentColor = MaterialTheme.colorScheme.onSurface,
         shadowElevation = 0.5.dp,
@@ -1028,9 +1026,9 @@ private fun DriverQuickActionTile(
     Surface(
         modifier = modifier
             .height(86.dp)
-            .clip(RoundedCornerShape(16.dp))
+            .clip(RoundedCornerShape(14.dp))
             .clickable(onClick = onClick),
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(14.dp),
         color = MaterialTheme.colorScheme.surfaceContainer,
         contentColor = MaterialTheme.colorScheme.onSurface,
         tonalElevation = 0.dp,
@@ -1079,7 +1077,7 @@ private fun RecentActivityCard(
 ) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(18.dp),
+        shape = RoundedCornerShape(14.dp),
         color = MaterialTheme.colorScheme.surfaceContainer,
         contentColor = MaterialTheme.colorScheme.onSurface,
         tonalElevation = 0.dp,
@@ -1462,7 +1460,7 @@ private fun DriverSetupCard(
 
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(8.dp),
+        shape = RoundedCornerShape(14.dp),
         color = MaterialTheme.colorScheme.surfaceContainer,
         contentColor = MaterialTheme.colorScheme.onSurface,
     ) {

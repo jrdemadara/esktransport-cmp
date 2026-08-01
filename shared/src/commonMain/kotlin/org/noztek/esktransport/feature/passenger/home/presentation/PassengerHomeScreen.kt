@@ -83,7 +83,7 @@ fun PassengerHomeScreen(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                text = "Suggestions",
+                text = "Choose your ride",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onBackground,
