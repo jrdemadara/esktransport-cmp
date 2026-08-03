@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
@@ -26,6 +27,7 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -35,6 +37,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -44,15 +49,20 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.composables.icons.heroicons.Heroicons
 import com.composables.icons.heroicons.outline.ArrowLeft
+import com.composables.icons.heroicons.outline.Camera
+import com.composables.icons.heroicons.outline.DocumentText
 import com.composables.icons.heroicons.outline.Key
 import com.composables.icons.heroicons.outline.MapPin
+import com.composables.icons.heroicons.outline.Photo
 import com.composables.icons.heroicons.outline.Truck
 import org.koin.compose.viewmodel.koinViewModel
 import org.noztek.esktransport.core.ui.composables.common.AppInputField
 import org.noztek.esktransport.core.ui.composables.common.AppPrimaryButton
 import org.noztek.esktransport.core.ui.composables.driver.DriverBottomBar
 import org.noztek.esktransport.core.ui.composables.driver.DriverBottomBarRoute
+import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverOnboardingDocumentType
 import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverVehicleServiceType
+import org.noztek.esktransport.feature.driver.onboarding.presentation.DriverDocumentCaptureScreen
 import org.noztek.esktransport.feature.driver.settings.domain.model.DriverVehicleType
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -65,9 +75,27 @@ fun DriverVehicleFormScreen(
     viewModel: DriverVehicleFormViewModel = koinViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    var captureType by remember { mutableStateOf<DriverOnboardingDocumentType?>(null) }
 
     LaunchedEffect(vehiclePublicId) {
         viewModel.load(vehiclePublicId)
+    }
+
+    captureType?.let { type ->
+        DriverDocumentCaptureScreen(
+            type = type,
+            onCaptured = { capture ->
+                viewModel.setDocumentDraft(
+                    type = type,
+                    fileName = capture.fileName,
+                    mimeType = capture.mimeType,
+                    bytes = capture.bytes,
+                )
+                captureType = null
+            },
+            onClose = { captureType = null },
+        )
+        return
     }
 
     Scaffold(
@@ -182,6 +210,11 @@ fun DriverVehicleFormScreen(
                     )
                 }
             }
+            VehicleDocumentDraftSection(
+                isNewVehicle = vehiclePublicId == null,
+                drafts = uiState.documentDrafts,
+                onCaptureClick = { type -> captureType = type },
+            )
             uiState.errorMessage?.let { message ->
                 Text(
                     text = message,
@@ -294,6 +327,92 @@ private fun VehicleUseOptions(
                 isSelected = option.type in selectedServices,
                 onClick = { onToggle(option.type) },
             )
+        }
+    }
+}
+
+@Composable
+private fun VehicleDocumentDraftSection(
+    isNewVehicle: Boolean,
+    drafts: Map<DriverOnboardingDocumentType, DriverVehicleDocumentDraft>,
+    onCaptureClick: (DriverOnboardingDocumentType) -> Unit,
+) {
+    VehicleFormSection(title = if (isNewVehicle) "Required captures" else "Update documents") {
+        if (!isNewVehicle) {
+            Text(
+                text = "Only retake documents that need updating.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        VehicleDocumentDraftRow(
+            title = "Registration document",
+            helper = "Capture the vehicle registration clearly.",
+            type = DriverOnboardingDocumentType.VehicleRegistration,
+            draft = drafts[DriverOnboardingDocumentType.VehicleRegistration],
+            icon = Heroicons.Outline.DocumentText,
+            onCaptureClick = onCaptureClick,
+        )
+        VehicleDocumentDraftRow(
+            title = "Vehicle photo",
+            helper = "Use a clear exterior photo of the vehicle.",
+            type = DriverOnboardingDocumentType.VehiclePhoto,
+            draft = drafts[DriverOnboardingDocumentType.VehiclePhoto],
+            icon = Heroicons.Outline.Photo,
+            onCaptureClick = onCaptureClick,
+        )
+    }
+}
+
+@Composable
+private fun VehicleDocumentDraftRow(
+    title: String,
+    helper: String,
+    type: DriverOnboardingDocumentType,
+    draft: DriverVehicleDocumentDraft?,
+    icon: ImageVector,
+    onCaptureClick: (DriverOnboardingDocumentType) -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            modifier = Modifier.size(21.dp),
+            tint = MaterialTheme.colorScheme.primary,
+        )
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(2.dp),
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Medium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                text = draft?.fileName ?: helper,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+        OutlinedButton(
+            onClick = { onCaptureClick(type) },
+            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+        ) {
+            Icon(
+                imageVector = Heroicons.Outline.Camera,
+                contentDescription = null,
+                modifier = Modifier.size(15.dp),
+            )
+            Text(if (draft == null) "Capture" else "Retake")
         }
     }
 }

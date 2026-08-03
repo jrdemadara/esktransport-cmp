@@ -214,6 +214,7 @@ val driverHomeModule = module {
             getDriverVehicleUseCase = get(),
             addDriverVehicleUseCase = get(),
             updateDriverVehicleUseCase = get(),
+            uploadDriverVehicleDocumentUseCase = get(),
             ioDispatcher = get(named(IO_DISPATCHER_QUALIFIER)),
         )
     }
