@@ -23,6 +23,7 @@ import androidx.navigation.navOptions
 import org.koin.compose.koinInject
 import org.noztek.esktransport.core.lifecycle.setPlatformDriverOfflineCallback
 import org.noztek.esktransport.core.lifecycle.setPlatformUserOfflineCallback
+import org.noztek.esktransport.core.notify.domain.lifecycle.PushNotificationRegistrationCoordinator
 import org.noztek.esktransport.core.realtime.BaseRealtimeCoordinator
 import org.noztek.esktransport.core.realtime.driver.DriverBookingOfferRealtime
 import org.noztek.esktransport.core.session.domain.SessionUser
@@ -41,6 +42,7 @@ fun RootNavHost(
     driverBookingOfferRealtime: DriverBookingOfferRealtime = koinInject(),
     driverAvailabilityLifecycleCoordinator: DriverAvailabilityLifecycleCoordinator = koinInject(),
     userPresenceCoordinator: UserPresenceCoordinator = koinInject(),
+    pushNotificationRegistrationCoordinator: PushNotificationRegistrationCoordinator = koinInject(),
     markStarterSeenUseCase: MarkStarterSeenUseCase = koinInject(),
     observeCurrentSessionUseCase: ObserveCurrentSessionUseCase = koinInject(),
 ) {
@@ -123,14 +125,24 @@ fun RootNavHost(
 
     LaunchedEffect(authenticatedRoute, session.userId, session.roles) {
         when (authenticatedRoute) {
-            RootRoute.PASSENGER -> userPresenceCoordinator.markForeground(
-                role = UserPresenceRole.Passenger,
-                context = UserPresenceContext.PassengerHome,
-            )
-            RootRoute.DRIVER -> userPresenceCoordinator.markForeground(
-                role = UserPresenceRole.Driver,
-                context = UserPresenceContext.DriverHome,
-            )
+            RootRoute.PASSENGER -> {
+                userPresenceCoordinator.markForeground(
+                    role = UserPresenceRole.Passenger,
+                    context = UserPresenceContext.PassengerHome,
+                )
+                if (session.userId != null) {
+                    pushNotificationRegistrationCoordinator.registerCurrentDevice()
+                }
+            }
+            RootRoute.DRIVER -> {
+                userPresenceCoordinator.markForeground(
+                    role = UserPresenceRole.Driver,
+                    context = UserPresenceContext.DriverHome,
+                )
+                if (session.userId != null) {
+                    pushNotificationRegistrationCoordinator.registerCurrentDevice()
+                }
+            }
             else -> userPresenceCoordinator.stop()
         }
     }

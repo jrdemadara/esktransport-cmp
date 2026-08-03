@@ -7,6 +7,12 @@ import org.koin.dsl.module
 import org.noztek.esktransport.core.audio.createSoundEffectPlayer
 import org.noztek.esktransport.core.notify.PushNotificationTokenProvider
 import org.noztek.esktransport.core.notify.createPushNotificationTokenProvider
+import org.noztek.esktransport.core.notify.data.impl.PushNotificationRepositoryImpl
+import org.noztek.esktransport.core.notify.data.remote.PushNotificationApi
+import org.noztek.esktransport.core.notify.domain.lifecycle.PushNotificationRegistrationCoordinator
+import org.noztek.esktransport.core.notify.domain.repository.PushNotificationRepository
+import org.noztek.esktransport.core.notify.domain.usecase.RegisterPushNotificationDeviceUseCase
+import org.noztek.esktransport.core.notify.domain.usecase.UnregisterPushNotificationDeviceUseCase
 import org.noztek.esktransport.core.realtime.BaseRealtimeCoordinator
 import org.noztek.esktransport.core.realtime.DefaultBaseRealtimeCoordinator
 import org.noztek.esktransport.core.realtime.RealtimeChannelNamer
@@ -34,6 +40,19 @@ val coreModule = module {
     single<CoroutineDispatcher>(named(IO_DISPATCHER_QUALIFIER)) { Dispatchers.Default }
     single { createSoundEffectPlayer() }
     single<PushNotificationTokenProvider> { createPushNotificationTokenProvider() }
+    single { PushNotificationApi(client = get(), baseUrl = get(named(API_BASE_URL_QUALIFIER))) }
+    single<PushNotificationRepository> { PushNotificationRepositoryImpl(api = get()) }
+    single { RegisterPushNotificationDeviceUseCase(repository = get()) }
+    single { UnregisterPushNotificationDeviceUseCase(repository = get()) }
+    single {
+        PushNotificationRegistrationCoordinator(
+            tokenProvider = get(),
+            registerUseCase = get(),
+            unregisterUseCase = get(),
+            appBuildInfo = get(),
+            ioDispatcher = get(named(IO_DISPATCHER_QUALIFIER)),
+        )
+    }
     single {
         createRealtimeClient(
             config = get(),

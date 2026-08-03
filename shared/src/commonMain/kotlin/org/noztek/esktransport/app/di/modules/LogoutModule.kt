@@ -10,7 +10,13 @@ import org.noztek.esktransport.feature.common.logout.presentation.LogoutViewMode
 
 val logoutModule = module {
     single { LogoutApi(client = get(), baseUrl = get(named(API_BASE_URL_QUALIFIER))) }
-    single<LogoutRepository> { LogoutRepositoryImpl(logoutApi = get(), sessionManager = get()) }
+    single<LogoutRepository> {
+        LogoutRepositoryImpl(
+            logoutApi = get(),
+            sessionManager = get(),
+            pushNotificationRegistrationCoordinator = get(),
+        )
+    }
     single { LogoutUseCase(repository = get()) }
     factory { LogoutViewModel(logoutUseCase = get(), ioDispatcher = get(named(IO_DISPATCHER_QUALIFIER))) }
 }

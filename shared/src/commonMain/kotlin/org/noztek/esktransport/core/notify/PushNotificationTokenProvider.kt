@@ -11,3 +11,5 @@ internal object NoopPushNotificationTokenProvider : PushNotificationTokenProvide
 }
 
 expect fun createPushNotificationTokenProvider(): PushNotificationTokenProvider
+
+expect fun pushNotificationPlatform(): String

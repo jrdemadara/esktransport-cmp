@@ -10,6 +10,8 @@ actual fun createPushNotificationTokenProvider(): PushNotificationTokenProvider 
     )
 }
 
+actual fun pushNotificationPlatform(): String = "android"
+
 private class FirebasePushNotificationTokenProvider(
     private val messaging: FirebaseMessaging,
 ) : PushNotificationTokenProvider {

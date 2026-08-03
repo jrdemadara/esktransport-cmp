@@ -13,12 +13,25 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlin.math.absoluteValue
+import org.koin.core.context.GlobalContext
+import org.noztek.esktransport.core.notify.domain.lifecycle.PushNotificationRegistrationCoordinator
 
 class FirebasePushMessagingService : FirebaseMessagingService() {
     override fun onNewToken(token: String) {
-        Log.d(TAG, "FCM token refreshed: $token")
-        // Server registration will be wired after the backend device-token endpoint exists.
+        val coordinator = GlobalContext.getOrNull()
+            ?.getOrNull<PushNotificationRegistrationCoordinator>()
+        if (coordinator == null) {
+            Log.d(TAG, "FCM token refreshed before the app graph was ready.")
+            return
+        }
+
+        CoroutineScope(Dispatchers.Default).launch {
+            coordinator.registerToken(token)
+        }
     }
 
     override fun onMessageReceived(message: RemoteMessage) {
