@@ -16,6 +16,8 @@ import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverOnbo
 import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverOnboardingStatus
 import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverIdentityVerificationPayload
 import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverServiceZoneSelectionPayload
+import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverVehicleServiceSelectionPayload
+import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverVehicleServiceType
 import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverVehicleRegistrationPayload
 import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverVehicleSetupPayload
 import org.noztek.esktransport.feature.driver.onboarding.domain.usecase.GetDriverOnboardingStatusUseCase
@@ -24,6 +26,7 @@ import org.noztek.esktransport.feature.driver.onboarding.domain.usecase.ObserveD
 import org.noztek.esktransport.feature.driver.onboarding.domain.usecase.SubmitDriverIdentityVerificationUseCase
 import org.noztek.esktransport.feature.driver.onboarding.domain.usecase.SubmitDriverServiceZonesUseCase
 import org.noztek.esktransport.feature.driver.onboarding.domain.usecase.SubmitDriverVehicleRegistrationUseCase
+import org.noztek.esktransport.feature.driver.onboarding.domain.usecase.SubmitDriverVehicleServicesUseCase
 import org.noztek.esktransport.feature.driver.onboarding.domain.usecase.SubscribeDriverOnboardingRealtimeUseCase
 import org.noztek.esktransport.feature.driver.onboarding.domain.usecase.UnsubscribeDriverOnboardingRealtimeUseCase
 
@@ -32,6 +35,7 @@ class DriverOnboardingViewModel(
     private val getDriverServiceZonesUseCase: GetDriverServiceZonesUseCase,
     private val submitDriverIdentityVerificationUseCase: SubmitDriverIdentityVerificationUseCase,
     private val submitDriverVehicleRegistrationUseCase: SubmitDriverVehicleRegistrationUseCase,
+    private val submitDriverVehicleServicesUseCase: SubmitDriverVehicleServicesUseCase,
     private val submitDriverServiceZonesUseCase: SubmitDriverServiceZonesUseCase,
     private val observeDriverOnboardingStatusChangedUseCase: ObserveDriverOnboardingStatusChangedUseCase,
     private val subscribeDriverOnboardingRealtimeUseCase: SubscribeDriverOnboardingRealtimeUseCase,
@@ -138,6 +142,19 @@ class DriverOnboardingViewModel(
                     selected - zoneId
                 } else {
                     selected + zoneId
+                },
+            )
+        }
+    }
+
+    fun toggleVehicleService(serviceType: DriverVehicleServiceType) {
+        _uiState.update {
+            val selected = it.selectedVehicleServices
+            it.copy(
+                selectedVehicleServices = if (serviceType in selected) {
+                    selected - serviceType
+                } else {
+                    selected + serviceType
                 },
             )
         }
@@ -320,6 +337,39 @@ class DriverOnboardingViewModel(
         }
     }
 
+    fun submitVehicleServices(onSuccess: () -> Unit) {
+        val selectedServices = _uiState.value.selectedVehicleServices.toList()
+
+        if (selectedServices.isEmpty()) {
+            _uiState.update { it.copy(errorMessage = "Choose at least one vehicle service.") }
+            return
+        }
+
+        viewModelScope.launch {
+            _uiState.update { it.copy(isSubmittingVehicleServices = true, errorMessage = null, successMessage = null) }
+            val result = withContext(ioDispatcher) {
+                submitDriverVehicleServicesUseCase(
+                    DriverVehicleServiceSelectionPayload(services = selectedServices),
+                )
+            }
+            result.fold(
+                onSuccess = { status ->
+                    applyStatus(status, successMessage = "Vehicle services saved.")
+                    _uiState.update { it.copy(isSubmittingVehicleServices = false) }
+                    onSuccess()
+                },
+                onFailure = { throwable ->
+                    _uiState.update {
+                        it.copy(
+                            isSubmittingVehicleServices = false,
+                            errorMessage = throwable.message ?: "Unable to save vehicle services.",
+                        )
+                    }
+                },
+            )
+        }
+    }
+
     fun clearMessages() {
         _uiState.update { it.copy(errorMessage = null, successMessage = null) }
     }
@@ -345,6 +395,11 @@ class DriverOnboardingViewModel(
                 year = status.vehicle.year?.toString() ?: it.year,
                 passengerCapacity = status.vehicle.passengerCapacity?.toString() ?: it.passengerCapacity,
                 selectedServiceZoneIds = status.serviceZones.map { zone -> zone.id }.toSet(),
+                selectedVehicleServices = status.vehicle.services
+                    .filter { service -> service.isEnabled }
+                    .map { service -> service.serviceType }
+                    .toSet()
+                    .ifEmpty { it.selectedVehicleServices },
             )
         }
     }

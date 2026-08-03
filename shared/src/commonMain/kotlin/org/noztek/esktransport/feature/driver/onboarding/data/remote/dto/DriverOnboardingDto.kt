@@ -77,6 +77,20 @@ data class DriverVehicleDto(
     val status: String? = null,
     @SerialName("is_available")
     val isAvailable: Boolean? = null,
+    val services: List<DriverVehicleServiceDto> = emptyList(),
+)
+
+@Serializable
+data class DriverVehicleServiceDto(
+    @SerialName("service_type")
+    val serviceType: String,
+    val status: String,
+    @SerialName("is_enabled")
+    val isEnabled: Boolean = true,
+    @SerialName("rejection_reason")
+    val rejectionReason: String? = null,
+    @SerialName("reviewed_at")
+    val reviewedAt: String? = null,
 )
 
 @Serializable
@@ -123,4 +137,20 @@ data class DriverServiceZoneDto(
 data class DriverServiceZoneSelectionRequestDto(
     @SerialName("service_zone_ids")
     val serviceZoneIds: List<Long>,
+)
+
+@Serializable
+data class DriverVehicleServiceSelectionRequestDto(
+    val services: List<String>,
+)
+
+@Serializable
+data class DriverVehicleServicesMutationResponseDto(
+    val message: String,
+    val data: DriverVehicleServicesMutationDataDto,
+)
+
+@Serializable
+data class DriverVehicleServicesMutationDataDto(
+    val onboarding: DriverOnboardingDataDto,
 )

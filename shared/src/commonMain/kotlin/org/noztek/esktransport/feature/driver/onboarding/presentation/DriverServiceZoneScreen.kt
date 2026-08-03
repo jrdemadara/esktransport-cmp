@@ -175,7 +175,7 @@ private fun ServiceZoneHeader() {
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             Text(
-                text = "Step 4 of 4",
+                text = "Step 5 of 5",
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.76f),
             )

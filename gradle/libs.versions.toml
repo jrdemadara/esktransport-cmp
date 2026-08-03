@@ -27,6 +27,8 @@ jetbrainsNavigation = "2.9.2"
 mapboxMaps = "11.24.3"
 mapboxNavigationCore = "3.24.3"
 mlkitFaceDetection = "16.1.7"
+firebaseBom = "34.4.0"
+googleServices = "4.4.3"
 
 [libraries]
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
@@ -81,6 +83,8 @@ mapbox-navigationcore-voice = { module = "com.mapbox.navigationcore:voice-ndk27"
 mapbox-navigationcore-tripdata = { module = "com.mapbox.navigationcore:tripdata-ndk27", version.ref = "mapboxNavigationCore" }
 mapbox-navigationcore-ui-components = { module = "com.mapbox.navigationcore:ui-components-ndk27", version.ref = "mapboxNavigationCore" }
 mlkit-face-detection = { module = "com.google.mlkit:face-detection", version.ref = "mlkitFaceDetection" }
+firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "firebaseBom" }
+firebase-messaging = { module = "com.google.firebase:firebase-messaging" }
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }
@@ -88,3 +92,4 @@ androidMultiplatformLibrary = { id = "com.android.kotlin.multiplatform.library",
 composeMultiplatform = { id = "org.jetbrains.compose", version.ref = "composeMultiplatform" }
 composeCompiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
+googleServices = { id = "com.google.gms.google-services", version.ref = "googleServices" }

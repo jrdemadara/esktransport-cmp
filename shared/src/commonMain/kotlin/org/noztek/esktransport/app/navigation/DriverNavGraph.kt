@@ -33,11 +33,16 @@ import org.noztek.esktransport.feature.driver.go.presentation.GoScreen
 import org.noztek.esktransport.feature.driver.home.presentation.HomeScreen
 import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverOnboardingStatus
 import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverRequirementStatus
+import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverVehicleServiceType
 import org.noztek.esktransport.feature.driver.onboarding.presentation.DriverIdentityVerificationScreen
 import org.noztek.esktransport.feature.driver.onboarding.presentation.DriverServiceZoneScreen
 import org.noztek.esktransport.feature.driver.onboarding.presentation.DriverVehicleRegistrationScreen
+import org.noztek.esktransport.feature.driver.onboarding.presentation.DriverVehicleServicesScreen
 import org.noztek.esktransport.feature.driver.settings.presentation.DriverAccountScreen
 import org.noztek.esktransport.feature.driver.settings.presentation.DriverSettingsScreen
+import org.noztek.esktransport.feature.driver.settings.presentation.DriverVehicleDetailScreen
+import org.noztek.esktransport.feature.driver.settings.presentation.DriverVehicleFormScreen
+import org.noztek.esktransport.feature.driver.settings.presentation.DriverVehiclesScreen
 import org.noztek.esktransport.feature.driver.session.presentation.DriverSessionUiEvent
 import org.noztek.esktransport.feature.driver.session.presentation.DriverSessionViewModel
 import org.noztek.esktransport.feature.driver.trip_navigation.presentation.TripNavigationScreen
@@ -47,12 +52,19 @@ import org.noztek.esktransport.feature.driver.wallet.presentation.TransactionHis
 private const val ROUTE_DRIVER_TRIP_TRACKING = "driver-trip-tracking"
 private const val ROUTE_DRIVER_IDENTITY_VERIFICATION = "driver-onboarding/identity"
 private const val ROUTE_DRIVER_VEHICLE_REGISTRATION = "driver-onboarding/vehicle-registration"
+private const val ROUTE_DRIVER_VEHICLE_SERVICES = "driver-onboarding/vehicle-services"
 private const val ROUTE_DRIVER_SERVICE_ZONE = "driver-onboarding/service-zone"
 private const val ROUTE_DRIVER_TOP_UP = "driver/wallet/top-up"
 private const val ROUTE_DRIVER_CASHOUT = "driver/wallet/cashout"
 private const val ROUTE_DRIVER_WALLET_HISTORY = "driver/wallet/history"
 private const val ROUTE_DRIVER_ACCOUNT_SETTINGS = "driver/settings/account"
+private const val ROUTE_DRIVER_VEHICLES_SETTINGS = "driver/settings/vehicles"
+private const val ROUTE_DRIVER_VEHICLE_ADD = "driver/settings/vehicles/add"
+private const val ROUTE_DRIVER_VEHICLE_DETAIL = "driver/settings/vehicles/detail"
+private const val ROUTE_DRIVER_VEHICLE_EDIT = "driver/settings/vehicles/edit"
 private const val DRIVER_HOME_STATS_REFRESH_TOKEN = "driver_home_stats_refresh_token"
+private const val DRIVER_VEHICLES_REFRESH_TOKEN = "driver_vehicles_refresh_token"
+private const val DRIVER_VEHICLE_DETAIL_REFRESH_TOKEN = "driver_vehicle_detail_refresh_token"
 
 fun NavGraphBuilder.driverNavGraph(
     navController: NavHostController,
@@ -202,6 +214,83 @@ fun NavGraphBuilder.driverNavGraph(
                         launchSingleTop = true
                     }
                 },
+                onVehiclesClick = {
+                    navController.navigate(ROUTE_DRIVER_VEHICLES_SETTINGS) {
+                        launchSingleTop = true
+                    }
+                },
+                onBottomBarNavigate = { route ->
+                    navController.navigateDriverBottomBarRoute(route)
+                },
+            )
+        }
+        composable(route = ROUTE_DRIVER_VEHICLES_SETTINGS) {
+            val refreshToken by it.savedStateHandle
+                .getStateFlow(DRIVER_VEHICLES_REFRESH_TOKEN, 0L)
+                .collectAsState()
+            DriverVehiclesScreen(
+                refreshToken = refreshToken,
+                onBackClick = { navController.popBackStack() },
+                onAddVehicleClick = {
+                    navController.navigate(ROUTE_DRIVER_VEHICLE_ADD) {
+                        launchSingleTop = true
+                    }
+                },
+                onVehicleClick = { vehicle ->
+                    navController.navigate("$ROUTE_DRIVER_VEHICLE_DETAIL/${vehicle.publicId}") {
+                        launchSingleTop = true
+                    }
+                },
+                onBottomBarNavigate = { route ->
+                    navController.navigateDriverBottomBarRoute(route)
+                },
+            )
+        }
+        composable(route = ROUTE_DRIVER_VEHICLE_ADD) {
+            DriverVehicleFormScreen(
+                vehiclePublicId = null,
+                onBackClick = { navController.popBackStack() },
+                onSaved = {
+                    navController.markDriverVehiclesForRefresh()
+                    navController.popBackStack()
+                },
+                onBottomBarNavigate = { route ->
+                    navController.navigateDriverBottomBarRoute(route)
+                },
+            )
+        }
+        composable("$ROUTE_DRIVER_VEHICLE_DETAIL/{vehiclePublicId}") { backStackEntry ->
+            val vehiclePublicId = backStackEntry.arguments?.read { getStringOrNull("vehiclePublicId") }
+            val refreshToken by backStackEntry.savedStateHandle
+                .getStateFlow(DRIVER_VEHICLE_DETAIL_REFRESH_TOKEN, 0L)
+                .collectAsState()
+            DriverVehicleDetailScreen(
+                vehiclePublicId = vehiclePublicId,
+                refreshToken = refreshToken,
+                onBackClick = { navController.popBackStack() },
+                onEditClick = { vehicle ->
+                    navController.navigate("$ROUTE_DRIVER_VEHICLE_EDIT/${vehicle.publicId}") {
+                        launchSingleTop = true
+                    }
+                },
+                onVehicleUpdated = {
+                    navController.markDriverVehiclesForRefresh()
+                },
+                onBottomBarNavigate = { route ->
+                    navController.navigateDriverBottomBarRoute(route)
+                },
+            )
+        }
+        composable("$ROUTE_DRIVER_VEHICLE_EDIT/{vehiclePublicId}") { backStackEntry ->
+            val vehiclePublicId = backStackEntry.arguments?.read { getStringOrNull("vehiclePublicId") }
+            DriverVehicleFormScreen(
+                vehiclePublicId = vehiclePublicId,
+                onBackClick = { navController.popBackStack() },
+                onSaved = {
+                    navController.markDriverVehiclesForRefresh()
+                    navController.markPreviousDriverVehicleDetailForRefresh()
+                    navController.popBackStack()
+                },
                 onBottomBarNavigate = { route ->
                     navController.navigateDriverBottomBarRoute(route)
                 },
@@ -268,7 +357,26 @@ fun NavGraphBuilder.driverNavGraph(
             DriverVehicleRegistrationScreen(
                 onBack = { navController.popBackStack() },
                 onContinue = {
-                    navController.popBackStack(DriverRoute.HOME, inclusive = false)
+                    navController.navigate(ROUTE_DRIVER_VEHICLE_SERVICES) {
+                        launchSingleTop = true
+                    }
+                },
+            )
+        }
+        composable(ROUTE_DRIVER_VEHICLE_SERVICES) {
+            val userPresenceCoordinator: UserPresenceCoordinator = koinInject()
+            LaunchedEffect(Unit) {
+                userPresenceCoordinator.updateContext(
+                    role = UserPresenceRole.Driver,
+                    context = UserPresenceContext.DriverVehicleServices,
+                )
+            }
+            DriverVehicleServicesScreen(
+                onBack = { navController.popBackStack() },
+                onContinue = {
+                    navController.navigate(ROUTE_DRIVER_SERVICE_ZONE) {
+                        launchSingleTop = true
+                    }
                 },
             )
         }
@@ -329,6 +437,18 @@ private fun NavHostController.requestDriverHomeStatsRefresh() {
     savedStateHandle[DRIVER_HOME_STATS_REFRESH_TOKEN] = currentValue + 1L
 }
 
+private fun NavHostController.markDriverVehiclesForRefresh() {
+    val savedStateHandle = getBackStackEntry(ROUTE_DRIVER_VEHICLES_SETTINGS).savedStateHandle
+    val currentValue = savedStateHandle[DRIVER_VEHICLES_REFRESH_TOKEN] ?: 0L
+    savedStateHandle[DRIVER_VEHICLES_REFRESH_TOKEN] = currentValue + 1L
+}
+
+private fun NavHostController.markPreviousDriverVehicleDetailForRefresh() {
+    val savedStateHandle = previousBackStackEntry?.savedStateHandle ?: return
+    val currentValue = savedStateHandle[DRIVER_VEHICLE_DETAIL_REFRESH_TOKEN] ?: 0L
+    savedStateHandle[DRIVER_VEHICLE_DETAIL_REFRESH_TOKEN] = currentValue + 1L
+}
+
 private fun NavHostController.navigateDriverBottomBarRoute(route: String) {
     when (route) {
         DriverBottomBarRoute.HOME -> {
@@ -372,9 +492,23 @@ private fun DriverOnboardingStatus?.nextSetupRoute(): String {
     return when {
         stepStatuses.identityVerification.needsDriverAction() -> ROUTE_DRIVER_IDENTITY_VERIFICATION
         stepStatuses.vehicleRegistration.needsDriverAction() -> ROUTE_DRIVER_VEHICLE_REGISTRATION
+        vehicleServicesNeedDriverAction() -> ROUTE_DRIVER_VEHICLE_SERVICES
         stepStatuses.serviceRadius.needsDriverAction() -> ROUTE_DRIVER_SERVICE_ZONE
         else -> DriverRoute.HOME
     }
+}
+
+private fun DriverOnboardingStatus.vehicleServicesNeedDriverAction(): Boolean {
+    val services = vehicle.services
+    val rideService = services.firstOrNull { it.serviceType == DriverVehicleServiceType.Ride }
+
+    return vehicle.exists &&
+        (
+            services.isEmpty() ||
+                rideService == null ||
+                !rideService.isEnabled ||
+                rideService.status.needsDriverAction()
+            )
 }
 
 private fun DriverRequirementStatus.needsDriverAction(): Boolean {

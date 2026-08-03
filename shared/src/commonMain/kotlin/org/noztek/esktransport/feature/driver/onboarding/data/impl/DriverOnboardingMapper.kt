@@ -2,15 +2,18 @@ package org.noztek.esktransport.feature.driver.onboarding.data.impl
 
 import org.noztek.esktransport.feature.driver.onboarding.data.remote.dto.DriverOnboardingDataDto
 import org.noztek.esktransport.feature.driver.onboarding.data.remote.dto.DriverServiceZoneDto
+import org.noztek.esktransport.feature.driver.onboarding.data.remote.dto.DriverVehicleServiceDto
 import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverLicenseInfo
 import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverOnboardingRequirement
 import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverOnboardingStatus
 import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverServiceZone
 import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverStepStatuses
 import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverVehicleInfo
+import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverVehicleService
 import org.noztek.esktransport.feature.driver.onboarding.domain.model.toDriverOnboardingDocumentType
 import org.noztek.esktransport.feature.driver.onboarding.domain.model.toDriverOnboardingState
 import org.noztek.esktransport.feature.driver.onboarding.domain.model.toDriverRequirementStatus
+import org.noztek.esktransport.feature.driver.onboarding.domain.model.toDriverVehicleServiceType
 
 internal fun DriverOnboardingDataDto.toDomain(): DriverOnboardingStatus {
     return DriverOnboardingStatus(
@@ -44,6 +47,7 @@ internal fun DriverOnboardingDataDto.toDomain(): DriverOnboardingStatus {
             passengerCapacity = vehicle.passengerCapacity,
             status = vehicle.status,
             isAvailable = vehicle.isAvailable,
+            services = vehicle.services.map { it.toDomain() },
         ),
         serviceZones = serviceZones.map { it.toDomain() },
         requirements = requirements.map { requirement ->
@@ -57,6 +61,16 @@ internal fun DriverOnboardingDataDto.toDomain(): DriverOnboardingStatus {
                 expiresAt = requirement.expiresAt,
             )
         },
+    )
+}
+
+internal fun DriverVehicleServiceDto.toDomain(): DriverVehicleService {
+    return DriverVehicleService(
+        serviceType = serviceType.toDriverVehicleServiceType(),
+        status = status.toDriverRequirementStatus(),
+        isEnabled = isEnabled,
+        rejectionReason = rejectionReason,
+        reviewedAt = reviewedAt,
     )
 }
 

@@ -220,7 +220,7 @@ private fun VehicleRegistrationHeader() {
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             Text(
-                text = "Step 3 of 4",
+                text = "Step 3 of 5",
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.76f),
             )

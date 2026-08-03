@@ -40,6 +40,15 @@ data class DriverVehicleInfo(
     val passengerCapacity: Int? = null,
     val status: String? = null,
     val isAvailable: Boolean? = null,
+    val services: List<DriverVehicleService> = emptyList(),
+)
+
+data class DriverVehicleService(
+    val serviceType: DriverVehicleServiceType,
+    val status: DriverRequirementStatus,
+    val isEnabled: Boolean,
+    val rejectionReason: String?,
+    val reviewedAt: String?,
 )
 
 data class DriverServiceZone(
@@ -75,6 +84,10 @@ data class DriverVehicleRegistrationPayload(
 
 data class DriverServiceZoneSelectionPayload(
     val serviceZoneIds: List<Long>,
+)
+
+data class DriverVehicleServiceSelectionPayload(
+    val services: List<DriverVehicleServiceType>,
 )
 
 data class DriverOnboardingDocumentUpload(
@@ -145,6 +158,12 @@ enum class DriverOnboardingDocumentType(val apiValue: String, val displayName: S
     VehiclePhoto("vehicle_photo", "Vehicle photo"),
 }
 
+enum class DriverVehicleServiceType(val apiValue: String, val displayName: String) {
+    Ride("ride", "City Ride"),
+    Rental("rental", "Vehicle Rental"),
+    Cargo("cargo", "Cargo / Delivery"),
+}
+
 fun String.toDriverOnboardingState(): DriverOnboardingState {
     return when (lowercase()) {
         "ready" -> DriverOnboardingState.Ready
@@ -169,4 +188,9 @@ fun String.toDriverRequirementStatus(): DriverRequirementStatus {
 fun String.toDriverOnboardingDocumentType(): DriverOnboardingDocumentType {
     return DriverOnboardingDocumentType.entries.firstOrNull { it.apiValue == this }
         ?: DriverOnboardingDocumentType.LicenseFront
+}
+
+fun String.toDriverVehicleServiceType(): DriverVehicleServiceType {
+    return DriverVehicleServiceType.entries.firstOrNull { it.apiValue == lowercase() }
+        ?: DriverVehicleServiceType.Ride
 }

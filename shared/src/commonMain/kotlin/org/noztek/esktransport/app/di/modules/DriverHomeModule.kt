@@ -30,16 +30,31 @@ import org.noztek.esktransport.feature.driver.onboarding.domain.usecase.ObserveD
 import org.noztek.esktransport.feature.driver.onboarding.domain.usecase.SubmitDriverIdentityVerificationUseCase
 import org.noztek.esktransport.feature.driver.onboarding.domain.usecase.SubmitDriverServiceZonesUseCase
 import org.noztek.esktransport.feature.driver.onboarding.domain.usecase.SubmitDriverVehicleRegistrationUseCase
+import org.noztek.esktransport.feature.driver.onboarding.domain.usecase.SubmitDriverVehicleServicesUseCase
 import org.noztek.esktransport.feature.driver.onboarding.domain.usecase.SubscribeDriverOnboardingRealtimeUseCase
 import org.noztek.esktransport.feature.driver.onboarding.domain.usecase.UnsubscribeDriverOnboardingRealtimeUseCase
 import org.noztek.esktransport.feature.driver.onboarding.presentation.DriverOnboardingViewModel
 import org.noztek.esktransport.feature.driver.settings.data.impl.DriverSettingsRepositoryImpl
+import org.noztek.esktransport.feature.driver.settings.data.impl.DriverVehicleRepositoryImpl
 import org.noztek.esktransport.feature.driver.settings.data.remote.DriverSettingsApi
+import org.noztek.esktransport.feature.driver.settings.data.remote.DriverVehicleApi
 import org.noztek.esktransport.feature.driver.settings.domain.repository.DriverSettingsRepository
+import org.noztek.esktransport.feature.driver.settings.domain.repository.DriverVehicleRepository
+import org.noztek.esktransport.feature.driver.settings.domain.usecase.ActivateDriverRideVehicleUseCase
+import org.noztek.esktransport.feature.driver.settings.domain.usecase.AddDriverVehicleUseCase
 import org.noztek.esktransport.feature.driver.settings.domain.usecase.GetDriverAccountUseCase
 import org.noztek.esktransport.feature.driver.settings.domain.usecase.GetDriverProfilePhotoUseCase
+import org.noztek.esktransport.feature.driver.settings.domain.usecase.GetDriverVehicleUseCase
+import org.noztek.esktransport.feature.driver.settings.domain.usecase.GetDriverVehicleTypesUseCase
+import org.noztek.esktransport.feature.driver.settings.domain.usecase.GetDriverVehiclesUseCase
 import org.noztek.esktransport.feature.driver.settings.domain.usecase.UpdateDriverAccountUseCase
+import org.noztek.esktransport.feature.driver.settings.domain.usecase.UploadDriverVehicleDocumentUseCase
+import org.noztek.esktransport.feature.driver.settings.domain.usecase.UpdateDriverVehicleServicesUseCase
+import org.noztek.esktransport.feature.driver.settings.domain.usecase.UpdateDriverVehicleUseCase
 import org.noztek.esktransport.feature.driver.settings.presentation.DriverSettingsViewModel
+import org.noztek.esktransport.feature.driver.settings.presentation.DriverVehicleDetailViewModel
+import org.noztek.esktransport.feature.driver.settings.presentation.DriverVehicleFormViewModel
+import org.noztek.esktransport.feature.driver.settings.presentation.DriverVehiclesViewModel
 import org.noztek.esktransport.feature.driver.session.presentation.DriverSessionViewModel
 import org.noztek.esktransport.feature.driver.trips.data.impl.DriverTripsRepositoryImpl
 import org.noztek.esktransport.feature.driver.trips.data.remote.DriverTripsApi
@@ -73,6 +88,8 @@ val driverHomeModule = module {
     single<DriverTripsRepository> { DriverTripsRepositoryImpl(api = get()) }
     single { DriverSettingsApi(client = get(), baseUrl = get(named(API_BASE_URL_QUALIFIER))) }
     single<DriverSettingsRepository> { DriverSettingsRepositoryImpl(api = get()) }
+    single { DriverVehicleApi(client = get(), baseUrl = get(named(API_BASE_URL_QUALIFIER))) }
+    single<DriverVehicleRepository> { DriverVehicleRepositoryImpl(api = get()) }
     single { GetDriverAvailabilityUseCase(repository = get()) }
     single { SetDriverAvailabilityUseCase(repository = get()) }
     single { GetDriverHomeStatsUseCase(repository = get()) }
@@ -88,11 +105,20 @@ val driverHomeModule = module {
     single { GetDriverAccountUseCase(repository = get()) }
     single { UpdateDriverAccountUseCase(repository = get()) }
     single { GetDriverProfilePhotoUseCase(repository = get()) }
+    single { GetDriverVehiclesUseCase(repository = get()) }
+    single { GetDriverVehicleUseCase(repository = get()) }
+    single { GetDriverVehicleTypesUseCase(repository = get()) }
+    single { AddDriverVehicleUseCase(repository = get()) }
+    single { UpdateDriverVehicleUseCase(repository = get()) }
+    single { UpdateDriverVehicleServicesUseCase(repository = get()) }
+    single { UploadDriverVehicleDocumentUseCase(repository = get()) }
+    single { ActivateDriverRideVehicleUseCase(repository = get()) }
     single { ObserveDriverOnboardingStatusChangedUseCase(realtime = get()) }
     single { SubscribeDriverOnboardingRealtimeUseCase(realtime = get()) }
     single { UnsubscribeDriverOnboardingRealtimeUseCase(realtime = get()) }
     single { SubmitDriverIdentityVerificationUseCase(repository = get()) }
     single { SubmitDriverVehicleRegistrationUseCase(repository = get()) }
+    single { SubmitDriverVehicleServicesUseCase(repository = get()) }
     single { SubmitDriverServiceZonesUseCase(repository = get()) }
     single { AcceptOfferUseCase(api = get(), currentLocationProvider = get()) }
     single { ExpireOfferUseCase(api = get()) }
@@ -131,6 +157,7 @@ val driverHomeModule = module {
             getDriverServiceZonesUseCase = get(),
             submitDriverIdentityVerificationUseCase = get(),
             submitDriverVehicleRegistrationUseCase = get(),
+            submitDriverVehicleServicesUseCase = get(),
             submitDriverServiceZonesUseCase = get(),
             observeDriverOnboardingStatusChangedUseCase = get(),
             subscribeDriverOnboardingRealtimeUseCase = get(),
@@ -171,6 +198,29 @@ val driverHomeModule = module {
             updateDriverAccountUseCase = get(),
             getDriverProfilePhotoUseCase = get(),
             getDriverOnboardingStatusUseCase = get(),
+            ioDispatcher = get(named(IO_DISPATCHER_QUALIFIER)),
+        )
+    }
+    factory {
+        DriverVehiclesViewModel(
+            getDriverVehiclesUseCase = get(),
+            activateDriverRideVehicleUseCase = get(),
+            ioDispatcher = get(named(IO_DISPATCHER_QUALIFIER)),
+        )
+    }
+    factory {
+        DriverVehicleFormViewModel(
+            getDriverVehicleTypesUseCase = get(),
+            getDriverVehicleUseCase = get(),
+            addDriverVehicleUseCase = get(),
+            updateDriverVehicleUseCase = get(),
+            ioDispatcher = get(named(IO_DISPATCHER_QUALIFIER)),
+        )
+    }
+    factory {
+        DriverVehicleDetailViewModel(
+            getDriverVehicleUseCase = get(),
+            uploadDriverVehicleDocumentUseCase = get(),
             ioDispatcher = get(named(IO_DISPATCHER_QUALIFIER)),
         )
     }

@@ -10,12 +10,14 @@ import kotlinx.serialization.json.jsonPrimitive
 import org.noztek.esktransport.core.network.ApiErrorParser
 import org.noztek.esktransport.feature.driver.onboarding.data.remote.DriverOnboardingApi
 import org.noztek.esktransport.feature.driver.onboarding.data.remote.dto.DriverServiceZoneSelectionRequestDto
+import org.noztek.esktransport.feature.driver.onboarding.data.remote.dto.DriverVehicleServiceSelectionRequestDto
 import org.noztek.esktransport.feature.driver.onboarding.data.remote.dto.DriverVehicleSetupRequestDto
 import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverIdentityVerificationPayload
 import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverOnboardingDocumentUpload
 import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverOnboardingStatus
 import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverServiceZone
 import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverServiceZoneSelectionPayload
+import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverVehicleServiceSelectionPayload
 import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverVehicleSetupPayload
 import org.noztek.esktransport.feature.driver.onboarding.domain.repository.DriverOnboardingRepository
 
@@ -76,6 +78,20 @@ class DriverOnboardingRepositoryImpl(
             Result.success(response.data.toDomain())
         } catch (throwable: Throwable) {
             val message = ApiErrorParser.parse(throwable, "Failed to save service zones.")
+            Result.failure(IllegalStateException(message))
+        }
+    }
+
+    override suspend fun submitVehicleServices(payload: DriverVehicleServiceSelectionPayload): Result<DriverOnboardingStatus> {
+        return try {
+            val response = api.submitVehicleServices(
+                DriverVehicleServiceSelectionRequestDto(
+                    services = payload.services.map { it.apiValue },
+                ),
+            )
+            Result.success(response.data.onboarding.toDomain())
+        } catch (throwable: Throwable) {
+            val message = ApiErrorParser.parse(throwable, "Failed to save vehicle services.")
             Result.failure(IllegalStateException(message))
         }
     }

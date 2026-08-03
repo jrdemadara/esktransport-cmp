@@ -40,6 +40,7 @@ enum class UserPresenceContext(val value: String) {
     DriverGo("driver_go"),
     DriverIdentityVerification("driver_identity_verification"),
     DriverVehicleRegistration("driver_vehicle_registration"),
+    DriverVehicleServices("driver_vehicle_services"),
     DriverServiceZone("driver_service_zone"),
     DriverTripTracking("driver_trip_tracking"),
 }

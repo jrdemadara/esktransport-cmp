@@ -5,6 +5,8 @@ import kotlinx.coroutines.Dispatchers
 import org.koin.core.qualifier.named
 import org.koin.dsl.module
 import org.noztek.esktransport.core.audio.createSoundEffectPlayer
+import org.noztek.esktransport.core.notify.PushNotificationTokenProvider
+import org.noztek.esktransport.core.notify.createPushNotificationTokenProvider
 import org.noztek.esktransport.core.realtime.BaseRealtimeCoordinator
 import org.noztek.esktransport.core.realtime.DefaultBaseRealtimeCoordinator
 import org.noztek.esktransport.core.realtime.RealtimeChannelNamer
@@ -31,6 +33,7 @@ const val IO_DISPATCHER_QUALIFIER = "io_dispatcher"
 val coreModule = module {
     single<CoroutineDispatcher>(named(IO_DISPATCHER_QUALIFIER)) { Dispatchers.Default }
     single { createSoundEffectPlayer() }
+    single<PushNotificationTokenProvider> { createPushNotificationTokenProvider() }
     single {
         createRealtimeClient(
             config = get(),

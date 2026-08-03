@@ -85,6 +85,7 @@ import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverOnbo
 import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverOnboardingStatus
 import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverRequirementStatus
 import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverVehicleInfo
+import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverVehicleServiceType
 import org.noztek.esktransport.feature.driver.trips.domain.model.DriverTrip
 import org.noztek.esktransport.feature.driver.trips.domain.model.DriverTripStatus
 import org.noztek.esktransport.feature.driver.wallet.domain.model.DriverWalletDashboard
@@ -167,6 +168,13 @@ fun HomeScreen(
                 .padding(horizontal = 16.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
+            DriverSetupStepperPanel(
+                isLoading = uiState.isLoadingSetup,
+                status = uiState.onboardingStatus,
+                errorMessage = uiState.errorMessage,
+                onSetupClick = { onSetupClick(uiState.onboardingStatus) },
+                onRetryClick = viewModel::refreshOnboardingStatus,
+            )
             DriverMainStatusCard(
                 isLoading = uiState.isLoadingSetup,
                 status = uiState.onboardingStatus,
@@ -208,13 +216,93 @@ fun HomeScreen(
                 onRetryClick = viewModel::refreshRecentActivity,
             )
 
-            DriverSetupCard(
-                isLoading = uiState.isLoadingSetup,
-                status = uiState.onboardingStatus,
-                errorMessage = uiState.errorMessage,
-                onSetupClick = { onSetupClick(uiState.onboardingStatus) },
-                onRetryClick = viewModel::refreshOnboardingStatus,
-            )
+        }
+    }
+}
+
+@Composable
+private fun DriverSetupStepperPanel(
+    isLoading: Boolean,
+    status: DriverOnboardingStatus?,
+    errorMessage: String?,
+    onSetupClick: () -> Unit,
+    onRetryClick: () -> Unit,
+) {
+    if (isLoading && status == null && errorMessage == null) return
+    if (status?.canGo == true) return
+
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        color = MaterialTheme.colorScheme.surfaceContainer,
+        contentColor = MaterialTheme.colorScheme.onSurface,
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(1.dp),
+                ) {
+                    Text(
+                        text = setupTitle(status),
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                    Text(
+                        text = setupDescription(status),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                if (isLoading) {
+                    CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                }
+            }
+
+            val setupSteps = status.setupProgressSteps()
+            SetupStepper(steps = setupSteps)
+
+            errorMessage?.let {
+                Text(
+                    text = it,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
+
+            val shouldShowAction = errorMessage != null && status == null ||
+                setupSteps.any { it.status.needsDriverAction() }
+
+            if (shouldShowAction) {
+                AppPrimaryButton(
+                    text = if (errorMessage != null && status == null) "Retry" else "Finish Setup",
+                    onClick = if (errorMessage != null && status == null) onRetryClick else onSetupClick,
+                    enabled = !isLoading,
+                    height = 44.dp,
+                    contentPadding = PaddingValues(horizontal = 16.dp),
+                    trailingIcon = {
+                        Icon(
+                            imageVector = Heroicons.Outline.ChevronRight,
+                            contentDescription = null,
+                            modifier = Modifier.size(15.dp),
+                        )
+                    },
+                )
+            } else if (!isLoading) {
+                Text(
+                    text = setupReviewMessage(status),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
     }
 }
@@ -1450,88 +1538,11 @@ private fun VehicleStatusPill(vehicle: DriverVehicleInfo?) {
     }
 }
 
-@Composable
-private fun DriverSetupCard(
-    isLoading: Boolean,
-    status: DriverOnboardingStatus?,
-    errorMessage: String?,
-    onSetupClick: () -> Unit,
-    onRetryClick: () -> Unit,
-) {
-    if (isLoading && status == null && errorMessage == null) return
-    if (status?.canGo == true) return
-
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(14.dp),
-        color = MaterialTheme.colorScheme.surfaceContainer,
-        contentColor = MaterialTheme.colorScheme.onSurface,
-    ) {
-        Column(
-            modifier = Modifier.padding(14.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = setupTitle(status),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                    )
-                    Text(
-                        text = setupDescription(status),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                if (isLoading) {
-                    CircularProgressIndicator(modifier = Modifier.size(22.dp), strokeWidth = 2.dp)
-                }
-            }
-
-            errorMessage?.let {
-                Text(
-                    text = it,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.error,
-                )
-            }
-
-            val setupSteps = status.setupProgressSteps()
-            SetupStepper(
-                steps = setupSteps,
-            )
-
-            val shouldShowAction = errorMessage != null && status == null ||
-                setupSteps.any { it.status.needsDriverAction() }
-
-            if (shouldShowAction) {
-                AppPrimaryButton(
-                    text = if (errorMessage != null && status == null) "Retry" else "Finish Setup",
-                    onClick = if (errorMessage != null && status == null) onRetryClick else onSetupClick,
-                    enabled = !isLoading,
-                    height = 44.dp,
-                    contentPadding = PaddingValues(horizontal = 16.dp),
-                    trailingIcon = {
-                        Icon(
-                            imageVector = Heroicons.Outline.ChevronRight,
-                            contentDescription = null,
-                            modifier = Modifier.size(15.dp),
-                        )
-                    },
-                )
-            } else if (!isLoading) {
-                Text(
-                    text = setupReviewMessage(status),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        }
+private fun setupReviewMessage(status: DriverOnboardingStatus?): String {
+    return when (status?.status) {
+        DriverOnboardingState.Rejected -> "Review the highlighted setup step when an update is requested."
+        DriverOnboardingState.Blocked -> "Your account needs review before you can go online."
+        else -> "Your documents are under review. Verification may take up to 3 working days, and we will notify you once your account is ready to go online."
     }
 }
 
@@ -1555,25 +1566,14 @@ private fun setupDescription(status: DriverOnboardingStatus?): String {
     }
 }
 
-private fun setupReviewMessage(status: DriverOnboardingStatus?): String {
-    return when (status?.status) {
-        DriverOnboardingState.Rejected -> "Review the highlighted setup step when an update is requested."
-        DriverOnboardingState.Blocked -> "Your account needs review before you can go online."
-        else -> "Your documents are under review. Verification may take up to 3 working days, and we will notify you once your account is ready to go online."
-    }
-}
-
 private fun DriverOnboardingStatus?.setupProgressSteps(): List<SetupProgressStep> {
     val stepStatuses = this?.stepStatuses
     val identityStatus = stepStatuses?.identityVerification ?: identityVerificationStatus()
     val vehicleRegistrationStatus = stepStatuses?.vehicleRegistration ?: vehicleRegistrationStatus()
+    val vehicleServicesStatus = vehicleServicesStatus()
     val serviceRadiusStatus = stepStatuses?.serviceRadius ?: DriverRequirementStatus.Missing
 
     return listOf(
-        SetupProgressStep(
-            label = "Account registration",
-            status = stepStatuses?.accountRegistration ?: DriverRequirementStatus.Approved,
-        ),
         SetupProgressStep(
             label = "Identity verification",
             status = identityStatus,
@@ -1581,6 +1581,10 @@ private fun DriverOnboardingStatus?.setupProgressSteps(): List<SetupProgressStep
         SetupProgressStep(
             label = "Vehicle registration",
             status = vehicleRegistrationStatus,
+        ),
+        SetupProgressStep(
+            label = "Services",
+            status = vehicleServicesStatus,
         ),
         SetupProgressStep(
             label = "Service zone",
@@ -1599,6 +1603,21 @@ private fun DriverOnboardingStatus?.identityVerificationStatus(): DriverRequirem
     )
 
     return statuses.groupedStatus()
+}
+
+private fun DriverOnboardingStatus?.vehicleServicesStatus(): DriverRequirementStatus {
+    if (this == null || !vehicle.exists) return DriverRequirementStatus.Missing
+
+    val services = vehicle.services.filter { it.isEnabled }
+    if (services.isEmpty()) return DriverRequirementStatus.Missing
+
+    val rideService = services.firstOrNull { it.serviceType == DriverVehicleServiceType.Ride }
+        ?: return DriverRequirementStatus.Missing
+    if (rideService.status != DriverRequirementStatus.Approved) {
+        return rideService.status
+    }
+
+    return DriverRequirementStatus.Approved
 }
 
 private fun DriverOnboardingStatus?.vehicleRegistrationStatus(): DriverRequirementStatus {
@@ -1641,9 +1660,10 @@ private data class SetupProgressStep(
 @Composable
 private fun SetupStepper(
     steps: List<SetupProgressStep>,
+    modifier: Modifier = Modifier,
 ) {
     Column(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(7.dp),
     ) {
         Row(
@@ -1714,7 +1734,6 @@ private fun DriverRequirementStatus.stepperStatusLabel(): String {
 
 private val SetupProgressStep.shortLabel: String
     get() = when (label) {
-        "Account registration" -> "Account"
         "Identity verification" -> "Identity"
         "Vehicle registration" -> "Vehicle"
         "Service zone" -> "Zone"
