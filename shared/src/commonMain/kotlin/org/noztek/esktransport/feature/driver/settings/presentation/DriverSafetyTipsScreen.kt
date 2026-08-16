@@ -1,7 +1,6 @@
 package org.noztek.esktransport.feature.driver.settings.presentation
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -37,43 +36,34 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.composables.icons.heroicons.Heroicons
 import com.composables.icons.heroicons.outline.ArrowLeft
-import com.composables.icons.heroicons.outline.ChevronRight
+import com.composables.icons.heroicons.outline.Banknotes
+import com.composables.icons.heroicons.outline.ChatBubbleLeftRight
+import com.composables.icons.heroicons.outline.CheckCircle
 import com.composables.icons.heroicons.outline.ExclamationTriangle
-import com.composables.icons.heroicons.outline.InformationCircle
 import com.composables.icons.heroicons.outline.MapPin
-import com.composables.icons.heroicons.outline.Phone
 import com.composables.icons.heroicons.outline.ShieldCheck
 import org.noztek.esktransport.core.ui.composables.driver.DriverBottomBar
 import org.noztek.esktransport.core.ui.composables.driver.DriverBottomBarRoute
 
 @Composable
-fun DriverSafetyScreen(
+fun DriverSafetyTipsScreen(
     onBackClick: () -> Unit,
-    onEmergencyContactsClick: () -> Unit = {},
-    onReportIncidentClick: () -> Unit = {},
-    onSafetyTipsClick: () -> Unit = {},
     onBottomBarNavigate: (String) -> Unit = {},
 ) {
-    DriverSafetyContent(
+    DriverSafetyTipsContent(
         onBackClick = onBackClick,
-        onEmergencyContactsClick = onEmergencyContactsClick,
-        onReportIncidentClick = onReportIncidentClick,
-        onSafetyTipsClick = onSafetyTipsClick,
         onBottomBarNavigate = onBottomBarNavigate,
     )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun DriverSafetyContent(
+private fun DriverSafetyTipsContent(
     onBackClick: () -> Unit,
-    onEmergencyContactsClick: () -> Unit,
-    onReportIncidentClick: () -> Unit,
-    onSafetyTipsClick: () -> Unit,
     onBottomBarNavigate: (String) -> Unit,
 ) {
     Scaffold(
-        topBar = { SafetyTopBar(onBackClick = onBackClick) },
+        topBar = { SafetyTipsTopBar(onBackClick = onBackClick) },
         bottomBar = {
             DriverBottomBar(
                 currentRoute = DriverBottomBarRoute.PROFILE,
@@ -92,19 +82,17 @@ private fun DriverSafetyContent(
                 .padding(horizontal = 20.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            SafetyStatusCard()
-            SafetyMenuList(
-                onEmergencyContactsClick = onEmergencyContactsClick,
-                onReportIncidentClick = onReportIncidentClick,
-                onSafetyTipsClick = onSafetyTipsClick,
-            )
+            SafetyTipsIntroCard()
+            safetyTipSections.forEach { section ->
+                SafetyTipSectionCard(section = section)
+            }
         }
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun SafetyTopBar(onBackClick: () -> Unit) {
+private fun SafetyTipsTopBar(onBackClick: () -> Unit) {
     TopAppBar(
         windowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top),
         colors = TopAppBarDefaults.topAppBarColors(
@@ -123,7 +111,7 @@ private fun SafetyTopBar(onBackClick: () -> Unit) {
         },
         title = {
             Text(
-                text = "Safety",
+                text = "Safety Tips",
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.SemiBold,
             )
@@ -132,7 +120,7 @@ private fun SafetyTopBar(onBackClick: () -> Unit) {
 }
 
 @Composable
-private fun SafetyStatusCard() {
+private fun SafetyTipsIntroCard() {
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
@@ -158,18 +146,14 @@ private fun SafetyStatusCard() {
                     )
                 }
             }
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(2.dp),
-            ) {
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(
-                    text = "Driver safety tools",
+                    text = "Drive with clear checkpoints",
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface,
                 )
                 Text(
-                    text = "Manage emergency contacts, reports, and trip safety settings.",
+                    text = "Short reminders for pickups, trips, cash handling, and urgent cases.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 2,
@@ -181,11 +165,7 @@ private fun SafetyStatusCard() {
 }
 
 @Composable
-private fun SafetyMenuList(
-    onEmergencyContactsClick: () -> Unit,
-    onReportIncidentClick: () -> Unit,
-    onSafetyTipsClick: () -> Unit,
-) {
+private fun SafetyTipSectionCard(section: SafetyTipSection) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
@@ -193,22 +173,34 @@ private fun SafetyMenuList(
         contentColor = MaterialTheme.colorScheme.onSurface,
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
-            safetyMenuItems.forEachIndexed { index, item ->
-                SafetyMenuRow(
-                    item = item,
-                    onClick = {
-                        when (item.type) {
-                            SafetyMenuItemType.EmergencyContacts -> onEmergencyContactsClick()
-                            SafetyMenuItemType.ReportIncident -> onReportIncidentClick()
-                            SafetyMenuItemType.SafetyTips -> onSafetyTipsClick()
-                            else -> Unit
-                        }
-                    },
+            Row(
+                modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(
+                    imageVector = section.icon,
+                    contentDescription = null,
+                    modifier = Modifier.size(22.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                if (index < safetyMenuItems.lastIndex) {
+                Text(
+                    text = section.title,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+            }
+            HorizontalDivider(
+                modifier = Modifier.padding(start = 48.dp),
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.28f),
+            )
+            section.tips.forEachIndexed { index, tip ->
+                SafetyTipRow(text = tip)
+                if (index < section.tips.lastIndex) {
                     HorizontalDivider(
-                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.28f),
-                        modifier = Modifier.padding(start = 58.dp),
+                        modifier = Modifier.padding(start = 48.dp),
+                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.18f),
                     )
                 }
             }
@@ -217,90 +209,72 @@ private fun SafetyMenuList(
 }
 
 @Composable
-private fun SafetyMenuRow(
-    item: SafetyMenuItem,
-    onClick: () -> Unit,
-) {
+private fun SafetyTipRow(text: String) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(horizontal = 14.dp, vertical = 13.dp),
+            .padding(horizontal = 14.dp, vertical = 11.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalAlignment = Alignment.CenterVertically,
+        verticalAlignment = Alignment.Top,
     ) {
         Icon(
-            imageVector = item.icon,
+            imageVector = Heroicons.Outline.CheckCircle,
             contentDescription = null,
-            modifier = Modifier.size(22.dp),
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier
+                .padding(top = 1.dp)
+                .size(18.dp),
+            tint = MaterialTheme.colorScheme.primary,
         )
-        Column(
+        Text(
+            text = text,
             modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(1.dp),
-        ) {
-            Text(
-                text = item.title,
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.onSurface,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Text(
-                text = item.subtitle,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
-        Icon(
-            imageVector = Heroicons.Outline.ChevronRight,
-            contentDescription = null,
-            modifier = Modifier.size(18.dp),
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
 }
 
-private data class SafetyMenuItem(
-    val type: SafetyMenuItemType,
+private data class SafetyTipSection(
     val title: String,
-    val subtitle: String,
     val icon: ImageVector,
+    val tips: List<String>,
 )
 
-private enum class SafetyMenuItemType {
-    LocationSharing,
-    EmergencyContacts,
-    ReportIncident,
-    SafetyTips,
-}
-
-private val safetyMenuItems = listOf(
-    SafetyMenuItem(
-        type = SafetyMenuItemType.LocationSharing,
-        title = "Location Sharing",
-        subtitle = "Trip location visibility and safety status",
+private val safetyTipSections = listOf(
+    SafetyTipSection(
+        title = "Before pickup",
         icon = Heroicons.Outline.MapPin,
+        tips = listOf(
+            "Check the pickup pin and passenger name before moving.",
+            "Park in a visible area and avoid unsafe pickup spots when possible.",
+            "Keep your phone mounted and battery ready for trip updates.",
+        ),
     ),
-    SafetyMenuItem(
-        type = SafetyMenuItemType.EmergencyContacts,
-        title = "Emergency Contacts",
-        subtitle = "People to contact during urgent situations",
-        icon = Heroicons.Outline.Phone,
+    SafetyTipSection(
+        title = "During the trip",
+        icon = Heroicons.Outline.ChatBubbleLeftRight,
+        tips = listOf(
+            "Use in-app chat or call for trip-related messages only.",
+            "Follow the app route unless the passenger requests a safer public route.",
+            "Do not continue a trip if the situation feels unsafe.",
+        ),
     ),
-    SafetyMenuItem(
-        type = SafetyMenuItemType.ReportIncident,
-        title = "Report an Incident",
-        subtitle = "Send a trip, passenger, or payment concern",
+    SafetyTipSection(
+        title = "Cash handling",
+        icon = Heroicons.Outline.Banknotes,
+        tips = listOf(
+            "Confirm the fare before ending the trip.",
+            "Count cash before marking the trip complete.",
+            "Report payment disputes from the Safety settings as soon as possible.",
+        ),
+    ),
+    SafetyTipSection(
+        title = "Urgent cases",
         icon = Heroicons.Outline.ExclamationTriangle,
-    ),
-    SafetyMenuItem(
-        type = SafetyMenuItemType.SafetyTips,
-        title = "Safety Tips",
-        subtitle = "Pickup, cash handling, and trip reminders",
-        icon = Heroicons.Outline.InformationCircle,
+        tips = listOf(
+            "For immediate danger, move to a safe public place first.",
+            "Contact local authorities for emergencies that need urgent response.",
+            "Submit an incident report after you are safe so support has a record.",
+        ),
     ),
 )

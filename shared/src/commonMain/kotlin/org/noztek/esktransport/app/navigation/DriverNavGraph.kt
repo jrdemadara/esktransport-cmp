@@ -39,8 +39,11 @@ import org.noztek.esktransport.feature.driver.onboarding.presentation.DriverServ
 import org.noztek.esktransport.feature.driver.onboarding.presentation.DriverVehicleRegistrationScreen
 import org.noztek.esktransport.feature.driver.onboarding.presentation.DriverVehicleServicesScreen
 import org.noztek.esktransport.feature.driver.settings.presentation.DriverAccountScreen
+import org.noztek.esktransport.feature.driver.settings.presentation.DriverEmergencyContactsScreen
+import org.noztek.esktransport.feature.driver.settings.presentation.DriverIncidentReportScreen
 import org.noztek.esktransport.feature.driver.settings.presentation.DriverSettingsScreen
 import org.noztek.esktransport.feature.driver.settings.presentation.DriverSafetyScreen
+import org.noztek.esktransport.feature.driver.settings.presentation.DriverSafetyTipsScreen
 import org.noztek.esktransport.feature.driver.settings.presentation.DriverServiceAreasScreen
 import org.noztek.esktransport.feature.driver.settings.presentation.DriverVerificationScreen
 import org.noztek.esktransport.feature.driver.settings.presentation.DriverVehicleDetailScreen
@@ -63,6 +66,9 @@ private const val ROUTE_DRIVER_WALLET_HISTORY = "driver/wallet/history"
 private const val ROUTE_DRIVER_ACCOUNT_SETTINGS = "driver/settings/account"
 private const val ROUTE_DRIVER_VERIFICATION_SETTINGS = "driver/settings/verification"
 private const val ROUTE_DRIVER_SAFETY_SETTINGS = "driver/settings/safety"
+private const val ROUTE_DRIVER_EMERGENCY_CONTACTS_SETTINGS = "driver/settings/safety/emergency-contacts"
+private const val ROUTE_DRIVER_INCIDENT_REPORT_SETTINGS = "driver/settings/safety/report-incident"
+private const val ROUTE_DRIVER_SAFETY_TIPS_SETTINGS = "driver/settings/safety/tips"
 private const val ROUTE_DRIVER_SERVICE_AREAS_SETTINGS = "driver/settings/service-areas"
 private const val ROUTE_DRIVER_VEHICLES_SETTINGS = "driver/settings/vehicles"
 private const val ROUTE_DRIVER_VEHICLE_ADD = "driver/settings/vehicles/add"
@@ -255,6 +261,45 @@ fun NavGraphBuilder.driverNavGraph(
         }
         composable(route = ROUTE_DRIVER_SAFETY_SETTINGS) {
             DriverSafetyScreen(
+                onBackClick = { navController.popBackStack() },
+                onEmergencyContactsClick = {
+                    navController.navigate(ROUTE_DRIVER_EMERGENCY_CONTACTS_SETTINGS) {
+                        launchSingleTop = true
+                    }
+                },
+                onReportIncidentClick = {
+                    navController.navigate(ROUTE_DRIVER_INCIDENT_REPORT_SETTINGS) {
+                        launchSingleTop = true
+                    }
+                },
+                onSafetyTipsClick = {
+                    navController.navigate(ROUTE_DRIVER_SAFETY_TIPS_SETTINGS) {
+                        launchSingleTop = true
+                    }
+                },
+                onBottomBarNavigate = { route ->
+                    navController.navigateDriverBottomBarRoute(route)
+                },
+            )
+        }
+        composable(route = ROUTE_DRIVER_EMERGENCY_CONTACTS_SETTINGS) {
+            DriverEmergencyContactsScreen(
+                onBackClick = { navController.popBackStack() },
+                onBottomBarNavigate = { route ->
+                    navController.navigateDriverBottomBarRoute(route)
+                },
+            )
+        }
+        composable(route = ROUTE_DRIVER_INCIDENT_REPORT_SETTINGS) {
+            DriverIncidentReportScreen(
+                onBackClick = { navController.popBackStack() },
+                onBottomBarNavigate = { route ->
+                    navController.navigateDriverBottomBarRoute(route)
+                },
+            )
+        }
+        composable(route = ROUTE_DRIVER_SAFETY_TIPS_SETTINGS) {
+            DriverSafetyTipsScreen(
                 onBackClick = { navController.popBackStack() },
                 onBottomBarNavigate = { route ->
                     navController.navigateDriverBottomBarRoute(route)
