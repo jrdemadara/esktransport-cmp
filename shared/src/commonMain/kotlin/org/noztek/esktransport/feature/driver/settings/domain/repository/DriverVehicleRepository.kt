@@ -13,6 +13,8 @@ interface DriverVehicleRepository {
 
     suspend fun getVehicle(vehiclePublicId: String): Result<DriverVehicle>
 
+    suspend fun getVehiclePhoto(vehiclePublicId: String): Result<ByteArray?>
+
     suspend fun addVehicle(payload: DriverVehiclePayload): Result<DriverVehicle>
 
     suspend fun updateVehicle(vehiclePublicId: String, payload: DriverVehiclePayload): Result<DriverVehicle>

@@ -41,6 +41,15 @@ class DriverVehicleRepositoryImpl(
         }
     }
 
+    override suspend fun getVehiclePhoto(vehiclePublicId: String): Result<ByteArray?> {
+        return try {
+            Result.success(api.getVehiclePhoto(vehiclePublicId))
+        } catch (throwable: Throwable) {
+            val message = ApiErrorParser.parse(throwable, "Failed to load vehicle photo.")
+            Result.failure(IllegalStateException(message))
+        }
+    }
+
     override suspend fun addVehicle(payload: DriverVehiclePayload): Result<DriverVehicle> {
         return try {
             Result.success(api.addVehicle(payload.toRequestDto()).data.toDomain())

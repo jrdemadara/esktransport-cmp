@@ -75,7 +75,10 @@ fun DriverSettingsScreen(
     onBackClick: () -> Unit,
     onLogout: () -> Unit,
     onAccountClick: () -> Unit = {},
+    onDriverVerificationClick: () -> Unit = {},
     onVehiclesClick: () -> Unit = {},
+    onServiceAreasClick: () -> Unit = {},
+    onSafetyClick: () -> Unit = {},
     onBottomBarNavigate: (String) -> Unit = {},
     viewModel: DriverSettingsViewModel = koinViewModel(),
     appBuildInfo: AppBuildInfo = koinInject(),
@@ -115,7 +118,10 @@ fun DriverSettingsScreen(
                     onClick = {
                         when (item) {
                             SettingsMenuItem.Account -> onAccountClick()
+                            SettingsMenuItem.DriverVerification -> onDriverVerificationClick()
                             SettingsMenuItem.Vehicle -> onVehiclesClick()
+                            SettingsMenuItem.ServiceAreas -> onServiceAreasClick()
+                            SettingsMenuItem.Safety -> onSafetyClick()
                             else -> Unit
                         }
                     },
@@ -191,7 +197,11 @@ private fun SettingsMenuRow(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(
-                enabled = item == SettingsMenuItem.Account || item == SettingsMenuItem.Vehicle,
+                enabled = item == SettingsMenuItem.Account ||
+                    item == SettingsMenuItem.DriverVerification ||
+                    item == SettingsMenuItem.Vehicle ||
+                    item == SettingsMenuItem.ServiceAreas ||
+                    item == SettingsMenuItem.Safety,
                 onClick = onClick,
             )
             .padding(vertical = 13.dp),

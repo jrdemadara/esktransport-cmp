@@ -3,6 +3,7 @@ package org.noztek.esktransport.feature.driver.settings.domain.model
 import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverRequirementStatus
 import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverOnboardingDocumentType
 import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverVehicleServiceType
+import org.noztek.esktransport.core.utils.uppercaseFirstLetterOfEachWord
 
 data class DriverVehicle(
     val publicId: String,
@@ -25,6 +26,7 @@ data class DriverVehicle(
 data class DriverVehicleDocument(
     val type: String,
     val status: DriverRequirementStatus,
+    val filePath: String?,
     val rejectionReason: String?,
     val reviewedAt: String?,
     val expiresAt: String?,
@@ -95,7 +97,12 @@ data class DriverVehicleType(
 val DriverVehicle.displayName: String
     get() = listOfNotNull(make, model)
         .joinToString(" ")
-        .ifBlank { vehicleTypeCode?.replaceFirstChar { it.uppercase() } ?: "Vehicle" }
+        .ifBlank { vehicleTypeCode ?: "Vehicle" }
+        .replace('_', ' ')
+        .uppercaseFirstLetterOfEachWord()
+
+val DriverVehicle.vehiclePhotoDocument: DriverVehicleDocument?
+    get() = documents.firstOrNull { it.type == DriverOnboardingDocumentType.VehiclePhoto.apiValue }
 
 val DriverVehicle.enabledServiceLabels: List<String>
     get() = services

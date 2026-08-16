@@ -72,6 +72,8 @@ data class DriverVehicleDto(
 data class DriverVehicleDocumentDto(
     val type: String,
     val status: String,
+    @SerialName("file_path")
+    val filePath: String? = null,
     @SerialName("rejection_reason")
     val rejectionReason: String? = null,
     @SerialName("reviewed_at")
@@ -151,6 +153,7 @@ private fun DriverVehicleDocumentDto.toDomain(): DriverVehicleDocument {
     return DriverVehicleDocument(
         type = type,
         status = status.toDriverRequirementStatus(),
+        filePath = filePath,
         rejectionReason = rejectionReason,
         reviewedAt = reviewedAt,
         expiresAt = expiresAt,

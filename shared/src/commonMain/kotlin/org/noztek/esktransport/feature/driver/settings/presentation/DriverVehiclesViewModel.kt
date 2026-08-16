@@ -10,19 +10,23 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.noztek.esktransport.feature.driver.settings.domain.model.DriverVehicle
+import org.noztek.esktransport.feature.driver.settings.domain.model.vehiclePhotoDocument
 import org.noztek.esktransport.feature.driver.settings.domain.usecase.ActivateDriverRideVehicleUseCase
+import org.noztek.esktransport.feature.driver.settings.domain.usecase.GetDriverVehiclePhotoUseCase
 import org.noztek.esktransport.feature.driver.settings.domain.usecase.GetDriverVehiclesUseCase
 
 data class DriverVehiclesUiState(
     val isLoading: Boolean = true,
     val isActivatingVehicleId: String? = null,
     val vehicles: List<DriverVehicle> = emptyList(),
+    val vehiclePhotoBytes: Map<String, ByteArray> = emptyMap(),
     val errorMessage: String? = null,
     val statusMessage: String? = null,
 )
 
 class DriverVehiclesViewModel(
     private val getDriverVehiclesUseCase: GetDriverVehiclesUseCase,
+    private val getDriverVehiclePhotoUseCase: GetDriverVehiclePhotoUseCase,
     private val activateDriverRideVehicleUseCase: ActivateDriverRideVehicleUseCase,
     private val ioDispatcher: CoroutineDispatcher,
 ) : ViewModel() {
@@ -43,9 +47,12 @@ class DriverVehiclesViewModel(
                         it.copy(
                             isLoading = false,
                             vehicles = vehicles,
+                            vehiclePhotoBytes = it.vehiclePhotoBytes
+                                .filterKeys { publicId -> vehicles.any { vehicle -> vehicle.publicId == publicId } },
                             errorMessage = null,
                         )
                     }
+                    loadVehiclePhotos(vehicles)
                 },
                 onFailure = { throwable ->
                     _uiState.update {
@@ -57,6 +64,22 @@ class DriverVehiclesViewModel(
                 },
             )
         }
+    }
+
+    private fun loadVehiclePhotos(vehicles: List<DriverVehicle>) {
+        vehicles
+            .filter { vehicle -> vehicle.vehiclePhotoDocument?.filePath != null }
+            .filterNot { vehicle -> _uiState.value.vehiclePhotoBytes.containsKey(vehicle.publicId) }
+            .forEach { vehicle ->
+                viewModelScope.launch {
+                    val result = withContext(ioDispatcher) { getDriverVehiclePhotoUseCase(vehicle.publicId) }
+                    result.getOrNull()?.let { bytes ->
+                        _uiState.update {
+                            it.copy(vehiclePhotoBytes = it.vehiclePhotoBytes + (vehicle.publicId to bytes))
+                        }
+                    }
+                }
+            }
     }
 
     fun activateRideVehicle(vehicle: DriverVehicle) {

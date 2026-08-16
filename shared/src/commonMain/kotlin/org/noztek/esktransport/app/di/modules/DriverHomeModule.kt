@@ -44,6 +44,7 @@ import org.noztek.esktransport.feature.driver.settings.domain.usecase.ActivateDr
 import org.noztek.esktransport.feature.driver.settings.domain.usecase.AddDriverVehicleUseCase
 import org.noztek.esktransport.feature.driver.settings.domain.usecase.GetDriverAccountUseCase
 import org.noztek.esktransport.feature.driver.settings.domain.usecase.GetDriverProfilePhotoUseCase
+import org.noztek.esktransport.feature.driver.settings.domain.usecase.GetDriverVehiclePhotoUseCase
 import org.noztek.esktransport.feature.driver.settings.domain.usecase.GetDriverVehicleUseCase
 import org.noztek.esktransport.feature.driver.settings.domain.usecase.GetDriverVehicleTypesUseCase
 import org.noztek.esktransport.feature.driver.settings.domain.usecase.GetDriverVehiclesUseCase
@@ -52,6 +53,8 @@ import org.noztek.esktransport.feature.driver.settings.domain.usecase.UploadDriv
 import org.noztek.esktransport.feature.driver.settings.domain.usecase.UpdateDriverVehicleServicesUseCase
 import org.noztek.esktransport.feature.driver.settings.domain.usecase.UpdateDriverVehicleUseCase
 import org.noztek.esktransport.feature.driver.settings.presentation.DriverSettingsViewModel
+import org.noztek.esktransport.feature.driver.settings.presentation.DriverServiceAreasViewModel
+import org.noztek.esktransport.feature.driver.settings.presentation.DriverVerificationViewModel
 import org.noztek.esktransport.feature.driver.settings.presentation.DriverVehicleDetailViewModel
 import org.noztek.esktransport.feature.driver.settings.presentation.DriverVehicleFormViewModel
 import org.noztek.esktransport.feature.driver.settings.presentation.DriverVehiclesViewModel
@@ -106,6 +109,7 @@ val driverHomeModule = module {
     single { UpdateDriverAccountUseCase(repository = get()) }
     single { GetDriverProfilePhotoUseCase(repository = get()) }
     single { GetDriverVehiclesUseCase(repository = get()) }
+    single { GetDriverVehiclePhotoUseCase(repository = get()) }
     single { GetDriverVehicleUseCase(repository = get()) }
     single { GetDriverVehicleTypesUseCase(repository = get()) }
     single { AddDriverVehicleUseCase(repository = get()) }
@@ -204,7 +208,22 @@ val driverHomeModule = module {
     factory {
         DriverVehiclesViewModel(
             getDriverVehiclesUseCase = get(),
+            getDriverVehiclePhotoUseCase = get(),
             activateDriverRideVehicleUseCase = get(),
+            ioDispatcher = get(named(IO_DISPATCHER_QUALIFIER)),
+        )
+    }
+    factory {
+        DriverServiceAreasViewModel(
+            getDriverOnboardingStatusUseCase = get(),
+            getDriverServiceZonesUseCase = get(),
+            submitDriverServiceZonesUseCase = get(),
+            ioDispatcher = get(named(IO_DISPATCHER_QUALIFIER)),
+        )
+    }
+    factory {
+        DriverVerificationViewModel(
+            getDriverOnboardingStatusUseCase = get(),
             ioDispatcher = get(named(IO_DISPATCHER_QUALIFIER)),
         )
     }

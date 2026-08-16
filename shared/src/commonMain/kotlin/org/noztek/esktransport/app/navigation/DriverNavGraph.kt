@@ -40,6 +40,9 @@ import org.noztek.esktransport.feature.driver.onboarding.presentation.DriverVehi
 import org.noztek.esktransport.feature.driver.onboarding.presentation.DriverVehicleServicesScreen
 import org.noztek.esktransport.feature.driver.settings.presentation.DriverAccountScreen
 import org.noztek.esktransport.feature.driver.settings.presentation.DriverSettingsScreen
+import org.noztek.esktransport.feature.driver.settings.presentation.DriverSafetyScreen
+import org.noztek.esktransport.feature.driver.settings.presentation.DriverServiceAreasScreen
+import org.noztek.esktransport.feature.driver.settings.presentation.DriverVerificationScreen
 import org.noztek.esktransport.feature.driver.settings.presentation.DriverVehicleDetailScreen
 import org.noztek.esktransport.feature.driver.settings.presentation.DriverVehicleFormScreen
 import org.noztek.esktransport.feature.driver.settings.presentation.DriverVehiclesScreen
@@ -58,6 +61,9 @@ private const val ROUTE_DRIVER_TOP_UP = "driver/wallet/top-up"
 private const val ROUTE_DRIVER_CASHOUT = "driver/wallet/cashout"
 private const val ROUTE_DRIVER_WALLET_HISTORY = "driver/wallet/history"
 private const val ROUTE_DRIVER_ACCOUNT_SETTINGS = "driver/settings/account"
+private const val ROUTE_DRIVER_VERIFICATION_SETTINGS = "driver/settings/verification"
+private const val ROUTE_DRIVER_SAFETY_SETTINGS = "driver/settings/safety"
+private const val ROUTE_DRIVER_SERVICE_AREAS_SETTINGS = "driver/settings/service-areas"
 private const val ROUTE_DRIVER_VEHICLES_SETTINGS = "driver/settings/vehicles"
 private const val ROUTE_DRIVER_VEHICLE_ADD = "driver/settings/vehicles/add"
 private const val ROUTE_DRIVER_VEHICLE_DETAIL = "driver/settings/vehicles/detail"
@@ -214,11 +220,50 @@ fun NavGraphBuilder.driverNavGraph(
                         launchSingleTop = true
                     }
                 },
+                onDriverVerificationClick = {
+                    navController.navigate(ROUTE_DRIVER_VERIFICATION_SETTINGS) {
+                        launchSingleTop = true
+                    }
+                },
                 onVehiclesClick = {
                     navController.navigate(ROUTE_DRIVER_VEHICLES_SETTINGS) {
                         launchSingleTop = true
                     }
                 },
+                onServiceAreasClick = {
+                    navController.navigate(ROUTE_DRIVER_SERVICE_AREAS_SETTINGS) {
+                        launchSingleTop = true
+                    }
+                },
+                onSafetyClick = {
+                    navController.navigate(ROUTE_DRIVER_SAFETY_SETTINGS) {
+                        launchSingleTop = true
+                    }
+                },
+                onBottomBarNavigate = { route ->
+                    navController.navigateDriverBottomBarRoute(route)
+                },
+            )
+        }
+        composable(route = ROUTE_DRIVER_VERIFICATION_SETTINGS) {
+            DriverVerificationScreen(
+                onBackClick = { navController.popBackStack() },
+                onBottomBarNavigate = { route ->
+                    navController.navigateDriverBottomBarRoute(route)
+                },
+            )
+        }
+        composable(route = ROUTE_DRIVER_SAFETY_SETTINGS) {
+            DriverSafetyScreen(
+                onBackClick = { navController.popBackStack() },
+                onBottomBarNavigate = { route ->
+                    navController.navigateDriverBottomBarRoute(route)
+                },
+            )
+        }
+        composable(route = ROUTE_DRIVER_SERVICE_AREAS_SETTINGS) {
+            DriverServiceAreasScreen(
+                onBackClick = { navController.popBackStack() },
                 onBottomBarNavigate = { route ->
                     navController.navigateDriverBottomBarRoute(route)
                 },
