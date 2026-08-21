@@ -10,10 +10,12 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.noztek.esktransport.feature.passenger.marketplace.domain.usecase.GetRentalListingsUseCase
 import org.noztek.esktransport.feature.passenger.marketplace.domain.usecase.GetRentalVehicleTypesUseCase
+import org.noztek.esktransport.feature.passenger.marketplace.domain.usecase.GetMarketplaceListingPhotoUseCase
 
 class MarketplaceViewModel(
     private val getRentalVehicleTypesUseCase: GetRentalVehicleTypesUseCase,
     private val getRentalListingsUseCase: GetRentalListingsUseCase,
+    private val getMarketplaceListingPhotoUseCase: GetMarketplaceListingPhotoUseCase,
     private val ioDispatcher: CoroutineDispatcher,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(MarketplaceUiState())
@@ -66,9 +68,31 @@ class MarketplaceViewModel(
                 it.copy(
                     isLoadingListings = false,
                     listings = listingsResult.getOrDefault(emptyList()),
+                    listingPhotoBytes = it.listingPhotoBytes
+                        .filterKeys { publicId ->
+                            listingsResult.getOrDefault(emptyList()).any { listing -> listing.publicId == publicId }
+                        },
                     errorMessage = listingsResult.exceptionOrNull()?.message,
                 )
             }
+            listingsResult.getOrNull()?.let { listings ->
+                loadListingPhotos(listings.map { it.publicId })
+            }
         }
+    }
+
+    private fun loadListingPhotos(publicIds: List<String>) {
+        publicIds
+            .filterNot { publicId -> _uiState.value.listingPhotoBytes.containsKey(publicId) }
+            .forEach { publicId ->
+                viewModelScope.launch {
+                    val result = withContext(ioDispatcher) { getMarketplaceListingPhotoUseCase(publicId) }
+                    result.getOrNull()?.let { bytes ->
+                        _uiState.update {
+                            it.copy(listingPhotoBytes = it.listingPhotoBytes + (publicId to bytes))
+                        }
+                    }
+                }
+            }
     }
 }

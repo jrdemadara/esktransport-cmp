@@ -9,5 +9,6 @@ data class MarketplaceUiState(
     val vehicleTypes: List<MarketplaceVehicleType> = emptyList(),
     val selectedVehicleTypeCode: String? = null,
     val listings: List<MarketplaceListing> = emptyList(),
+    val listingPhotoBytes: Map<String, ByteArray> = emptyMap(),
     val errorMessage: String? = null,
 )

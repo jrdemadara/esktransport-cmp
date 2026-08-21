@@ -2,8 +2,10 @@ package org.noztek.esktransport.feature.passenger.marketplace.data.remote
 
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
+import io.ktor.client.plugins.ClientRequestException
 import io.ktor.client.request.get
 import io.ktor.client.request.parameter
+import io.ktor.http.HttpStatusCode
 import org.noztek.esktransport.feature.passenger.marketplace.data.remote.dto.MarketplaceListingsResponseDto
 import org.noztek.esktransport.feature.passenger.marketplace.data.remote.dto.VehicleTypeLookupResponseDto
 
@@ -28,5 +30,17 @@ class MarketplaceApi(
 
     suspend fun getListing(publicId: String): MarketplaceListingsResponseDto.Single {
         return client.get("${baseUrl.trimEnd('/')}/api/passenger/vehicle-listings/$publicId").body()
+    }
+
+    suspend fun getListingPhoto(publicId: String): ByteArray? {
+        return try {
+            client.get("${baseUrl.trimEnd('/')}/api/passenger/vehicle-listings/$publicId/photo").body()
+        } catch (exception: ClientRequestException) {
+            if (exception.response.status == HttpStatusCode.NotFound) {
+                null
+            } else {
+                throw exception
+            }
+        }
     }
 }

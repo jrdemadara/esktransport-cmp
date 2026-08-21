@@ -7,4 +7,5 @@ interface MarketplaceRepository {
     suspend fun getRentalVehicleTypes(): Result<List<MarketplaceVehicleType>>
     suspend fun getRentalListings(vehicleTypeCode: String?): Result<List<MarketplaceListing>>
     suspend fun getListing(publicId: String): Result<MarketplaceListing>
+    suspend fun getListingPhoto(publicId: String): Result<ByteArray?>
 }

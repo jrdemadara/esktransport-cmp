@@ -64,6 +64,7 @@ import esktransport.shared.generated.resources.medium_truck
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
 import org.koin.compose.viewmodel.koinViewModel
+import org.noztek.esktransport.feature.driver.onboarding.presentation.CapturedDocumentPreviewImage
 import org.noztek.esktransport.feature.passenger.marketplace.domain.model.MarketplaceListing
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -158,6 +159,7 @@ fun MarketplaceScreen(
                     items(uiState.listings) { listing ->
                         MarketplaceListingCard(
                             listing = listing,
+                            vehiclePhotoBytes = uiState.listingPhotoBytes[listing.publicId],
                             onClick = { onListingClick(listing.publicId) },
                         )
                     }
@@ -348,6 +350,7 @@ private fun MarketplaceStateMessage(
 @Composable
 private fun MarketplaceListingCard(
     listing: MarketplaceListing,
+    vehiclePhotoBytes: ByteArray?,
     onClick: () -> Unit,
 ) {
     Surface(
@@ -363,7 +366,10 @@ private fun MarketplaceListingCard(
                 modifier = Modifier.padding(8.dp),
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                ListingImage(listing = listing)
+                ListingImage(
+                    listing = listing,
+                    vehiclePhotoBytes = vehiclePhotoBytes,
+                )
                 Column(
                     modifier = Modifier.weight(1f),
                     verticalArrangement = Arrangement.spacedBy(4.dp),
@@ -426,18 +432,24 @@ private fun MarketplaceListingCard(
 }
 
 @Composable
-private fun ListingImage(listing: MarketplaceListing) {
+private fun ListingImage(
+    listing: MarketplaceListing,
+    vehiclePhotoBytes: ByteArray?,
+) {
     Box(
         modifier = Modifier
             .size(width = 122.dp, height = 112.dp)
-            .clip(RoundedCornerShape(8.dp)),
+            .clip(RoundedCornerShape(8.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)),
     ) {
-            Image(
-            painter = painterResource(vehicleTypeImage(listing.vehicle.vehicleTypeCode)),
-            contentDescription = listing.title,
-            contentScale = ContentScale.Crop,
-            modifier = Modifier.fillMaxSize(),
-        )
+        vehiclePhotoBytes?.let { bytes ->
+            CapturedDocumentPreviewImage(
+                bytes = bytes,
+                contentDescription = listing.title,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize(),
+            )
+        }
         Surface(
             shape = RoundedCornerShape(topStart = 8.dp, bottomEnd = 8.dp),
             color = MaterialTheme.colorScheme.primary,

@@ -8,10 +8,13 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.noztek.esktransport.feature.passenger.marketplace.domain.model.MarketplaceListing
+import org.noztek.esktransport.feature.passenger.marketplace.domain.usecase.GetMarketplaceListingPhotoUseCase
 import org.noztek.esktransport.feature.passenger.marketplace.domain.usecase.GetMarketplaceListingUseCase
 
 class MarketplaceListingDetailsViewModel(
     private val getMarketplaceListingUseCase: GetMarketplaceListingUseCase,
+    private val getMarketplaceListingPhotoUseCase: GetMarketplaceListingPhotoUseCase,
     private val ioDispatcher: CoroutineDispatcher,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(MarketplaceListingDetailsUiState())
@@ -21,10 +24,12 @@ class MarketplaceListingDetailsViewModel(
         if (publicId.isBlank()) return
         viewModelScope.launch {
             _uiState.update {
+                val currentListing = it.listing?.takeIf { listing -> listing.publicId == publicId }
                 it.copy(
                     isLoading = true,
                     errorMessage = null,
-                    listing = it.listing?.takeIf { listing -> listing.publicId == publicId },
+                    listing = currentListing,
+                    vehiclePhotoBytes = it.vehiclePhotoBytes.takeIf { currentListing != null },
                 )
             }
 
@@ -38,6 +43,7 @@ class MarketplaceListingDetailsViewModel(
                             errorMessage = null,
                         )
                     }
+                    loadListingPhoto(listing)
                 }
                 .onFailure { throwable ->
                     _uiState.update {
@@ -47,6 +53,15 @@ class MarketplaceListingDetailsViewModel(
                         )
                     }
                 }
+        }
+    }
+
+    private fun loadListingPhoto(listing: MarketplaceListing) {
+        viewModelScope.launch {
+            val result = withContext(ioDispatcher) { getMarketplaceListingPhotoUseCase(listing.publicId) }
+            result.getOrNull()?.let { bytes ->
+                _uiState.update { it.copy(vehiclePhotoBytes = bytes) }
+            }
         }
     }
 }

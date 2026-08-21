@@ -35,4 +35,13 @@ class MarketplaceRepositoryImpl(
             Result.failure(IllegalStateException(message))
         }
     }
+
+    override suspend fun getListingPhoto(publicId: String): Result<ByteArray?> {
+        return try {
+            Result.success(api.getListingPhoto(publicId))
+        } catch (throwable: Throwable) {
+            val message = ApiErrorParser.parse(throwable, "Failed to load vehicle photo.")
+            Result.failure(IllegalStateException(message))
+        }
+    }
 }

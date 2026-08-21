@@ -1,7 +1,6 @@
 package org.noztek.esktransport.feature.passenger.marketplace.presentation
 
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -60,18 +59,9 @@ import com.composables.icons.heroicons.outline.MapPin
 import com.composables.icons.heroicons.outline.Tag
 import com.composables.icons.heroicons.outline.Truck
 import com.composables.icons.heroicons.outline.User
-import esktransport.shared.generated.resources.Res
-import esktransport.shared.generated.resources.big_truck
-import esktransport.shared.generated.resources.car
-import esktransport.shared.generated.resources.home_big_truck
-import esktransport.shared.generated.resources.home_car
-import esktransport.shared.generated.resources.home_scooter
-import esktransport.shared.generated.resources.home_tricycle
-import esktransport.shared.generated.resources.medium_truck
-import org.jetbrains.compose.resources.DrawableResource
-import org.jetbrains.compose.resources.painterResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.noztek.esktransport.core.ui.composables.common.AppPrimaryButton
+import org.noztek.esktransport.feature.driver.onboarding.presentation.CapturedDocumentPreviewImage
 import org.noztek.esktransport.feature.passenger.marketplace.domain.model.MarketplaceListing
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -116,7 +106,12 @@ fun MarketplaceListingDetailsScreen(
                     }
                 }
                 listing != null -> {
-                    item { ListingImageCarousel(listing = listing) }
+                    item {
+                        ListingImageCarousel(
+                            listing = listing,
+                            vehiclePhotoBytes = uiState.vehiclePhotoBytes,
+                        )
+                    }
                     item { ListingHeader(listing = listing) }
                     item { VehicleDetailsCard(listing = listing) }
                     item { PricingCard(listing = listing) }
@@ -162,55 +157,40 @@ private fun ListingDetailsTopBar(
 }
 
 @Composable
-private fun ListingImageCarousel(listing: MarketplaceListing) {
+private fun ListingImageCarousel(
+    listing: MarketplaceListing,
+    vehiclePhotoBytes: ByteArray?,
+) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(212.dp)
-                .clip(RoundedCornerShape(10.dp)),
+                .clip(RoundedCornerShape(10.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)),
         ) {
-            Image(
-                painter = painterResource(vehicleTypeImage(listing.vehicle.vehicleTypeCode)),
-                contentDescription = listing.title,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize(),
-            )
-            Surface(
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(10.dp),
-                shape = RoundedCornerShape(7.dp),
-                color = Color.Black.copy(alpha = 0.70f),
-                contentColor = Color.White,
-            ) {
-                Text(
-                    text = "1 / 6",
-                    modifier = Modifier.padding(horizontal = 9.dp, vertical = 5.dp),
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.SemiBold,
+            vehiclePhotoBytes?.let { bytes ->
+                CapturedDocumentPreviewImage(
+                    bytes = bytes,
+                    contentDescription = listing.title,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize(),
                 )
-            }
-        }
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            repeat(6) { index ->
-                Box(
+                Surface(
                     modifier = Modifier
-                        .padding(horizontal = 3.dp)
-                        .size(if (index == 0) 8.dp else 7.dp)
-                        .clip(RoundedCornerShape(999.dp))
-                        .background(
-                            if (index == 0) {
-                                MaterialTheme.colorScheme.primary
-                            } else {
-                                MaterialTheme.colorScheme.outlineVariant
-                            },
-                        ),
-                )
+                        .align(Alignment.BottomEnd)
+                        .padding(10.dp),
+                    shape = RoundedCornerShape(7.dp),
+                    color = Color.Black.copy(alpha = 0.70f),
+                    contentColor = Color.White,
+                ) {
+                    Text(
+                        text = "1 / 1",
+                        modifier = Modifier.padding(horizontal = 9.dp, vertical = 5.dp),
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
             }
         }
     }
@@ -751,18 +731,6 @@ private fun VerticalDivider(modifier: Modifier = Modifier) {
             .width(0.7.dp)
             .background(MaterialTheme.colorScheme.outlineVariant),
     )
-}
-
-private fun vehicleTypeImage(code: String): DrawableResource {
-    return when (code) {
-        "motorcycle" -> Res.drawable.home_scooter
-        "tricycle" -> Res.drawable.home_tricycle
-        "sedan", "hatchback", "car", "suv", "mpv" -> Res.drawable.home_car
-        "pickup", "multicab" -> Res.drawable.car
-        "van", "jeepney" -> Res.drawable.big_truck
-        "mini_truck", "light_truck", "cargo_truck", "closed_van", "wing_van", "fleet_vehicle" -> Res.drawable.medium_truck
-        else -> Res.drawable.home_big_truck
-    }
 }
 
 private fun MarketplaceListing.rateLabel(): String {
