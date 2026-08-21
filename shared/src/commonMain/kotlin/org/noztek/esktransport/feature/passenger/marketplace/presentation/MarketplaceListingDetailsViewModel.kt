@@ -30,6 +30,7 @@ class MarketplaceListingDetailsViewModel(
                     errorMessage = null,
                     listing = currentListing,
                     vehiclePhotoBytes = it.vehiclePhotoBytes.takeIf { currentListing != null },
+                    isVehiclePhotoLoading = false,
                 )
             }
 
@@ -58,9 +59,13 @@ class MarketplaceListingDetailsViewModel(
 
     private fun loadListingPhoto(listing: MarketplaceListing) {
         viewModelScope.launch {
+            _uiState.update { it.copy(isVehiclePhotoLoading = true) }
             val result = withContext(ioDispatcher) { getMarketplaceListingPhotoUseCase(listing.publicId) }
-            result.getOrNull()?.let { bytes ->
-                _uiState.update { it.copy(vehiclePhotoBytes = bytes) }
+            _uiState.update {
+                it.copy(
+                    vehiclePhotoBytes = result.getOrNull(),
+                    isVehiclePhotoLoading = false,
+                )
             }
         }
     }

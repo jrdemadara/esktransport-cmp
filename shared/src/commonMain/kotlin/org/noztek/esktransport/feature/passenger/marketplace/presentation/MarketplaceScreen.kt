@@ -160,6 +160,7 @@ fun MarketplaceScreen(
                         MarketplaceListingCard(
                             listing = listing,
                             vehiclePhotoBytes = uiState.listingPhotoBytes[listing.publicId],
+                            isPhotoLoading = listing.publicId in uiState.loadingPhotoPublicIds,
                             onClick = { onListingClick(listing.publicId) },
                         )
                     }
@@ -351,6 +352,7 @@ private fun MarketplaceStateMessage(
 private fun MarketplaceListingCard(
     listing: MarketplaceListing,
     vehiclePhotoBytes: ByteArray?,
+    isPhotoLoading: Boolean,
     onClick: () -> Unit,
 ) {
     Surface(
@@ -369,6 +371,7 @@ private fun MarketplaceListingCard(
                 ListingImage(
                     listing = listing,
                     vehiclePhotoBytes = vehiclePhotoBytes,
+                    isPhotoLoading = isPhotoLoading,
                 )
                 Column(
                     modifier = Modifier.weight(1f),
@@ -435,6 +438,7 @@ private fun MarketplaceListingCard(
 private fun ListingImage(
     listing: MarketplaceListing,
     vehiclePhotoBytes: ByteArray?,
+    isPhotoLoading: Boolean,
 ) {
     Box(
         modifier = Modifier
@@ -448,6 +452,15 @@ private fun ListingImage(
                 contentDescription = listing.title,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize(),
+            )
+        }
+        if (vehiclePhotoBytes == null && isPhotoLoading) {
+            CircularProgressIndicator(
+                modifier = Modifier
+                    .align(Alignment.Center)
+                    .size(22.dp),
+                strokeWidth = 2.dp,
+                color = MaterialTheme.colorScheme.primary,
             )
         }
         Surface(

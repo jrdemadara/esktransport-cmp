@@ -65,13 +65,16 @@ class MarketplaceViewModel(
             val listingsResult = withContext(ioDispatcher) { getRentalListingsUseCase(vehicleTypeCode) }
 
             _uiState.update {
+                val listings = listingsResult.getOrDefault(emptyList())
+                val listingPublicIds = listings.map { listing -> listing.publicId }.toSet()
                 it.copy(
                     isLoadingListings = false,
-                    listings = listingsResult.getOrDefault(emptyList()),
+                    listings = listings,
                     listingPhotoBytes = it.listingPhotoBytes
-                        .filterKeys { publicId ->
-                            listingsResult.getOrDefault(emptyList()).any { listing -> listing.publicId == publicId }
-                        },
+                        .filterKeys { publicId -> publicId in listingPublicIds },
+                    loadingPhotoPublicIds = it.loadingPhotoPublicIds
+                        .filter { publicId -> publicId in listingPublicIds }
+                        .toSet(),
                     errorMessage = listingsResult.exceptionOrNull()?.message,
                 )
             }
@@ -84,13 +87,23 @@ class MarketplaceViewModel(
     private fun loadListingPhotos(publicIds: List<String>) {
         publicIds
             .filterNot { publicId -> _uiState.value.listingPhotoBytes.containsKey(publicId) }
+            .filterNot { publicId -> _uiState.value.loadingPhotoPublicIds.contains(publicId) }
             .forEach { publicId ->
                 viewModelScope.launch {
+                    _uiState.update {
+                        it.copy(loadingPhotoPublicIds = it.loadingPhotoPublicIds + publicId)
+                    }
                     val result = withContext(ioDispatcher) { getMarketplaceListingPhotoUseCase(publicId) }
-                    result.getOrNull()?.let { bytes ->
-                        _uiState.update {
-                            it.copy(listingPhotoBytes = it.listingPhotoBytes + (publicId to bytes))
-                        }
+                    _uiState.update {
+                        val bytes = result.getOrNull()
+                        it.copy(
+                            listingPhotoBytes = if (bytes != null) {
+                                it.listingPhotoBytes + (publicId to bytes)
+                            } else {
+                                it.listingPhotoBytes
+                            },
+                            loadingPhotoPublicIds = it.loadingPhotoPublicIds - publicId,
+                        )
                     }
                 }
             }

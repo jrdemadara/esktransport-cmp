@@ -10,5 +10,6 @@ data class MarketplaceUiState(
     val selectedVehicleTypeCode: String? = null,
     val listings: List<MarketplaceListing> = emptyList(),
     val listingPhotoBytes: Map<String, ByteArray> = emptyMap(),
+    val loadingPhotoPublicIds: Set<String> = emptySet(),
     val errorMessage: String? = null,
 )

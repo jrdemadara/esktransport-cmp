@@ -6,6 +6,7 @@ data class MarketplaceListingDetailsUiState(
     val isLoading: Boolean = false,
     val listing: MarketplaceListing? = null,
     val vehiclePhotoBytes: ByteArray? = null,
+    val isVehiclePhotoLoading: Boolean = false,
     val errorMessage: String? = null,
 ) {
     override fun equals(other: Any?): Boolean {
@@ -15,6 +16,7 @@ data class MarketplaceListingDetailsUiState(
         return isLoading == other.isLoading &&
             listing == other.listing &&
             vehiclePhotoBytes.contentEquals(other.vehiclePhotoBytes) &&
+            isVehiclePhotoLoading == other.isVehiclePhotoLoading &&
             errorMessage == other.errorMessage
     }
 
@@ -22,6 +24,7 @@ data class MarketplaceListingDetailsUiState(
         var result = isLoading.hashCode()
         result = 31 * result + (listing?.hashCode() ?: 0)
         result = 31 * result + (vehiclePhotoBytes?.contentHashCode() ?: 0)
+        result = 31 * result + isVehiclePhotoLoading.hashCode()
         result = 31 * result + (errorMessage?.hashCode() ?: 0)
         return result
     }

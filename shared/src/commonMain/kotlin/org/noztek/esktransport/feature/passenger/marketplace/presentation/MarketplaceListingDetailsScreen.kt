@@ -110,6 +110,7 @@ fun MarketplaceListingDetailsScreen(
                         ListingImageCarousel(
                             listing = listing,
                             vehiclePhotoBytes = uiState.vehiclePhotoBytes,
+                            isPhotoLoading = uiState.isVehiclePhotoLoading,
                         )
                     }
                     item { ListingHeader(listing = listing) }
@@ -160,6 +161,7 @@ private fun ListingDetailsTopBar(
 private fun ListingImageCarousel(
     listing: MarketplaceListing,
     vehiclePhotoBytes: ByteArray?,
+    isPhotoLoading: Boolean,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Box(
@@ -191,6 +193,15 @@ private fun ListingImageCarousel(
                         fontWeight = FontWeight.SemiBold,
                     )
                 }
+            }
+            if (vehiclePhotoBytes == null && isPhotoLoading) {
+                CircularProgressIndicator(
+                    modifier = Modifier
+                        .align(Alignment.Center)
+                        .size(26.dp),
+                    strokeWidth = 2.dp,
+                    color = MaterialTheme.colorScheme.primary,
+                )
             }
         }
     }
