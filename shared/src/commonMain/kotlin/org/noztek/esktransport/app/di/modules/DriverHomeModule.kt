@@ -311,6 +311,7 @@ val driverHomeModule = module {
     factory {
         MarketplaceListingEditViewModel(
             getDriverMarketplaceListingUseCase = get(),
+            getDriverVehiclePhotoUseCase = get(),
             updateDriverMarketplaceListingUseCase = get(),
             ioDispatcher = get(named(IO_DISPATCHER_QUALIFIER)),
         )

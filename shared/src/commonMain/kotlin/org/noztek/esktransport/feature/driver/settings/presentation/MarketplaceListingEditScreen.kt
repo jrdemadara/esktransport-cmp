@@ -1,7 +1,6 @@
 package org.noztek.esktransport.feature.driver.settings.presentation
 
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -66,21 +65,12 @@ import com.composables.icons.heroicons.outline.Eye
 import com.composables.icons.heroicons.outline.PaperAirplane
 import com.composables.icons.heroicons.outline.Tag
 import com.composables.icons.heroicons.outline.Truck
-import esktransport.shared.generated.resources.Res
-import esktransport.shared.generated.resources.big_truck
-import esktransport.shared.generated.resources.car
-import esktransport.shared.generated.resources.home_big_truck
-import esktransport.shared.generated.resources.home_car
-import esktransport.shared.generated.resources.home_scooter
-import esktransport.shared.generated.resources.home_tricycle
-import esktransport.shared.generated.resources.medium_truck
-import org.jetbrains.compose.resources.DrawableResource
-import org.jetbrains.compose.resources.painterResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.noztek.esktransport.core.ui.composables.common.AppPrimaryButton
 import org.noztek.esktransport.core.utils.uppercaseFirstLetterOfEachWord
 import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverRequirementStatus
 import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverVehicleServiceType
+import org.noztek.esktransport.feature.driver.onboarding.presentation.CapturedDocumentPreviewImage
 import org.noztek.esktransport.feature.driver.settings.domain.model.DriverMarketplaceListing
 import org.noztek.esktransport.feature.driver.settings.domain.model.DriverMarketplaceListingVehicle
 
@@ -161,7 +151,10 @@ fun MarketplaceListingEditScreen(
                         .padding(horizontal = 16.dp, vertical = 10.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    VehicleListingSummaryCard(listing = uiState.listing!!)
+                    VehicleListingSummaryCard(
+                        listing = uiState.listing!!,
+                        vehiclePhotoBytes = uiState.vehiclePhotoBytes,
+                    )
                     ListingFormCard(
                         title = uiState.title,
                         onTitleChange = viewModel::onTitleChange,
@@ -225,6 +218,7 @@ private fun ListingEditTopBar(
 @Composable
 private fun VehicleListingSummaryCard(
     listing: DriverMarketplaceListing,
+    vehiclePhotoBytes: ByteArray?,
 ) {
     val vehicle = listing.vehicle
     Surface(
@@ -239,13 +233,9 @@ private fun VehicleListingSummaryCard(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Image(
-                painter = painterResource(vehicle.vehicleTypeImage()),
-                contentDescription = vehicle.displayName(),
-                contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .size(width = 112.dp, height = 86.dp)
-                    .clip(RoundedCornerShape(10.dp)),
+            ListingVehicleImage(
+                vehicle = vehicle,
+                vehiclePhotoBytes = vehiclePhotoBytes,
             )
             Column(
                 modifier = Modifier.weight(1f),
@@ -286,6 +276,29 @@ private fun VehicleListingSummaryCard(
                     )
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun ListingVehicleImage(
+    vehicle: DriverMarketplaceListingVehicle,
+    vehiclePhotoBytes: ByteArray?,
+) {
+    val shape = RoundedCornerShape(10.dp)
+
+    Box(
+        modifier = Modifier
+            .size(width = 112.dp, height = 86.dp)
+            .clip(shape),
+    ) {
+        vehiclePhotoBytes?.let { bytes ->
+            CapturedDocumentPreviewImage(
+                bytes = bytes,
+                contentDescription = vehicle.displayName(),
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop,
+            )
         }
     }
 }
@@ -717,20 +730,6 @@ private fun DriverMarketplaceListingVehicle.displayName(): String {
         .ifBlank { vehicleTypeLabel ?: vehicleTypeCode ?: "Vehicle" }
         .replace('_', ' ')
         .uppercaseFirstLetterOfEachWord()
-}
-
-private fun DriverMarketplaceListingVehicle.vehicleTypeImage(): DrawableResource {
-    return when (vehicleTypeCode?.lowercase()) {
-        "motorcycle" -> Res.drawable.home_scooter
-        "tricycle" -> Res.drawable.home_tricycle
-        "sedan", "hatchback", "car", "suv", "mpv" -> Res.drawable.home_car
-        "pickup", "multicab" -> Res.drawable.car
-        "van", "jeepney" -> Res.drawable.big_truck
-        "mini_truck", "light_truck", "cargo_truck", "closed_van", "wing_van", "fleet_vehicle" -> {
-            Res.drawable.medium_truck
-        }
-        else -> Res.drawable.home_big_truck
-    }
 }
 
 private fun String.titleLabel(): String {

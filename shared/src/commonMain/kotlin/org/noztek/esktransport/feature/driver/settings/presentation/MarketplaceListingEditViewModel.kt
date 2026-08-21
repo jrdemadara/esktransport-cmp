@@ -13,6 +13,7 @@ import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverVehi
 import org.noztek.esktransport.feature.driver.settings.domain.model.DriverMarketplaceListing
 import org.noztek.esktransport.feature.driver.settings.domain.model.DriverMarketplaceListingPayload
 import org.noztek.esktransport.feature.driver.settings.domain.usecase.GetDriverMarketplaceListingUseCase
+import org.noztek.esktransport.feature.driver.settings.domain.usecase.GetDriverVehiclePhotoUseCase
 import org.noztek.esktransport.feature.driver.settings.domain.usecase.UpdateDriverMarketplaceListingUseCase
 
 data class MarketplaceListingEditUiState(
@@ -26,12 +27,50 @@ data class MarketplaceListingEditUiState(
     val minimumHours: String = "",
     val includedKm: String = "",
     val isAvailable: Boolean = false,
+    val vehiclePhotoBytes: ByteArray? = null,
     val errorMessage: String? = null,
     val statusMessage: String? = null,
-)
+) {
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is MarketplaceListingEditUiState) return false
+
+        return isLoading == other.isLoading &&
+            isSaving == other.isSaving &&
+            listing == other.listing &&
+            title == other.title &&
+            description == other.description &&
+            baseRate == other.baseRate &&
+            rateUnit == other.rateUnit &&
+            minimumHours == other.minimumHours &&
+            includedKm == other.includedKm &&
+            isAvailable == other.isAvailable &&
+            vehiclePhotoBytes.contentEquals(other.vehiclePhotoBytes) &&
+            errorMessage == other.errorMessage &&
+            statusMessage == other.statusMessage
+    }
+
+    override fun hashCode(): Int {
+        var result = isLoading.hashCode()
+        result = 31 * result + isSaving.hashCode()
+        result = 31 * result + (listing?.hashCode() ?: 0)
+        result = 31 * result + title.hashCode()
+        result = 31 * result + description.hashCode()
+        result = 31 * result + baseRate.hashCode()
+        result = 31 * result + rateUnit.hashCode()
+        result = 31 * result + minimumHours.hashCode()
+        result = 31 * result + includedKm.hashCode()
+        result = 31 * result + isAvailable.hashCode()
+        result = 31 * result + (vehiclePhotoBytes?.contentHashCode() ?: 0)
+        result = 31 * result + (errorMessage?.hashCode() ?: 0)
+        result = 31 * result + (statusMessage?.hashCode() ?: 0)
+        return result
+    }
+}
 
 class MarketplaceListingEditViewModel(
     private val getDriverMarketplaceListingUseCase: GetDriverMarketplaceListingUseCase,
+    private val getDriverVehiclePhotoUseCase: GetDriverVehiclePhotoUseCase,
     private val updateDriverMarketplaceListingUseCase: UpdateDriverMarketplaceListingUseCase,
     private val ioDispatcher: CoroutineDispatcher,
 ) : ViewModel() {
@@ -79,7 +118,8 @@ class MarketplaceListingEditViewModel(
             }
             result.fold(
                 onSuccess = { listing ->
-                    _uiState.update { listing.toUiState() }
+                    _uiState.update { listing.toUiState(vehiclePhotoBytes = it.vehiclePhotoBytes) }
+                    loadVehiclePhoto(listing)
                 },
                 onFailure = { throwable ->
                     _uiState.update {
@@ -172,7 +212,7 @@ class MarketplaceListingEditViewModel(
             result.fold(
                 onSuccess = { updatedListing ->
                     _uiState.update {
-                        updatedListing.toUiState().copy(
+                        updatedListing.toUiState(vehiclePhotoBytes = it.vehiclePhotoBytes).copy(
                             statusMessage = successMessage,
                         )
                     }
@@ -188,9 +228,20 @@ class MarketplaceListingEditViewModel(
             )
         }
     }
+
+    private fun loadVehiclePhoto(listing: DriverMarketplaceListing) {
+        val vehiclePublicId = listing.vehicle.publicId ?: return
+
+        viewModelScope.launch {
+            val result = withContext(ioDispatcher) { getDriverVehiclePhotoUseCase(vehiclePublicId) }
+            result.getOrNull()?.let { bytes ->
+                _uiState.update { it.copy(vehiclePhotoBytes = bytes) }
+            }
+        }
+    }
 }
 
-private fun DriverMarketplaceListing.toUiState(): MarketplaceListingEditUiState {
+private fun DriverMarketplaceListing.toUiState(vehiclePhotoBytes: ByteArray?): MarketplaceListingEditUiState {
     return MarketplaceListingEditUiState(
         isLoading = false,
         isSaving = false,
@@ -202,6 +253,7 @@ private fun DriverMarketplaceListing.toUiState(): MarketplaceListingEditUiState 
         minimumHours = minimumHours.formatDecimal(),
         includedKm = includedKm.formatDecimal(),
         isAvailable = status == "active",
+        vehiclePhotoBytes = vehiclePhotoBytes,
         errorMessage = null,
         statusMessage = null,
     )
