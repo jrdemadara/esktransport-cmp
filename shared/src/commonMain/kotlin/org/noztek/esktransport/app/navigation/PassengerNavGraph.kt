@@ -98,6 +98,7 @@ import org.noztek.esktransport.feature.passenger.home.presentation.PassengerHome
 import org.noztek.esktransport.feature.passenger.kudi.presentation.KudiScreen
 import org.noztek.esktransport.feature.passenger.location_search.presentation.LocationSearchScreen
 import org.noztek.esktransport.feature.passenger.location_search.presentation.SelectedLocation
+import org.noztek.esktransport.feature.passenger.marketplace.presentation.MarketplaceListingDetailsScreen
 import org.noztek.esktransport.feature.passenger.marketplace.presentation.MarketplaceScreen
 import org.noztek.esktransport.feature.passenger.ride_planner.presentation.RidePlannerScreen
 import org.noztek.esktransport.feature.passenger.ride_planner.presentation.RidePlannerUiEvent
@@ -121,6 +122,7 @@ private const val ARG_MODE = "mode"
 private const val ARG_VEHICLE_TYPE_INDEX = "vehicleTypeIndex"
 private const val ROUTE_SERVICES = "services"
 private const val ROUTE_MARKETPLACE = "marketplace"
+private const val ROUTE_MARKETPLACE_LISTING_DETAILS = "marketplace/listing-details"
 private const val ROUTE_KUDI = "kudi"
 private const val ROUTE_ACTIVITY = "activity"
 private const val ROUTE_PROFILE = "profile"
@@ -166,6 +168,7 @@ private fun PassengerShell(onLogout: () -> Unit) {
         !isRidePlannerRoute &&
         currentRoute != ROUTE_BOOKING_REVIEW &&
         currentRoute != ROUTE_MARKETPLACE &&
+        currentRoute != ROUTE_MARKETPLACE_LISTING_DETAILS &&
         currentRoute != ROUTE_KUDI &&
         currentRoute != ROUTE_PASSENGER_TOP_UP &&
         currentRoute != ROUTE_PASSENGER_CASHOUT &&
@@ -268,6 +271,7 @@ private fun PassengerShell(onLogout: () -> Unit) {
                 isRidePlannerRoute -> PassengerBackTopBar("Plan your trip") { navController.popBackStack() }
                 currentRoute == ROUTE_BOOKING_REVIEW -> PassengerBackTopBar("Review Booking") { navController.popBackStack() }
                 currentRoute == ROUTE_MARKETPLACE -> Unit
+                currentRoute == ROUTE_MARKETPLACE_LISTING_DETAILS -> Unit
                 currentRoute == ROUTE_KUDI -> Unit
                 currentRoute == ROUTE_PROFILE -> Unit
                 currentRoute == ROUTE_PASSENGER_ACCOUNT_SETTINGS -> Unit
@@ -471,6 +475,16 @@ private fun PassengerShell(onLogout: () -> Unit) {
             composable(ROUTE_SERVICES) { PlaceholderTabScreen("Services") }
             composable(ROUTE_MARKETPLACE) {
                 MarketplaceScreen(
+                    onBackClick = { navController.popBackStack() },
+                    onListingClick = {
+                        navController.navigate(ROUTE_MARKETPLACE_LISTING_DETAILS) {
+                            launchSingleTop = true
+                        }
+                    },
+                )
+            }
+            composable(ROUTE_MARKETPLACE_LISTING_DETAILS) {
+                MarketplaceListingDetailsScreen(
                     onBackClick = { navController.popBackStack() },
                 )
             }

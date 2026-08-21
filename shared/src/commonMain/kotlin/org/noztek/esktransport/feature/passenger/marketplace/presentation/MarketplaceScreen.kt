@@ -68,6 +68,7 @@ import org.jetbrains.compose.resources.painterResource
 @Composable
 fun MarketplaceScreen(
     onBackClick: () -> Unit = {},
+    onListingClick: () -> Unit = {},
 ) {
     var selectedVehicleType by remember { mutableStateOf("van") }
 
@@ -109,7 +110,10 @@ fun MarketplaceScreen(
                 MarketplaceSectionTitle(title = "Available rentals")
             }
             items(mockListings.filter { it.service == MarketplaceService.Rental }) { listing ->
-                MarketplaceListingCard(listing = listing)
+                MarketplaceListingCard(
+                    listing = listing,
+                    onClick = onListingClick,
+                )
             }
         }
     }
@@ -234,13 +238,17 @@ private fun VehicleTypeFilterChip(
 }
 
 @Composable
-private fun MarketplaceListingCard(listing: MarketplaceListing) {
+private fun MarketplaceListingCard(
+    listing: MarketplaceListing,
+    onClick: () -> Unit,
+) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(10.dp),
         color = MaterialTheme.colorScheme.surface,
         contentColor = MaterialTheme.colorScheme.onSurface,
         border = BorderStroke(0.6.dp, MaterialTheme.colorScheme.outlineVariant),
+        onClick = onClick,
     ) {
         Column {
             Row(
