@@ -24,6 +24,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -32,13 +33,12 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -63,14 +63,17 @@ import esktransport.shared.generated.resources.home_tricycle
 import esktransport.shared.generated.resources.medium_truck
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
+import org.koin.compose.viewmodel.koinViewModel
+import org.noztek.esktransport.feature.passenger.marketplace.domain.model.MarketplaceListing
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MarketplaceScreen(
     onBackClick: () -> Unit = {},
-    onListingClick: () -> Unit = {},
+    onListingClick: (String) -> Unit = {},
+    viewModel: MarketplaceViewModel = koinViewModel(),
 ) {
-    var selectedVehicleType by remember { mutableStateOf("van") }
+    val uiState by viewModel.uiState.collectAsState()
 
     Scaffold(
         contentWindowInsets = WindowInsets.safeDrawing,
@@ -95,25 +98,70 @@ fun MarketplaceScreen(
             item {
                 MarketplaceSectionTitle(title = "Vehicle types")
             }
-            item {
-                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    items(vehicleTypeFilters) { item ->
-                        VehicleTypeFilterChip(
-                            item = item,
-                            selected = selectedVehicleType == item.key,
-                            onClick = { selectedVehicleType = item.key },
-                        )
+            when {
+                uiState.isLoadingVehicleTypes && uiState.vehicleTypes.isEmpty() -> {
+                    item {
+                        MarketplaceLoadingRow(text = "Loading vehicle types")
+                    }
+                }
+                uiState.vehicleTypes.isNotEmpty() -> {
+                    item {
+                        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            item {
+                                VehicleTypeFilterChip(
+                                    label = "all",
+                                    image = Res.drawable.home_big_truck,
+                                    selected = uiState.selectedVehicleTypeCode == null,
+                                    onClick = { viewModel.selectVehicleType(null) },
+                                )
+                            }
+                            items(uiState.vehicleTypes) { item ->
+                                VehicleTypeFilterChip(
+                                    label = item.name.lowercase(),
+                                    image = vehicleTypeImage(item.code),
+                                    selected = uiState.selectedVehicleTypeCode == item.code,
+                                    onClick = { viewModel.selectVehicleType(item.code) },
+                                )
+                            }
+                        }
                     }
                 }
             }
             item {
                 MarketplaceSectionTitle(title = "Available rentals")
             }
-            items(mockListings.filter { it.service == MarketplaceService.Rental }) { listing ->
-                MarketplaceListingCard(
-                    listing = listing,
-                    onClick = onListingClick,
-                )
+            when {
+                uiState.isLoadingListings && uiState.listings.isEmpty() -> {
+                    item {
+                        MarketplaceLoadingRow(text = "Loading rentals")
+                    }
+                }
+                uiState.errorMessage != null && uiState.listings.isEmpty() -> {
+                    item {
+                        MarketplaceStateMessage(
+                            title = "Unable to load rentals",
+                            message = uiState.errorMessage.orEmpty(),
+                            actionText = "Retry",
+                            onActionClick = viewModel::refresh,
+                        )
+                    }
+                }
+                uiState.listings.isEmpty() -> {
+                    item {
+                        MarketplaceStateMessage(
+                            title = "No rentals yet",
+                            message = "Try another vehicle type when more owners publish listings.",
+                        )
+                    }
+                }
+                else -> {
+                    items(uiState.listings) { listing ->
+                        MarketplaceListingCard(
+                            listing = listing,
+                            onClick = { onListingClick(listing.publicId) },
+                        )
+                    }
+                }
             }
         }
     }
@@ -198,7 +246,8 @@ private fun MarketplaceSectionTitle(title: String) {
 
 @Composable
 private fun VehicleTypeFilterChip(
-    item: VehicleTypeFilter,
+    label: String,
+    image: DrawableResource,
     selected: Boolean,
     onClick: () -> Unit,
 ) {
@@ -219,20 +268,79 @@ private fun VehicleTypeFilterChip(
             verticalArrangement = Arrangement.Center,
         ) {
             Image(
-                painter = painterResource(item.image),
-                contentDescription = item.label,
+                painter = painterResource(image),
+                contentDescription = label,
                 contentScale = ContentScale.Fit,
                 modifier = Modifier.size(30.dp),
             )
             Spacer(modifier = Modifier.height(6.dp))
             Text(
-                text = item.label,
+                text = label,
                 style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.Medium,
                 color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
+        }
+    }
+}
+
+@Composable
+private fun MarketplaceLoadingRow(text: String) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 10.dp),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        CircularProgressIndicator(
+            modifier = Modifier.size(18.dp),
+            strokeWidth = 2.dp,
+        )
+        Spacer(modifier = Modifier.width(10.dp))
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+@Composable
+private fun MarketplaceStateMessage(
+    title: String,
+    message: String,
+    actionText: String? = null,
+    onActionClick: (() -> Unit)? = null,
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(10.dp),
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(0.6.dp, MaterialTheme.colorScheme.outlineVariant),
+    ) {
+        Column(
+            modifier = Modifier.padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Text(
+                text = message,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            if (actionText != null && onActionClick != null) {
+                TextButton(onClick = onActionClick) {
+                    Text(actionText)
+                }
+            }
         }
     }
 }
@@ -281,17 +389,17 @@ private fun MarketplaceListingCard(
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
-                    OwnerLine(name = listing.owner)
-                    SmallBluePill(text = listing.typeLabel)
+                    OwnerLine(name = listing.owner.name)
+                    SmallBluePill(text = listing.vehicle.vehicleTypeCode)
                     Text(
-                        text = "${listing.makeModel}  •  ${listing.year}",
+                        text = listing.vehicle.modelYearLabel(),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
                     Text(
-                        text = listing.plate,
+                        text = listing.vehicle.plate,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
@@ -324,8 +432,8 @@ private fun ListingImage(listing: MarketplaceListing) {
             .size(width = 122.dp, height = 112.dp)
             .clip(RoundedCornerShape(8.dp)),
     ) {
-        Image(
-            painter = painterResource(listing.image),
+            Image(
+            painter = painterResource(vehicleTypeImage(listing.vehicle.vehicleTypeCode)),
             contentDescription = listing.title,
             contentScale = ContentScale.Crop,
             modifier = Modifier.fillMaxSize(),
@@ -336,7 +444,7 @@ private fun ListingImage(listing: MarketplaceListing) {
             contentColor = MaterialTheme.colorScheme.onPrimary,
         ) {
             Text(
-                text = listing.typeLabel,
+                text = listing.vehicle.vehicleTypeCode,
                 modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
                 style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.SemiBold,
@@ -397,13 +505,13 @@ private fun ListingStatsRow(listing: MarketplaceListing) {
             .padding(horizontal = 10.dp, vertical = 8.dp),
         verticalAlignment = Alignment.Top,
     ) {
-        ListingStat(value = listing.payload, label = "Payload", modifier = Modifier.weight(1f))
+        ListingStat(value = formatWeight(listing.vehicle.payloadKg), label = "Payload", modifier = Modifier.weight(1f))
         ThinDivider()
-        ListingStat(value = listing.passengers, label = "Passengers", modifier = Modifier.weight(1f))
+        ListingStat(value = listing.vehicle.passengerCapacity?.toString() ?: "-", label = "Passengers", modifier = Modifier.weight(1f))
         ThinDivider()
-        ListingStat(value = listing.rate, label = "Base rate", modifier = Modifier.weight(1.28f))
+        ListingStat(value = listing.rateLabel(), label = "Base rate", modifier = Modifier.weight(1.28f))
         ThinDivider()
-        ListingStat(value = listing.includedKm, label = "included km", modifier = Modifier.weight(1f))
+        ListingStat(value = listing.includedKmLabel(), label = "included km", modifier = Modifier.weight(1f))
     }
 }
 
@@ -502,110 +610,54 @@ private fun AvailablePill() {
     }
 }
 
-private enum class MarketplaceService {
-    Rental,
-    Cargo,
+private fun vehicleTypeImage(code: String): DrawableResource {
+    return when (code) {
+        "motorcycle" -> Res.drawable.home_scooter
+        "tricycle" -> Res.drawable.home_tricycle
+        "sedan", "hatchback", "car", "suv", "mpv" -> Res.drawable.home_car
+        "pickup", "multicab" -> Res.drawable.car
+        "van", "jeepney" -> Res.drawable.big_truck
+        "mini_truck", "light_truck", "cargo_truck", "closed_van", "wing_van", "fleet_vehicle" -> Res.drawable.medium_truck
+        else -> Res.drawable.home_big_truck
+    }
 }
 
-private data class VehicleTypeFilter(
-    val key: String,
-    val label: String,
-    val image: DrawableResource,
-)
+private fun MarketplaceListing.rateLabel(): String {
+    val amount = baseRate ?: return "-"
+    val unit = rateUnit?.takeIf { it.isNotBlank() } ?: "day"
+    return "${formatMoney(amount, currency)}/$unit"
+}
 
-private data class MarketplaceListing(
-    val service: MarketplaceService,
-    val typeLabel: String,
-    val title: String,
-    val owner: String,
-    val makeModel: String,
-    val year: String,
-    val plate: String,
-    val payload: String,
-    val passengers: String,
-    val rate: String,
-    val includedKm: String,
-    val image: DrawableResource,
-)
+private fun MarketplaceListing.includedKmLabel(): String {
+    return includedKm?.let { "${formatCompactNumber(it)} km" } ?: "-"
+}
 
-private val vehicleTypeFilters = listOf(
-    VehicleTypeFilter("van", "van", Res.drawable.home_big_truck),
-    VehicleTypeFilter("pickup", "pickup", Res.drawable.home_car),
-    VehicleTypeFilter("truck", "truck", Res.drawable.home_big_truck),
-    VehicleTypeFilter("sedan", "sedan", Res.drawable.home_car),
-    VehicleTypeFilter("motorcycle", "motorcycle", Res.drawable.home_scooter),
-    VehicleTypeFilter("tricycle", "tricycle", Res.drawable.home_tricycle),
-)
+private fun org.noztek.esktransport.feature.passenger.marketplace.domain.model.MarketplaceListingVehicle.modelYearLabel(): String {
+    val name = listOfNotNull(make, model).joinToString(" ").ifBlank {
+        vehicleTypeLabel ?: vehicleTypeCode
+    }
+    return year?.let { "$name  •  $it" } ?: name
+}
 
-private val mockListings = listOf(
-    MarketplaceListing(
-        service = MarketplaceService.Rental,
-        typeLabel = "van",
-        title = "Isuzu N-Series Box Truck",
-        owner = "Juan Dela Cruz",
-        makeModel = "Isuzu N-Series",
-        year = "2021",
-        plate = "ABC 1234",
-        payload = "4,200 kg",
-        passengers = "0",
-        rate = "PHP 6,800/day",
-        includedKm = "100 km",
-        image = Res.drawable.medium_truck,
-    ),
-    MarketplaceListing(
-        service = MarketplaceService.Rental,
-        typeLabel = "pickup",
-        title = "Toyota Hilux 4x4",
-        owner = "Pedro Santos",
-        makeModel = "Toyota Hilux 4x4",
-        year = "2020",
-        plate = "DEF 5678",
-        payload = "1,000 kg",
-        passengers = "5",
-        rate = "PHP 2,500/day",
-        includedKm = "80 km",
-        image = Res.drawable.car,
-    ),
-    MarketplaceListing(
-        service = MarketplaceService.Rental,
-        typeLabel = "van",
-        title = "Nissan Urvan NV350",
-        owner = "Mark Reyes",
-        makeModel = "Nissan Urvan NV350",
-        year = "2019",
-        plate = "GHI 9012",
-        payload = "1,200 kg",
-        passengers = "12",
-        rate = "PHP 3,200/day",
-        includedKm = "100 km",
-        image = Res.drawable.big_truck,
-    ),
-    MarketplaceListing(
-        service = MarketplaceService.Cargo,
-        typeLabel = "truck",
-        title = "Isuzu Elf Cargo",
-        owner = "Roberto Manuel",
-        makeModel = "Isuzu Elf",
-        year = "2022",
-        plate = "CRG 7712",
-        payload = "3,500 kg",
-        passengers = "2",
-        rate = "PHP 5,900/trip",
-        includedKm = "60 km",
-        image = Res.drawable.medium_truck,
-    ),
-    MarketplaceListing(
-        service = MarketplaceService.Cargo,
-        typeLabel = "pickup",
-        title = "Pickup with Canopy",
-        owner = "Ana Lopez",
-        makeModel = "Toyota Hilux",
-        year = "2021",
-        plate = "PKP 8820",
-        payload = "900 kg",
-        passengers = "4",
-        rate = "PHP 2,800/trip",
-        includedKm = "50 km",
-        image = Res.drawable.car,
-    ),
-)
+private fun formatWeight(value: Double?): String {
+    return value?.let { "${formatCompactNumber(it)} kg" } ?: "-"
+}
+
+private fun formatMoney(amount: Double, currency: String): String {
+    val whole = amount.toLong()
+    val formatted = whole.toString().reversed().chunked(3).joinToString(",").reversed()
+    return if (currency.equals("PHP", ignoreCase = true)) {
+        "PHP $formatted"
+    } else {
+        "$currency $formatted"
+    }
+}
+
+private fun formatCompactNumber(value: Double): String {
+    val whole = value.toLong()
+    return if (value == whole.toDouble()) {
+        whole.toString().reversed().chunked(3).joinToString(",").reversed()
+    } else {
+        value.toString()
+    }
+}

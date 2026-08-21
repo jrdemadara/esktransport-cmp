@@ -26,6 +26,14 @@ import org.noztek.esktransport.feature.passenger.kudi.domain.usecase.CreateKudiS
 import org.noztek.esktransport.feature.passenger.kudi.domain.usecase.GetCurrentKudiSessionUseCase
 import org.noztek.esktransport.feature.passenger.kudi.domain.usecase.SendKudiMessageUseCase
 import org.noztek.esktransport.feature.passenger.kudi.presentation.KudiViewModel
+import org.noztek.esktransport.feature.passenger.marketplace.data.impl.MarketplaceRepositoryImpl
+import org.noztek.esktransport.feature.passenger.marketplace.data.remote.MarketplaceApi
+import org.noztek.esktransport.feature.passenger.marketplace.domain.repository.MarketplaceRepository
+import org.noztek.esktransport.feature.passenger.marketplace.domain.usecase.GetMarketplaceListingUseCase
+import org.noztek.esktransport.feature.passenger.marketplace.domain.usecase.GetRentalListingsUseCase
+import org.noztek.esktransport.feature.passenger.marketplace.domain.usecase.GetRentalVehicleTypesUseCase
+import org.noztek.esktransport.feature.passenger.marketplace.presentation.MarketplaceListingDetailsViewModel
+import org.noztek.esktransport.feature.passenger.marketplace.presentation.MarketplaceViewModel
 import org.noztek.esktransport.feature.passenger.location_search.data.impl.LocationRepositoryImpl
 import org.noztek.esktransport.feature.passenger.location_search.data.impl.PlaceSearchRepositoryImpl
 import org.noztek.esktransport.feature.passenger.location_search.data.impl.ReverseGeocodeRepositoryImpl
@@ -90,6 +98,25 @@ val passengerModule = module {
             getCurrentKudiSessionUseCase = get(),
             createKudiSessionUseCase = get(),
             sendKudiMessageUseCase = get(),
+            ioDispatcher = get(named(IO_DISPATCHER_QUALIFIER)),
+        )
+    }
+
+    single { MarketplaceApi(client = get(), baseUrl = get(named(API_BASE_URL_QUALIFIER))) }
+    single<MarketplaceRepository> { MarketplaceRepositoryImpl(api = get()) }
+    single { GetRentalVehicleTypesUseCase(repository = get()) }
+    single { GetRentalListingsUseCase(repository = get()) }
+    single { GetMarketplaceListingUseCase(repository = get()) }
+    factory {
+        MarketplaceViewModel(
+            getRentalVehicleTypesUseCase = get(),
+            getRentalListingsUseCase = get(),
+            ioDispatcher = get(named(IO_DISPATCHER_QUALIFIER)),
+        )
+    }
+    factory {
+        MarketplaceListingDetailsViewModel(
+            getMarketplaceListingUseCase = get(),
             ioDispatcher = get(named(IO_DISPATCHER_QUALIFIER)),
         )
     }

@@ -50,6 +50,7 @@ import org.noztek.esktransport.feature.driver.settings.presentation.DriverVerifi
 import org.noztek.esktransport.feature.driver.settings.presentation.DriverVehicleDetailScreen
 import org.noztek.esktransport.feature.driver.settings.presentation.DriverVehicleFormScreen
 import org.noztek.esktransport.feature.driver.settings.presentation.DriverVehiclesScreen
+import org.noztek.esktransport.feature.driver.settings.presentation.MarketplaceListingEditScreen
 import org.noztek.esktransport.feature.driver.session.presentation.DriverSessionUiEvent
 import org.noztek.esktransport.feature.driver.session.presentation.DriverSessionViewModel
 import org.noztek.esktransport.feature.driver.trip_navigation.presentation.TripNavigationScreen
@@ -76,6 +77,7 @@ private const val ROUTE_DRIVER_VEHICLES_SETTINGS = "driver/settings/vehicles"
 private const val ROUTE_DRIVER_VEHICLE_ADD = "driver/settings/vehicles/add"
 private const val ROUTE_DRIVER_VEHICLE_DETAIL = "driver/settings/vehicles/detail"
 private const val ROUTE_DRIVER_VEHICLE_EDIT = "driver/settings/vehicles/edit"
+private const val ROUTE_DRIVER_VEHICLE_LISTING_EDIT = "driver/settings/vehicles/listing"
 private const val DRIVER_HOME_STATS_REFRESH_TOKEN = "driver_home_stats_refresh_token"
 private const val DRIVER_VEHICLES_REFRESH_TOKEN = "driver_vehicles_refresh_token"
 private const val DRIVER_VEHICLE_DETAIL_REFRESH_TOKEN = "driver_vehicle_detail_refresh_token"
@@ -351,6 +353,11 @@ fun NavGraphBuilder.driverNavGraph(
                         launchSingleTop = true
                     }
                 },
+                onManageListingClick = { vehicle, serviceType ->
+                    navController.navigate("$ROUTE_DRIVER_VEHICLE_LISTING_EDIT/${vehicle.publicId}/${serviceType.apiValue}") {
+                        launchSingleTop = true
+                    }
+                },
                 onBottomBarNavigate = { route ->
                     navController.navigateDriverBottomBarRoute(route)
                 },
@@ -404,6 +411,15 @@ fun NavGraphBuilder.driverNavGraph(
                 onBottomBarNavigate = { route ->
                     navController.navigateDriverBottomBarRoute(route)
                 },
+            )
+        }
+        composable("$ROUTE_DRIVER_VEHICLE_LISTING_EDIT/{vehiclePublicId}/{serviceType}") { backStackEntry ->
+            val vehiclePublicId = backStackEntry.arguments?.read { getStringOrNull("vehiclePublicId") }
+            val serviceTypeValue = backStackEntry.arguments?.read { getStringOrNull("serviceType") }
+            MarketplaceListingEditScreen(
+                vehiclePublicId = vehiclePublicId,
+                serviceType = serviceTypeValue?.toDriverVehicleServiceType() ?: DriverVehicleServiceType.Rental,
+                onBackClick = { navController.popBackStack() },
             )
         }
         composable(route = ROUTE_DRIVER_ACCOUNT_SETTINGS) {
@@ -619,6 +635,10 @@ private fun DriverOnboardingStatus.vehicleServicesNeedDriverAction(): Boolean {
                 !rideService.isEnabled ||
                 rideService.status.needsDriverAction()
             )
+}
+
+private fun String.toDriverVehicleServiceType(): DriverVehicleServiceType? {
+    return DriverVehicleServiceType.entries.firstOrNull { it.apiValue == this }
 }
 
 private fun DriverRequirementStatus.needsDriverAction(): Boolean {

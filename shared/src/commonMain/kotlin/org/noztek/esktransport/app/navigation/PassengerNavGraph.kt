@@ -120,9 +120,10 @@ private const val ROUTE_BOOKING_REVIEW = "booking-review"
 private const val ROUTE_LOCATION_SEARCH = "location-search/{mode}"
 private const val ARG_MODE = "mode"
 private const val ARG_VEHICLE_TYPE_INDEX = "vehicleTypeIndex"
+private const val ARG_MARKETPLACE_LISTING_ID = "listingPublicId"
 private const val ROUTE_SERVICES = "services"
 private const val ROUTE_MARKETPLACE = "marketplace"
-private const val ROUTE_MARKETPLACE_LISTING_DETAILS = "marketplace/listing-details"
+private const val ROUTE_MARKETPLACE_LISTING_DETAILS = "marketplace/listing-details/{$ARG_MARKETPLACE_LISTING_ID}"
 private const val ROUTE_KUDI = "kudi"
 private const val ROUTE_ACTIVITY = "activity"
 private const val ROUTE_PROFILE = "profile"
@@ -476,15 +477,22 @@ private fun PassengerShell(onLogout: () -> Unit) {
             composable(ROUTE_MARKETPLACE) {
                 MarketplaceScreen(
                     onBackClick = { navController.popBackStack() },
-                    onListingClick = {
-                        navController.navigate(ROUTE_MARKETPLACE_LISTING_DETAILS) {
+                    onListingClick = { listingPublicId ->
+                        navController.navigate("marketplace/listing-details/$listingPublicId") {
                             launchSingleTop = true
                         }
                     },
                 )
             }
-            composable(ROUTE_MARKETPLACE_LISTING_DETAILS) {
+            composable(
+                route = ROUTE_MARKETPLACE_LISTING_DETAILS,
+                arguments = listOf(navArgument(ARG_MARKETPLACE_LISTING_ID) { type = NavType.StringType }),
+            ) { backStackEntry ->
+                val listingPublicId = backStackEntry.arguments?.read {
+                    getStringOrNull(ARG_MARKETPLACE_LISTING_ID)
+                }.orEmpty()
                 MarketplaceListingDetailsScreen(
+                    listingPublicId = listingPublicId,
                     onBackClick = { navController.popBackStack() },
                 )
             }
@@ -798,6 +806,7 @@ private fun String?.toUserPresenceContext(isSearchingForRider: Boolean): UserPre
         this == ROUTE_BOOKING_REVIEW -> UserPresenceContext.BookingReview
         this == ROUTE_HOME -> UserPresenceContext.PassengerHome
         this == ROUTE_MARKETPLACE -> UserPresenceContext.PassengerHome
+        this == ROUTE_MARKETPLACE_LISTING_DETAILS -> UserPresenceContext.PassengerHome
         this == ROUTE_RIDE_PLANNER || this == ROUTE_RIDE_PLANNER_WITH_VEHICLE -> UserPresenceContext.RidePlanner
         this?.startsWith("location-search/") == true -> UserPresenceContext.LocationSearch
         this == ROUTE_KUDI -> UserPresenceContext.Kudi

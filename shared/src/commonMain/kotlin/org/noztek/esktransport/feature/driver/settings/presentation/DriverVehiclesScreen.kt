@@ -63,6 +63,7 @@ import com.composables.icons.heroicons.outline.DocumentText
 import com.composables.icons.heroicons.outline.EllipsisVertical
 import com.composables.icons.heroicons.outline.PencilSquare
 import com.composables.icons.heroicons.outline.Plus
+import com.composables.icons.heroicons.outline.Tag
 import com.composables.icons.heroicons.outline.Truck
 import org.koin.compose.viewmodel.koinViewModel
 import org.noztek.esktransport.core.ui.composables.common.AppPrimaryButton
@@ -83,6 +84,7 @@ fun DriverVehiclesScreen(
     onBackClick: () -> Unit,
     onAddVehicleClick: () -> Unit = {},
     onVehicleClick: (DriverVehicle) -> Unit = {},
+    onManageListingClick: (DriverVehicle, DriverVehicleServiceType) -> Unit = { _, _ -> },
     onBottomBarNavigate: (String) -> Unit = {},
     viewModel: DriverVehiclesViewModel = koinViewModel(),
 ) {
@@ -180,6 +182,9 @@ fun DriverVehiclesScreen(
                                 vehiclePhotoBytes = uiState.vehiclePhotoBytes[vehicle.publicId],
                                 isActivating = uiState.isActivatingVehicleId == vehicle.publicId,
                                 onEditClick = { onVehicleClick(vehicle) },
+                                onListingClick = vehicle.listingServiceType(selectedFilter.serviceType)?.let { serviceType ->
+                                    { onManageListingClick(vehicle, serviceType) }
+                                },
                                 onActivateRideClick = { viewModel.activateRideVehicle(vehicle) },
                             )
                         }
@@ -375,6 +380,7 @@ private fun DriverVehicleCard(
     vehiclePhotoBytes: ByteArray?,
     isActivating: Boolean,
     onEditClick: () -> Unit,
+    onListingClick: (() -> Unit)?,
     onActivateRideClick: () -> Unit,
 ) {
     val canActivateRide = vehicle.hasApprovedRideService() && !vehicle.isActiveRideVehicle
@@ -525,6 +531,20 @@ private fun DriverVehicleCard(
                         .width(1.dp)
                         .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f)),
                 )
+                if (onListingClick != null) {
+                    VehicleCardAction(
+                        icon = Heroicons.Outline.Tag,
+                        label = "Listing",
+                        onClick = onListingClick,
+                        modifier = Modifier.weight(1f),
+                    )
+                    Box(
+                        modifier = Modifier
+                            .height(20.dp)
+                            .width(1.dp)
+                            .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f)),
+                    )
+                }
                 VehicleCardAction(
                     icon = if (vehicle.verificationStatus == DriverRequirementStatus.Missing ||
                         vehicle.verificationStatus == DriverRequirementStatus.Rejected
@@ -762,6 +782,19 @@ private fun DriverVehicle.serviceActionLabel(): String {
 
 private fun DriverVehicle.hasRideService(): Boolean {
     return services.any { it.serviceType == DriverVehicleServiceType.Ride && it.isEnabled }
+}
+
+private fun DriverVehicle.listingServiceType(preferredServiceType: DriverVehicleServiceType?): DriverVehicleServiceType? {
+    val listingServices = services
+        .filter { it.isEnabled }
+        .map { it.serviceType }
+        .filter { it == DriverVehicleServiceType.Rental || it == DriverVehicleServiceType.Cargo }
+
+    return if (preferredServiceType in listingServices) {
+        preferredServiceType
+    } else {
+        listingServices.firstOrNull()
+    }
 }
 
 @Composable

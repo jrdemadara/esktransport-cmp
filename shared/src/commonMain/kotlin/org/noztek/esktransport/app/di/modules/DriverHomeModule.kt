@@ -37,16 +37,19 @@ import org.noztek.esktransport.feature.driver.onboarding.presentation.DriverOnbo
 import org.noztek.esktransport.feature.driver.settings.data.impl.DriverEmergencyContactRepositoryImpl
 import org.noztek.esktransport.feature.driver.settings.data.impl.DriverIncidentReportRepositoryImpl
 import org.noztek.esktransport.feature.driver.settings.data.impl.DriverLocationSharingRepositoryImpl
+import org.noztek.esktransport.feature.driver.settings.data.impl.DriverMarketplaceListingRepositoryImpl
 import org.noztek.esktransport.feature.driver.settings.data.impl.DriverSettingsRepositoryImpl
 import org.noztek.esktransport.feature.driver.settings.data.impl.DriverVehicleRepositoryImpl
 import org.noztek.esktransport.feature.driver.settings.data.remote.DriverEmergencyContactApi
 import org.noztek.esktransport.feature.driver.settings.data.remote.DriverIncidentReportApi
 import org.noztek.esktransport.feature.driver.settings.data.remote.DriverLocationSharingApi
+import org.noztek.esktransport.feature.driver.settings.data.remote.DriverMarketplaceListingApi
 import org.noztek.esktransport.feature.driver.settings.data.remote.DriverSettingsApi
 import org.noztek.esktransport.feature.driver.settings.data.remote.DriverVehicleApi
 import org.noztek.esktransport.feature.driver.settings.domain.repository.DriverEmergencyContactRepository
 import org.noztek.esktransport.feature.driver.settings.domain.repository.DriverIncidentReportRepository
 import org.noztek.esktransport.feature.driver.settings.domain.repository.DriverLocationSharingRepository
+import org.noztek.esktransport.feature.driver.settings.domain.repository.DriverMarketplaceListingRepository
 import org.noztek.esktransport.feature.driver.settings.domain.repository.DriverSettingsRepository
 import org.noztek.esktransport.feature.driver.settings.domain.repository.DriverVehicleRepository
 import org.noztek.esktransport.feature.driver.settings.domain.usecase.ActivateDriverRideVehicleUseCase
@@ -56,6 +59,7 @@ import org.noztek.esktransport.feature.driver.settings.domain.usecase.GetDriverA
 import org.noztek.esktransport.feature.driver.settings.domain.usecase.GetDriverEmergencyContactsUseCase
 import org.noztek.esktransport.feature.driver.settings.domain.usecase.GetDriverIncidentReportsUseCase
 import org.noztek.esktransport.feature.driver.settings.domain.usecase.GetDriverLocationSharingUseCase
+import org.noztek.esktransport.feature.driver.settings.domain.usecase.GetDriverMarketplaceListingUseCase
 import org.noztek.esktransport.feature.driver.settings.domain.usecase.GetDriverProfilePhotoUseCase
 import org.noztek.esktransport.feature.driver.settings.domain.usecase.GetDriverVehiclePhotoUseCase
 import org.noztek.esktransport.feature.driver.settings.domain.usecase.GetDriverVehicleUseCase
@@ -65,6 +69,7 @@ import org.noztek.esktransport.feature.driver.settings.domain.usecase.SaveDriver
 import org.noztek.esktransport.feature.driver.settings.domain.usecase.SubmitDriverIncidentReportUseCase
 import org.noztek.esktransport.feature.driver.settings.domain.usecase.UpdateDriverLocationSharingUseCase
 import org.noztek.esktransport.feature.driver.settings.domain.usecase.UpdateDriverAccountUseCase
+import org.noztek.esktransport.feature.driver.settings.domain.usecase.UpdateDriverMarketplaceListingUseCase
 import org.noztek.esktransport.feature.driver.settings.domain.usecase.UploadDriverVehicleDocumentUseCase
 import org.noztek.esktransport.feature.driver.settings.domain.usecase.UpdateDriverVehicleServicesUseCase
 import org.noztek.esktransport.feature.driver.settings.domain.usecase.UpdateDriverVehicleUseCase
@@ -72,6 +77,7 @@ import org.noztek.esktransport.feature.driver.settings.presentation.DriverSettin
 import org.noztek.esktransport.feature.driver.settings.presentation.DriverEmergencyContactsViewModel
 import org.noztek.esktransport.feature.driver.settings.presentation.DriverIncidentReportViewModel
 import org.noztek.esktransport.feature.driver.settings.presentation.DriverLocationSharingViewModel
+import org.noztek.esktransport.feature.driver.settings.presentation.MarketplaceListingEditViewModel
 import org.noztek.esktransport.feature.driver.settings.presentation.DriverServiceAreasViewModel
 import org.noztek.esktransport.feature.driver.settings.presentation.DriverVerificationViewModel
 import org.noztek.esktransport.feature.driver.settings.presentation.DriverVehicleDetailViewModel
@@ -112,6 +118,8 @@ val driverHomeModule = module {
     single<DriverSettingsRepository> { DriverSettingsRepositoryImpl(api = get()) }
     single { DriverVehicleApi(client = get(), baseUrl = get(named(API_BASE_URL_QUALIFIER))) }
     single<DriverVehicleRepository> { DriverVehicleRepositoryImpl(api = get()) }
+    single { DriverMarketplaceListingApi(client = get(), baseUrl = get(named(API_BASE_URL_QUALIFIER))) }
+    single<DriverMarketplaceListingRepository> { DriverMarketplaceListingRepositoryImpl(api = get()) }
     single { DriverEmergencyContactApi(client = get(), baseUrl = get(named(API_BASE_URL_QUALIFIER))) }
     single<DriverEmergencyContactRepository> { DriverEmergencyContactRepositoryImpl(api = get()) }
     single { DriverIncidentReportApi(client = get(), baseUrl = get(named(API_BASE_URL_QUALIFIER))) }
@@ -149,6 +157,8 @@ val driverHomeModule = module {
     single { UpdateDriverVehicleServicesUseCase(repository = get()) }
     single { UploadDriverVehicleDocumentUseCase(repository = get()) }
     single { ActivateDriverRideVehicleUseCase(repository = get()) }
+    single { GetDriverMarketplaceListingUseCase(repository = get()) }
+    single { UpdateDriverMarketplaceListingUseCase(repository = get()) }
     single { ObserveDriverOnboardingStatusChangedUseCase(realtime = get()) }
     single { SubscribeDriverOnboardingRealtimeUseCase(realtime = get()) }
     single { UnsubscribeDriverOnboardingRealtimeUseCase(realtime = get()) }
@@ -295,6 +305,13 @@ val driverHomeModule = module {
         DriverVehicleDetailViewModel(
             getDriverVehicleUseCase = get(),
             uploadDriverVehicleDocumentUseCase = get(),
+            ioDispatcher = get(named(IO_DISPATCHER_QUALIFIER)),
+        )
+    }
+    factory {
+        MarketplaceListingEditViewModel(
+            getDriverMarketplaceListingUseCase = get(),
+            updateDriverMarketplaceListingUseCase = get(),
             ioDispatcher = get(named(IO_DISPATCHER_QUALIFIER)),
         )
     }

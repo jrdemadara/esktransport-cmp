@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -33,6 +34,9 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -57,15 +61,32 @@ import com.composables.icons.heroicons.outline.Tag
 import com.composables.icons.heroicons.outline.Truck
 import com.composables.icons.heroicons.outline.User
 import esktransport.shared.generated.resources.Res
+import esktransport.shared.generated.resources.big_truck
+import esktransport.shared.generated.resources.car
+import esktransport.shared.generated.resources.home_big_truck
+import esktransport.shared.generated.resources.home_car
+import esktransport.shared.generated.resources.home_scooter
+import esktransport.shared.generated.resources.home_tricycle
 import esktransport.shared.generated.resources.medium_truck
+import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
+import org.koin.compose.viewmodel.koinViewModel
 import org.noztek.esktransport.core.ui.composables.common.AppPrimaryButton
+import org.noztek.esktransport.feature.passenger.marketplace.domain.model.MarketplaceListing
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MarketplaceListingDetailsScreen(
+    listingPublicId: String,
     onBackClick: () -> Unit = {},
+    viewModel: MarketplaceListingDetailsViewModel = koinViewModel(),
 ) {
+    val uiState by viewModel.uiState.collectAsState()
+
+    LaunchedEffect(listingPublicId) {
+        viewModel.load(listingPublicId)
+    }
+
     Scaffold(
         contentWindowInsets = WindowInsets.safeDrawing,
         containerColor = MaterialTheme.colorScheme.background,
@@ -81,12 +102,28 @@ fun MarketplaceListingDetailsScreen(
             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            item { ListingImageCarousel() }
-            item { ListingHeader() }
-            item { VehicleDetailsCard() }
-            item { PricingCard() }
-            item { DescriptionCard() }
-            item { RequestVehicleCard() }
+            val listing = uiState.listing
+            when {
+                uiState.isLoading && listing == null -> {
+                    item { DetailsLoadingState() }
+                }
+                uiState.errorMessage != null && listing == null -> {
+                    item {
+                        DetailsMessageState(
+                            title = "Unable to load listing",
+                            message = uiState.errorMessage.orEmpty(),
+                        )
+                    }
+                }
+                listing != null -> {
+                    item { ListingImageCarousel(listing = listing) }
+                    item { ListingHeader(listing = listing) }
+                    item { VehicleDetailsCard(listing = listing) }
+                    item { PricingCard(listing = listing) }
+                    item { DescriptionCard(listing = listing) }
+                    item { RequestVehicleCard() }
+                }
+            }
         }
     }
 }
@@ -125,7 +162,7 @@ private fun ListingDetailsTopBar(
 }
 
 @Composable
-private fun ListingImageCarousel() {
+private fun ListingImageCarousel(listing: MarketplaceListing) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Box(
             modifier = Modifier
@@ -134,8 +171,8 @@ private fun ListingImageCarousel() {
                 .clip(RoundedCornerShape(10.dp)),
         ) {
             Image(
-                painter = painterResource(Res.drawable.medium_truck),
-                contentDescription = "Isuzu N-Series Box Truck",
+                painter = painterResource(vehicleTypeImage(listing.vehicle.vehicleTypeCode)),
+                contentDescription = listing.title,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize(),
             )
@@ -180,7 +217,7 @@ private fun ListingImageCarousel() {
 }
 
 @Composable
-private fun ListingHeader() {
+private fun ListingHeader(listing: MarketplaceListing) {
     Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -192,7 +229,7 @@ private fun ListingHeader() {
                 verticalArrangement = Arrangement.spacedBy(7.dp),
             ) {
                 Text(
-                    text = "Isuzu N-Series Box Truck",
+                    text = listing.title,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onBackground,
@@ -200,8 +237,8 @@ private fun ListingHeader() {
                     overflow = TextOverflow.Ellipsis,
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    SolidPill(text = "Rental")
-                    SoftPill(text = "van", color = MaterialTheme.colorScheme.primary)
+                    SolidPill(text = listing.serviceType.replaceFirstChar { it.uppercase() })
+                    SoftPill(text = listing.vehicle.vehicleTypeCode, color = MaterialTheme.colorScheme.primary)
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(7.dp)) {
                     StatusPill(text = "active", color = Color(0xFF16A34A))
@@ -215,12 +252,12 @@ private fun ListingHeader() {
                 tint = MaterialTheme.colorScheme.outline,
             )
         }
-        OwnerRow()
+        OwnerRow(listing = listing)
     }
 }
 
 @Composable
-private fun OwnerRow() {
+private fun OwnerRow(listing: MarketplaceListing) {
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -233,7 +270,7 @@ private fun OwnerRow() {
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Text(
-                text = "Juan Dela Cruz",
+                text = listing.owner.name,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onBackground,
                 maxLines = 1,
@@ -246,7 +283,7 @@ private fun OwnerRow() {
             )
         }
         Text(
-            text = "Updated May 18, 2025",
+            text = listing.updatedAt?.let { "Updated ${formatApiDate(it)}" } ?: "Recently updated",
             modifier = Modifier.padding(start = 22.dp),
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -255,7 +292,7 @@ private fun OwnerRow() {
 }
 
 @Composable
-private fun VehicleDetailsCard() {
+private fun VehicleDetailsCard(listing: MarketplaceListing) {
     DetailsSectionCard(
         title = "Vehicle details",
         icon = Heroicons.Outline.Truck,
@@ -264,14 +301,14 @@ private fun VehicleDetailsCard() {
             InfoCell(
                 icon = Heroicons.Outline.DocumentText,
                 label = "Plate number",
-                value = "ABC 1234",
+                value = listing.vehicle.plate,
                 modifier = Modifier.weight(1f),
             )
             VerticalDivider(modifier = Modifier.height(45.dp))
             InfoCell(
                 icon = Heroicons.Outline.Truck,
                 label = "Make / Model / Year",
-                value = "Isuzu N-Series  •  2021",
+                value = listing.vehicle.modelYearLabel(),
                 modifier = Modifier.weight(1.2f),
             )
         }
@@ -280,21 +317,21 @@ private fun VehicleDetailsCard() {
             InfoCell(
                 icon = Heroicons.Outline.Briefcase,
                 label = "Payload",
-                value = "4,200 kg",
+                value = formatWeight(listing.vehicle.payloadKg),
                 modifier = Modifier.weight(1f),
             )
             VerticalDivider(modifier = Modifier.height(45.dp))
             InfoCell(
                 icon = Heroicons.Outline.Cube,
                 label = "Volume",
-                value = "18 m3",
+                value = listing.vehicle.volumeM3?.let { "${formatCompactNumber(it)} m3" } ?: "-",
                 modifier = Modifier.weight(1f),
             )
             VerticalDivider(modifier = Modifier.height(45.dp))
             InfoCell(
                 icon = Heroicons.Outline.User,
                 label = "Passenger capacity",
-                value = "0",
+                value = listing.vehicle.passengerCapacity?.toString() ?: "-",
                 modifier = Modifier.weight(1.08f),
             )
         }
@@ -335,7 +372,7 @@ private fun VehicleDetailsCard() {
 }
 
 @Composable
-private fun PricingCard() {
+private fun PricingCard(listing: MarketplaceListing) {
     DetailsSectionCard(
         title = "Pricing",
         icon = Heroicons.Outline.Tag,
@@ -355,13 +392,13 @@ private fun PricingCard() {
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Text(
-                    text = "PHP 6,800/day",
+                    text = listing.rateLabel(),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
                 Text(
-                    text = "Minimum 2 hours",
+                    text = listing.minimumHours?.let { "Minimum ${formatCompactNumber(it)} hours" } ?: "Minimum hours not set",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -377,25 +414,25 @@ private fun PricingCard() {
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Text(
-                    text = "100 km",
+                    text = listing.includedKm?.let { "${formatCompactNumber(it)} km" } ?: "-",
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
             }
-            SoftPill(text = "PHP", color = MaterialTheme.colorScheme.primary)
+            SoftPill(text = listing.currency, color = MaterialTheme.colorScheme.primary)
         }
     }
 }
 
 @Composable
-private fun DescriptionCard() {
+private fun DescriptionCard(listing: MarketplaceListing) {
     DetailsSectionCard(
         title = "Description",
         icon = Heroicons.Outline.DocumentText,
     ) {
         Text(
-            text = "Reliable Isuzu N-Series box truck ideal for deliveries, logistics, and distribution. Spacious cargo area with secure enclosed box for safe transport of goods.",
+            text = listing.description?.takeIf { it.isNotBlank() } ?: "No description provided yet.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -463,6 +500,58 @@ private fun RequestVehicleCard() {
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.primary,
+            )
+        }
+    }
+}
+
+@Composable
+private fun DetailsLoadingState() {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 24.dp),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        CircularProgressIndicator(
+            modifier = Modifier.size(18.dp),
+            strokeWidth = 2.dp,
+        )
+        Spacer(modifier = Modifier.width(10.dp))
+        Text(
+            text = "Loading listing",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+@Composable
+private fun DetailsMessageState(
+    title: String,
+    message: String,
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(10.dp),
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(0.7.dp, MaterialTheme.colorScheme.outlineVariant),
+    ) {
+        Column(
+            modifier = Modifier.padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Text(
+                text = message,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
     }
@@ -662,4 +751,76 @@ private fun VerticalDivider(modifier: Modifier = Modifier) {
             .width(0.7.dp)
             .background(MaterialTheme.colorScheme.outlineVariant),
     )
+}
+
+private fun vehicleTypeImage(code: String): DrawableResource {
+    return when (code) {
+        "motorcycle" -> Res.drawable.home_scooter
+        "tricycle" -> Res.drawable.home_tricycle
+        "sedan", "hatchback", "car", "suv", "mpv" -> Res.drawable.home_car
+        "pickup", "multicab" -> Res.drawable.car
+        "van", "jeepney" -> Res.drawable.big_truck
+        "mini_truck", "light_truck", "cargo_truck", "closed_van", "wing_van", "fleet_vehicle" -> Res.drawable.medium_truck
+        else -> Res.drawable.home_big_truck
+    }
+}
+
+private fun MarketplaceListing.rateLabel(): String {
+    val amount = baseRate ?: return "-"
+    val unit = rateUnit?.takeIf { it.isNotBlank() } ?: "day"
+    return "${formatMoney(amount, currency)}/$unit"
+}
+
+private fun org.noztek.esktransport.feature.passenger.marketplace.domain.model.MarketplaceListingVehicle.modelYearLabel(): String {
+    val name = listOfNotNull(make, model).joinToString(" ").ifBlank {
+        vehicleTypeLabel ?: vehicleTypeCode
+    }
+    return year?.let { "$name  •  $it" } ?: name
+}
+
+private fun formatWeight(value: Double?): String {
+    return value?.let { "${formatCompactNumber(it)} kg" } ?: "-"
+}
+
+private fun formatMoney(amount: Double, currency: String): String {
+    val whole = amount.toLong()
+    val formatted = whole.toString().reversed().chunked(3).joinToString(",").reversed()
+    return if (currency.equals("PHP", ignoreCase = true)) {
+        "PHP $formatted"
+    } else {
+        "$currency $formatted"
+    }
+}
+
+private fun formatCompactNumber(value: Double): String {
+    val whole = value.toLong()
+    return if (value == whole.toDouble()) {
+        whole.toString().reversed().chunked(3).joinToString(",").reversed()
+    } else {
+        value.toString()
+    }
+}
+
+private fun formatApiDate(value: String): String {
+    val date = value.take(10)
+    val parts = date.split("-")
+    if (parts.size != 3) return date
+
+    val month = when (parts[1]) {
+        "01" -> "Jan"
+        "02" -> "Feb"
+        "03" -> "Mar"
+        "04" -> "Apr"
+        "05" -> "May"
+        "06" -> "Jun"
+        "07" -> "Jul"
+        "08" -> "Aug"
+        "09" -> "Sep"
+        "10" -> "Oct"
+        "11" -> "Nov"
+        "12" -> "Dec"
+        else -> return date
+    }
+    val day = parts[2].trimStart('0').ifBlank { parts[2] }
+    return "$month $day, ${parts[0]}"
 }
