@@ -101,6 +101,7 @@ fun HomeScreen(
     onTopUpClick: () -> Unit = {},
     onCashoutClick: () -> Unit = {},
     onTransactionHistoryClick: () -> Unit = {},
+    onVehicleSettingsClick: () -> Unit = {},
     viewModel: HomeViewModel = koinViewModel(),
     mapboxConfig: MapboxConfig = koinInject(),
 ) {
@@ -202,7 +203,7 @@ fun HomeScreen(
                 onTripsClick = { onBottomBarNavigate(DriverBottomBarRoute.TRIPS) },
                 onEarningsClick = { onBottomBarNavigate(DriverBottomBarRoute.EARNINGS) },
                 onSupportClick = onProfileClick,
-                onVehicleClick = { onSetupClick(uiState.onboardingStatus) },
+                onVehicleClick = onVehicleSettingsClick,
             )
             RecentActivityCard(
                 isLoading = uiState.isLoadingRecentActivity,

@@ -155,6 +155,11 @@ fun NavGraphBuilder.driverNavGraph(
                         launchSingleTop = true
                     }
                 },
+                onVehicleSettingsClick = {
+                    navController.navigate(ROUTE_DRIVER_VEHICLES_SETTINGS) {
+                        launchSingleTop = true
+                    }
+                },
                 onProfileClick = {
                     navController.navigate(ROUTE_DRIVER_ACCOUNT_SETTINGS) {
                         launchSingleTop = true
