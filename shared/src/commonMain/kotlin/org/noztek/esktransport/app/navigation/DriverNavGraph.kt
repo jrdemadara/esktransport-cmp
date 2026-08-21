@@ -41,6 +41,7 @@ import org.noztek.esktransport.feature.driver.onboarding.presentation.DriverVehi
 import org.noztek.esktransport.feature.driver.settings.presentation.DriverAccountScreen
 import org.noztek.esktransport.feature.driver.settings.presentation.DriverEmergencyContactsScreen
 import org.noztek.esktransport.feature.driver.settings.presentation.DriverIncidentReportScreen
+import org.noztek.esktransport.feature.driver.settings.presentation.DriverLocationSharingScreen
 import org.noztek.esktransport.feature.driver.settings.presentation.DriverSettingsScreen
 import org.noztek.esktransport.feature.driver.settings.presentation.DriverSafetyScreen
 import org.noztek.esktransport.feature.driver.settings.presentation.DriverSafetyTipsScreen
@@ -66,6 +67,7 @@ private const val ROUTE_DRIVER_WALLET_HISTORY = "driver/wallet/history"
 private const val ROUTE_DRIVER_ACCOUNT_SETTINGS = "driver/settings/account"
 private const val ROUTE_DRIVER_VERIFICATION_SETTINGS = "driver/settings/verification"
 private const val ROUTE_DRIVER_SAFETY_SETTINGS = "driver/settings/safety"
+private const val ROUTE_DRIVER_LOCATION_SHARING_SETTINGS = "driver/settings/safety/location-sharing"
 private const val ROUTE_DRIVER_EMERGENCY_CONTACTS_SETTINGS = "driver/settings/safety/emergency-contacts"
 private const val ROUTE_DRIVER_INCIDENT_REPORT_SETTINGS = "driver/settings/safety/report-incident"
 private const val ROUTE_DRIVER_SAFETY_TIPS_SETTINGS = "driver/settings/safety/tips"
@@ -262,6 +264,11 @@ fun NavGraphBuilder.driverNavGraph(
         composable(route = ROUTE_DRIVER_SAFETY_SETTINGS) {
             DriverSafetyScreen(
                 onBackClick = { navController.popBackStack() },
+                onLocationSharingClick = {
+                    navController.navigate(ROUTE_DRIVER_LOCATION_SHARING_SETTINGS) {
+                        launchSingleTop = true
+                    }
+                },
                 onEmergencyContactsClick = {
                     navController.navigate(ROUTE_DRIVER_EMERGENCY_CONTACTS_SETTINGS) {
                         launchSingleTop = true
@@ -277,6 +284,14 @@ fun NavGraphBuilder.driverNavGraph(
                         launchSingleTop = true
                     }
                 },
+                onBottomBarNavigate = { route ->
+                    navController.navigateDriverBottomBarRoute(route)
+                },
+            )
+        }
+        composable(route = ROUTE_DRIVER_LOCATION_SHARING_SETTINGS) {
+            DriverLocationSharingScreen(
+                onBackClick = { navController.popBackStack() },
                 onBottomBarNavigate = { route ->
                     navController.navigateDriverBottomBarRoute(route)
                 },

@@ -233,7 +233,7 @@ private fun DriverSetupStepperPanel(
 
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(8.dp),
         color = MaterialTheme.colorScheme.surfaceContainer,
         contentColor = MaterialTheme.colorScheme.onSurface,
     ) {
@@ -327,8 +327,8 @@ private fun DriverMainStatusCard(
         modifier = Modifier
             .fillMaxWidth()
             .height(240.dp)
-            .clip(RoundedCornerShape(14.dp)),
-        shape = RoundedCornerShape(14.dp),
+            .clip(RoundedCornerShape(10.dp)),
+        shape = RoundedCornerShape(10.dp),
         color = Color(0xFF075BE8),
         tonalElevation = 0.dp,
         shadowElevation = 0.dp,
@@ -336,7 +336,7 @@ private fun DriverMainStatusCard(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .clip(RoundedCornerShape(14.dp)),
+                .clip(RoundedCornerShape(10.dp)),
         ) {
             Image(
                 painter = painterResource(Res.drawable.driver_main_card_background),
@@ -441,7 +441,7 @@ private fun DriverMainStatusCard(
 
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(30.dp),
+                    shape = RoundedCornerShape(10.dp),
                     color = Color(0xFF053DAD).copy(alpha = 0.74f),
                     contentColor = Color.White,
                 ) {
@@ -662,7 +662,7 @@ private fun DriverWalletStrip(
     ) {
         Surface(
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(14.dp),
+            shape = RoundedCornerShape(10.dp),
             color = MaterialTheme.colorScheme.surfaceContainer,
             contentColor = MaterialTheme.colorScheme.onSurface,
             shadowElevation = 0.5.dp,
@@ -753,7 +753,7 @@ private fun DriverWalletStrip(
         errorMessage?.let {
             Surface(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
+                shape = RoundedCornerShape(8.dp),
                 color = MaterialTheme.colorScheme.errorContainer,
                 contentColor = MaterialTheme.colorScheme.onErrorContainer,
             ) {
@@ -789,7 +789,7 @@ private fun DriverModeRequirementMessage(
 ) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(8.dp),
         color = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
         contentColor = MaterialTheme.colorScheme.onSurface,
     ) {
@@ -812,7 +812,7 @@ private fun WalletQuickAction(
 ) {
     Column(
         modifier = Modifier
-            .clip(RoundedCornerShape(14.dp))
+            .clip(RoundedCornerShape(8.dp))
             .clickable(enabled = enabled, onClick = onClick)
             .padding(horizontal = 2.dp, vertical = 2.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -901,7 +901,7 @@ private fun PerformancePanel(
 ) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(14.dp),
+        shape = RoundedCornerShape(10.dp),
         color = MaterialTheme.colorScheme.surfaceContainer,
         contentColor = MaterialTheme.colorScheme.onSurface,
         shadowElevation = 0.5.dp,
@@ -935,11 +935,11 @@ private fun PerformancePanel(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(14.dp))
+                    .clip(RoundedCornerShape(8.dp))
                     .border(
                         width = 1.dp,
                         color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f),
-                        shape = RoundedCornerShape(14.dp),
+                        shape = RoundedCornerShape(8.dp),
                     )
                     .background(MaterialTheme.colorScheme.surface)
                     .padding(horizontal = 10.dp, vertical = 12.dp),
@@ -1117,9 +1117,9 @@ private fun DriverQuickActionTile(
     Surface(
         modifier = modifier
             .height(86.dp)
-            .clip(RoundedCornerShape(14.dp))
+            .clip(RoundedCornerShape(10.dp))
             .clickable(onClick = onClick),
-        shape = RoundedCornerShape(14.dp),
+        shape = RoundedCornerShape(10.dp),
         color = MaterialTheme.colorScheme.surfaceContainer,
         contentColor = MaterialTheme.colorScheme.onSurface,
         tonalElevation = 0.dp,
@@ -1168,7 +1168,7 @@ private fun RecentActivityCard(
 ) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(14.dp),
+        shape = RoundedCornerShape(10.dp),
         color = MaterialTheme.colorScheme.surfaceContainer,
         contentColor = MaterialTheme.colorScheme.onSurface,
         tonalElevation = 0.dp,
@@ -1236,7 +1236,7 @@ private fun RecentActivityTripRow(
             mapboxConfig = mapboxConfig,
             modifier = Modifier
                 .size(width = 118.dp, height = 76.dp)
-                .clip(RoundedCornerShape(12.dp)),
+                .clip(RoundedCornerShape(8.dp)),
         )
         Column(
             modifier = Modifier.weight(1f),
@@ -1302,7 +1302,7 @@ private fun RecentTripMapPreview(
     if (routePoints.size < 2) {
         Surface(
             modifier = modifier,
-            shape = RoundedCornerShape(12.dp),
+            shape = RoundedCornerShape(8.dp),
             color = MaterialTheme.colorScheme.surfaceContainerHighest,
             contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
         ) {
@@ -1318,7 +1318,7 @@ private fun RecentTripMapPreview(
     }
 
     PlatformMapView(
-        modifier = modifier.border(1.dp, outline.copy(alpha = 0.38f), RoundedCornerShape(12.dp)),
+        modifier = modifier.border(1.dp, outline.copy(alpha = 0.38f), RoundedCornerShape(8.dp)),
         config = mapboxConfig,
         cameraCenter = routePoints.mapCenter(),
         cameraDefaults = MapCameraDefaults(zoom = routePoints.recentMapZoom()),
@@ -1429,7 +1429,7 @@ private fun RecentActivityEmpty() {
     ) {
         Surface(
             modifier = Modifier.size(38.dp),
-            shape = RoundedCornerShape(12.dp),
+            shape = RoundedCornerShape(8.dp),
             color = MaterialTheme.colorScheme.primary.copy(alpha = 0.10f),
             contentColor = MaterialTheme.colorScheme.primary,
         ) {

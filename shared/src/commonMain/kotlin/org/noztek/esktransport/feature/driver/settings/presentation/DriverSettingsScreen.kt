@@ -193,15 +193,17 @@ private fun SettingsMenuRow(
     item: SettingsMenuItem,
     onClick: () -> Unit,
 ) {
+    val isEnabled = item.isEnabled
+    val contentColor = if (isEnabled) {
+        MaterialTheme.colorScheme.onBackground
+    } else {
+        MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.48f)
+    }
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(
-                enabled = item == SettingsMenuItem.Account ||
-                    item == SettingsMenuItem.DriverVerification ||
-                    item == SettingsMenuItem.Vehicle ||
-                    item == SettingsMenuItem.ServiceAreas ||
-                    item == SettingsMenuItem.Safety,
+                enabled = isEnabled,
                 onClick = onClick,
             )
             .padding(vertical = 13.dp),
@@ -212,23 +214,38 @@ private fun SettingsMenuRow(
             imageVector = item.icon,
             contentDescription = null,
             modifier = Modifier.size(24.dp),
-            tint = MaterialTheme.colorScheme.onBackground,
+            tint = contentColor,
         )
         Text(
             text = item.title,
             modifier = Modifier.weight(1f),
             style = MaterialTheme.typography.bodyMedium,
             fontWeight = FontWeight.Medium,
-            color = MaterialTheme.colorScheme.onBackground,
+            color = contentColor,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
-        Icon(
-            imageVector = Heroicons.Outline.ChevronRight,
-            contentDescription = null,
-            modifier = Modifier.size(19.dp),
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+        if (isEnabled) {
+            Icon(
+                imageVector = Heroicons.Outline.ChevronRight,
+                contentDescription = null,
+                modifier = Modifier.size(19.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        } else {
+            Surface(
+                shape = RoundedCornerShape(999.dp),
+                color = MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.62f),
+                contentColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.72f),
+            ) {
+                Text(
+                    text = "Soon",
+                    modifier = Modifier.padding(horizontal = 9.dp, vertical = 4.dp),
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Medium,
+                )
+            }
+        }
     }
 }
 
@@ -398,6 +415,18 @@ private enum class SettingsMenuItem(
     Safety("Safety", Heroicons.Outline.ShieldCheck),
     AppPreferences("App Preferences", Heroicons.Outline.AdjustmentsHorizontal),
 }
+
+private val SettingsMenuItem.isEnabled: Boolean
+    get() = when (this) {
+        SettingsMenuItem.Account,
+        SettingsMenuItem.DriverVerification,
+        SettingsMenuItem.Vehicle,
+        SettingsMenuItem.ServiceAreas,
+        SettingsMenuItem.Safety -> true
+        SettingsMenuItem.Wallet,
+        SettingsMenuItem.Earnings,
+        SettingsMenuItem.AppPreferences -> false
+    }
 
 private data class SettingsFooterItem(
     val title: String,

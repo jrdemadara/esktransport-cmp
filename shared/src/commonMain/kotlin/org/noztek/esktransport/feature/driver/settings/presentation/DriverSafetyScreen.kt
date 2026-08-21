@@ -49,6 +49,7 @@ import org.noztek.esktransport.core.ui.composables.driver.DriverBottomBarRoute
 @Composable
 fun DriverSafetyScreen(
     onBackClick: () -> Unit,
+    onLocationSharingClick: () -> Unit = {},
     onEmergencyContactsClick: () -> Unit = {},
     onReportIncidentClick: () -> Unit = {},
     onSafetyTipsClick: () -> Unit = {},
@@ -56,6 +57,7 @@ fun DriverSafetyScreen(
 ) {
     DriverSafetyContent(
         onBackClick = onBackClick,
+        onLocationSharingClick = onLocationSharingClick,
         onEmergencyContactsClick = onEmergencyContactsClick,
         onReportIncidentClick = onReportIncidentClick,
         onSafetyTipsClick = onSafetyTipsClick,
@@ -67,6 +69,7 @@ fun DriverSafetyScreen(
 @Composable
 private fun DriverSafetyContent(
     onBackClick: () -> Unit,
+    onLocationSharingClick: () -> Unit,
     onEmergencyContactsClick: () -> Unit,
     onReportIncidentClick: () -> Unit,
     onSafetyTipsClick: () -> Unit,
@@ -94,6 +97,7 @@ private fun DriverSafetyContent(
         ) {
             SafetyStatusCard()
             SafetyMenuList(
+                onLocationSharingClick = onLocationSharingClick,
                 onEmergencyContactsClick = onEmergencyContactsClick,
                 onReportIncidentClick = onReportIncidentClick,
                 onSafetyTipsClick = onSafetyTipsClick,
@@ -182,6 +186,7 @@ private fun SafetyStatusCard() {
 
 @Composable
 private fun SafetyMenuList(
+    onLocationSharingClick: () -> Unit,
     onEmergencyContactsClick: () -> Unit,
     onReportIncidentClick: () -> Unit,
     onSafetyTipsClick: () -> Unit,
@@ -198,10 +203,10 @@ private fun SafetyMenuList(
                     item = item,
                     onClick = {
                         when (item.type) {
+                            SafetyMenuItemType.LocationSharing -> onLocationSharingClick()
                             SafetyMenuItemType.EmergencyContacts -> onEmergencyContactsClick()
                             SafetyMenuItemType.ReportIncident -> onReportIncidentClick()
                             SafetyMenuItemType.SafetyTips -> onSafetyTipsClick()
-                            else -> Unit
                         }
                     },
                 )

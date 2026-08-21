@@ -36,14 +36,17 @@ import org.noztek.esktransport.feature.driver.onboarding.domain.usecase.Unsubscr
 import org.noztek.esktransport.feature.driver.onboarding.presentation.DriverOnboardingViewModel
 import org.noztek.esktransport.feature.driver.settings.data.impl.DriverEmergencyContactRepositoryImpl
 import org.noztek.esktransport.feature.driver.settings.data.impl.DriverIncidentReportRepositoryImpl
+import org.noztek.esktransport.feature.driver.settings.data.impl.DriverLocationSharingRepositoryImpl
 import org.noztek.esktransport.feature.driver.settings.data.impl.DriverSettingsRepositoryImpl
 import org.noztek.esktransport.feature.driver.settings.data.impl.DriverVehicleRepositoryImpl
 import org.noztek.esktransport.feature.driver.settings.data.remote.DriverEmergencyContactApi
 import org.noztek.esktransport.feature.driver.settings.data.remote.DriverIncidentReportApi
+import org.noztek.esktransport.feature.driver.settings.data.remote.DriverLocationSharingApi
 import org.noztek.esktransport.feature.driver.settings.data.remote.DriverSettingsApi
 import org.noztek.esktransport.feature.driver.settings.data.remote.DriverVehicleApi
 import org.noztek.esktransport.feature.driver.settings.domain.repository.DriverEmergencyContactRepository
 import org.noztek.esktransport.feature.driver.settings.domain.repository.DriverIncidentReportRepository
+import org.noztek.esktransport.feature.driver.settings.domain.repository.DriverLocationSharingRepository
 import org.noztek.esktransport.feature.driver.settings.domain.repository.DriverSettingsRepository
 import org.noztek.esktransport.feature.driver.settings.domain.repository.DriverVehicleRepository
 import org.noztek.esktransport.feature.driver.settings.domain.usecase.ActivateDriverRideVehicleUseCase
@@ -52,6 +55,7 @@ import org.noztek.esktransport.feature.driver.settings.domain.usecase.DeleteDriv
 import org.noztek.esktransport.feature.driver.settings.domain.usecase.GetDriverAccountUseCase
 import org.noztek.esktransport.feature.driver.settings.domain.usecase.GetDriverEmergencyContactsUseCase
 import org.noztek.esktransport.feature.driver.settings.domain.usecase.GetDriverIncidentReportsUseCase
+import org.noztek.esktransport.feature.driver.settings.domain.usecase.GetDriverLocationSharingUseCase
 import org.noztek.esktransport.feature.driver.settings.domain.usecase.GetDriverProfilePhotoUseCase
 import org.noztek.esktransport.feature.driver.settings.domain.usecase.GetDriverVehiclePhotoUseCase
 import org.noztek.esktransport.feature.driver.settings.domain.usecase.GetDriverVehicleUseCase
@@ -59,6 +63,7 @@ import org.noztek.esktransport.feature.driver.settings.domain.usecase.GetDriverV
 import org.noztek.esktransport.feature.driver.settings.domain.usecase.GetDriverVehiclesUseCase
 import org.noztek.esktransport.feature.driver.settings.domain.usecase.SaveDriverEmergencyContactUseCase
 import org.noztek.esktransport.feature.driver.settings.domain.usecase.SubmitDriverIncidentReportUseCase
+import org.noztek.esktransport.feature.driver.settings.domain.usecase.UpdateDriverLocationSharingUseCase
 import org.noztek.esktransport.feature.driver.settings.domain.usecase.UpdateDriverAccountUseCase
 import org.noztek.esktransport.feature.driver.settings.domain.usecase.UploadDriverVehicleDocumentUseCase
 import org.noztek.esktransport.feature.driver.settings.domain.usecase.UpdateDriverVehicleServicesUseCase
@@ -66,6 +71,7 @@ import org.noztek.esktransport.feature.driver.settings.domain.usecase.UpdateDriv
 import org.noztek.esktransport.feature.driver.settings.presentation.DriverSettingsViewModel
 import org.noztek.esktransport.feature.driver.settings.presentation.DriverEmergencyContactsViewModel
 import org.noztek.esktransport.feature.driver.settings.presentation.DriverIncidentReportViewModel
+import org.noztek.esktransport.feature.driver.settings.presentation.DriverLocationSharingViewModel
 import org.noztek.esktransport.feature.driver.settings.presentation.DriverServiceAreasViewModel
 import org.noztek.esktransport.feature.driver.settings.presentation.DriverVerificationViewModel
 import org.noztek.esktransport.feature.driver.settings.presentation.DriverVehicleDetailViewModel
@@ -110,6 +116,8 @@ val driverHomeModule = module {
     single<DriverEmergencyContactRepository> { DriverEmergencyContactRepositoryImpl(api = get()) }
     single { DriverIncidentReportApi(client = get(), baseUrl = get(named(API_BASE_URL_QUALIFIER))) }
     single<DriverIncidentReportRepository> { DriverIncidentReportRepositoryImpl(api = get()) }
+    single { DriverLocationSharingApi(client = get(), baseUrl = get(named(API_BASE_URL_QUALIFIER))) }
+    single<DriverLocationSharingRepository> { DriverLocationSharingRepositoryImpl(api = get()) }
     single { GetDriverAvailabilityUseCase(repository = get()) }
     single { SetDriverAvailabilityUseCase(repository = get()) }
     single { GetDriverHomeStatsUseCase(repository = get()) }
@@ -130,6 +138,8 @@ val driverHomeModule = module {
     single { DeleteDriverEmergencyContactUseCase(repository = get()) }
     single { GetDriverIncidentReportsUseCase(repository = get()) }
     single { SubmitDriverIncidentReportUseCase(repository = get()) }
+    single { GetDriverLocationSharingUseCase(repository = get()) }
+    single { UpdateDriverLocationSharingUseCase(repository = get()) }
     single { GetDriverVehiclesUseCase(repository = get()) }
     single { GetDriverVehiclePhotoUseCase(repository = get()) }
     single { GetDriverVehicleUseCase(repository = get()) }
@@ -261,6 +271,13 @@ val driverHomeModule = module {
         DriverIncidentReportViewModel(
             getDriverIncidentReportsUseCase = get(),
             submitDriverIncidentReportUseCase = get(),
+            ioDispatcher = get(named(IO_DISPATCHER_QUALIFIER)),
+        )
+    }
+    factory {
+        DriverLocationSharingViewModel(
+            getDriverLocationSharingUseCase = get(),
+            updateDriverLocationSharingUseCase = get(),
             ioDispatcher = get(named(IO_DISPATCHER_QUALIFIER)),
         )
     }
