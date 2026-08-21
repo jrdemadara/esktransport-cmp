@@ -39,8 +39,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
@@ -58,9 +58,7 @@ import com.composables.icons.heroicons.outline.Clock
 import com.composables.icons.heroicons.outline.MapPin
 import com.composables.icons.heroicons.outline.PaperAirplane
 import com.composables.icons.heroicons.outline.Plus
-import com.composables.icons.heroicons.outline.PlusCircle
 import com.composables.icons.heroicons.outline.QueueList
-import com.composables.icons.heroicons.outline.Wallet
 import com.composables.icons.heroicons.solid.Star
 import com.composables.icons.heroicons.solid.Wallet
 import esktransport.shared.generated.resources.Res
@@ -720,14 +718,12 @@ private fun DriverWalletStrip(
                     WalletQuickAction(
                         label = "Top Up",
                         icon = Heroicons.Outline.Plus,
-                        color = MaterialTheme.colorScheme.primary,
                         enabled = !isLoading,
                         onClick = onTopUpClick,
                     )
                     WalletQuickAction(
                         label = "Cashout",
                         icon = Heroicons.Outline.ArrowDown,
-                        color = Color(0xFF21B36B),
                         enabled = !isLoading,
                         onClick = onCashoutClick,
                     )
@@ -742,7 +738,6 @@ private fun DriverWalletStrip(
                     WalletQuickAction(
                         label = "History",
                         icon = Heroicons.Outline.QueueList,
-                        color = MaterialTheme.colorScheme.tertiary,
                         enabled = !isLoading,
                         onClick = onHistoryClick,
                     )
@@ -806,10 +801,11 @@ private fun DriverModeRequirementMessage(
 private fun WalletQuickAction(
     label: String,
     icon: ImageVector,
-    color: Color,
     enabled: Boolean,
     onClick: () -> Unit,
 ) {
+    val contentAlpha = if (enabled) 1f else 0.48f
+
     Column(
         modifier = Modifier
             .clip(RoundedCornerShape(8.dp))
@@ -821,21 +817,24 @@ private fun WalletQuickAction(
         Box(
             modifier = Modifier
                 .size(38.dp)
-                .background(color, CircleShape),
+                .background(
+                    color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = contentAlpha),
+                    shape = CircleShape,
+                ),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
                 imageVector = icon,
                 contentDescription = label,
                 modifier = Modifier.size(20.dp),
-                tint = Color.White
+                tint = Color.Black.copy(alpha = contentAlpha),
             )
         }
         Text(
             text = label,
             style = MaterialTheme.typography.labelSmall,
             fontWeight = FontWeight.Medium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = if (enabled) 1f else 0.5f),
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = contentAlpha),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
