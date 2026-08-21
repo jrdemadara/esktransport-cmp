@@ -76,8 +76,8 @@ fun MarketplaceListingDetailsScreen(
                 .fillMaxSize()
                 .background(MaterialTheme.colorScheme.background)
                 .padding(innerPadding),
-            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 14.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             item { ListingImageCarousel() }
             item { ListingHeader() }
@@ -97,10 +97,9 @@ private fun ListingDetailsTopBar(
     TopAppBar(
         windowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top),
         colors = TopAppBarDefaults.topAppBarColors(
-            containerColor = MaterialTheme.colorScheme.primary,
-            titleContentColor = MaterialTheme.colorScheme.onPrimary,
-            navigationIconContentColor = MaterialTheme.colorScheme.onPrimary,
-            actionIconContentColor = MaterialTheme.colorScheme.onPrimary,
+            containerColor = MaterialTheme.colorScheme.background,
+            titleContentColor = MaterialTheme.colorScheme.onBackground,
+            navigationIconContentColor = MaterialTheme.colorScheme.onBackground,
         ),
         navigationIcon = {
             IconButton(onClick = onBackClick) {
@@ -114,20 +113,11 @@ private fun ListingDetailsTopBar(
         title = {
             Text(
                 text = "Listing details",
-                modifier = Modifier.fillMaxWidth(),
-                style = MaterialTheme.typography.titleMedium,
+                style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onBackground,
                 maxLines = 1,
             )
-        },
-        actions = {
-            IconButton(onClick = {}) {
-                Icon(
-                    imageVector = Heroicons.Outline.Heart,
-                    contentDescription = "Save",
-                    modifier = Modifier.size(24.dp),
-                )
-            }
         },
     )
 }
@@ -138,7 +128,7 @@ private fun ListingImageCarousel() {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(244.dp)
+                .height(212.dp)
                 .clip(RoundedCornerShape(10.dp)),
         ) {
             Image(
@@ -189,7 +179,7 @@ private fun ListingImageCarousel() {
 
 @Composable
 private fun ListingHeader() {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.Top,
@@ -201,7 +191,7 @@ private fun ListingHeader() {
             ) {
                 Text(
                     text = "Isuzu N-Series Box Truck",
-                    style = MaterialTheme.typography.titleLarge,
+                    style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onBackground,
                     maxLines = 2,
@@ -219,7 +209,7 @@ private fun ListingHeader() {
             Icon(
                 imageVector = Heroicons.Outline.Heart,
                 contentDescription = "Save",
-                modifier = Modifier.size(30.dp),
+                modifier = Modifier.size(24.dp),
                 tint = MaterialTheme.colorScheme.outline,
             )
         }
@@ -237,26 +227,26 @@ private fun OwnerRow() {
             Icon(
                 imageVector = Heroicons.Outline.User,
                 contentDescription = null,
-                modifier = Modifier.size(18.dp),
+                modifier = Modifier.size(16.dp),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Text(
                 text = "Juan Dela Cruz",
-                style = MaterialTheme.typography.bodyMedium,
+                style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onBackground,
                 maxLines = 1,
             )
             Icon(
                 imageVector = Heroicons.Outline.CheckCircle,
                 contentDescription = null,
-                modifier = Modifier.size(17.dp),
+                modifier = Modifier.size(15.dp),
                 tint = MaterialTheme.colorScheme.primary,
             )
         }
         Text(
             text = "Updated May 18, 2025",
-            modifier = Modifier.padding(start = 24.dp),
-            style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier.padding(start = 22.dp),
+            style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
@@ -312,7 +302,7 @@ private fun VehicleDetailsCard() {
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             Surface(
-                modifier = Modifier.size(32.dp),
+                modifier = Modifier.size(28.dp),
                 shape = RoundedCornerShape(999.dp),
                 color = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary,
@@ -321,19 +311,19 @@ private fun VehicleDetailsCard() {
                     Icon(
                         imageVector = Heroicons.Outline.CheckCircle,
                         contentDescription = null,
-                        modifier = Modifier.size(18.dp),
+                        modifier = Modifier.size(16.dp),
                     )
                 }
             }
             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(
                     text = "Availability",
-                    style = MaterialTheme.typography.bodySmall,
+                    style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Text(
                     text = "Available",
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = MaterialTheme.typography.bodySmall,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.primary,
                 )
@@ -359,18 +349,18 @@ private fun PricingCard() {
             ) {
                 Text(
                     text = "Base rate",
-                    style = MaterialTheme.typography.bodySmall,
+                    style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Text(
                     text = "PHP 6,800/day",
-                    style = MaterialTheme.typography.titleMedium,
+                    style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
                 Text(
                     text = "Minimum 2 hours",
-                    style = MaterialTheme.typography.labelMedium,
+                    style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
@@ -381,7 +371,7 @@ private fun PricingCard() {
             ) {
                 Text(
                     text = "Included km",
-                    style = MaterialTheme.typography.bodySmall,
+                    style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Text(
@@ -404,7 +394,7 @@ private fun DescriptionCard() {
     ) {
         Text(
             text = "Reliable Isuzu N-Series box truck ideal for deliveries, logistics, and distribution. Spacious cargo area with secure enclosed box for safe transport of goods.",
-            style = MaterialTheme.typography.bodyMedium,
+            style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
@@ -448,7 +438,7 @@ private fun RequestVehicleCard() {
         AppPrimaryButton(
             text = "Send request",
             onClick = {},
-            height = 48.dp,
+            height = 44.dp,
         )
     }
 }
@@ -467,8 +457,8 @@ private fun DetailsSectionCard(
         border = BorderStroke(0.7.dp, MaterialTheme.colorScheme.outlineVariant),
     ) {
         Column(
-            modifier = Modifier.padding(14.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier.padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -477,12 +467,12 @@ private fun DetailsSectionCard(
                 Icon(
                     imageVector = icon,
                     contentDescription = null,
-                    modifier = Modifier.size(20.dp),
+                    modifier = Modifier.size(18.dp),
                     tint = MaterialTheme.colorScheme.primary,
                 )
                 Text(
                     text = title,
-                    style = MaterialTheme.typography.titleMedium,
+                    style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
@@ -507,7 +497,7 @@ private fun InfoCell(
         Icon(
             imageVector = icon,
             contentDescription = null,
-            modifier = Modifier.size(19.dp),
+            modifier = Modifier.size(17.dp),
             tint = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
@@ -520,7 +510,7 @@ private fun InfoCell(
             )
             Text(
                 text = value,
-                style = MaterialTheme.typography.bodyMedium,
+                style = MaterialTheme.typography.bodySmall,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 1,
@@ -584,7 +574,7 @@ private fun SolidPill(text: String) {
     ) {
         Text(
             text = text,
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+            modifier = Modifier.padding(horizontal = 9.dp, vertical = 3.dp),
             style = MaterialTheme.typography.labelSmall,
             fontWeight = FontWeight.SemiBold,
         )
@@ -603,7 +593,7 @@ private fun SoftPill(
     ) {
         Text(
             text = text,
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+            modifier = Modifier.padding(horizontal = 9.dp, vertical = 3.dp),
             style = MaterialTheme.typography.labelSmall,
             fontWeight = FontWeight.SemiBold,
         )
@@ -623,7 +613,7 @@ private fun StatusPill(
     ) {
         Text(
             text = text,
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+            modifier = Modifier.padding(horizontal = 9.dp, vertical = 3.dp),
             style = MaterialTheme.typography.labelSmall,
             fontWeight = FontWeight.SemiBold,
         )
