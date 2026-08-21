@@ -98,6 +98,7 @@ import org.noztek.esktransport.feature.passenger.home.presentation.PassengerHome
 import org.noztek.esktransport.feature.passenger.kudi.presentation.KudiScreen
 import org.noztek.esktransport.feature.passenger.location_search.presentation.LocationSearchScreen
 import org.noztek.esktransport.feature.passenger.location_search.presentation.SelectedLocation
+import org.noztek.esktransport.feature.passenger.marketplace.presentation.MarketplaceScreen
 import org.noztek.esktransport.feature.passenger.ride_planner.presentation.RidePlannerScreen
 import org.noztek.esktransport.feature.passenger.ride_planner.presentation.RidePlannerUiEvent
 import org.noztek.esktransport.feature.passenger.ride_planner.presentation.RidePlannerViewModel
@@ -119,6 +120,7 @@ private const val ROUTE_LOCATION_SEARCH = "location-search/{mode}"
 private const val ARG_MODE = "mode"
 private const val ARG_VEHICLE_TYPE_INDEX = "vehicleTypeIndex"
 private const val ROUTE_SERVICES = "services"
+private const val ROUTE_MARKETPLACE = "marketplace"
 private const val ROUTE_KUDI = "kudi"
 private const val ROUTE_ACTIVITY = "activity"
 private const val ROUTE_PROFILE = "profile"
@@ -163,6 +165,7 @@ private fun PassengerShell(onLogout: () -> Unit) {
     val showChrome = !isTripTrackingActive &&
         !isRidePlannerRoute &&
         currentRoute != ROUTE_BOOKING_REVIEW &&
+        currentRoute != ROUTE_MARKETPLACE &&
         currentRoute != ROUTE_KUDI &&
         currentRoute != ROUTE_PASSENGER_TOP_UP &&
         currentRoute != ROUTE_PASSENGER_CASHOUT &&
@@ -264,6 +267,7 @@ private fun PassengerShell(onLogout: () -> Unit) {
                 isTripTrackingActive -> Unit
                 isRidePlannerRoute -> PassengerBackTopBar("Plan your trip") { navController.popBackStack() }
                 currentRoute == ROUTE_BOOKING_REVIEW -> PassengerBackTopBar("Review Booking") { navController.popBackStack() }
+                currentRoute == ROUTE_MARKETPLACE -> Unit
                 currentRoute == ROUTE_KUDI -> Unit
                 currentRoute == ROUTE_PROFILE -> Unit
                 currentRoute == ROUTE_PASSENGER_ACCOUNT_SETTINGS -> Unit
@@ -354,6 +358,11 @@ private fun PassengerShell(onLogout: () -> Unit) {
                         },
                         onSuggestionClick = { vehicleTypeIndex ->
                             navController.navigate("ride-planner/$vehicleTypeIndex")
+                        },
+                        onMarketplaceClick = {
+                            navController.navigate(ROUTE_MARKETPLACE) {
+                                launchSingleTop = true
+                            }
                         },
                         contentPadding = innerPadding,
                     )
@@ -460,6 +469,11 @@ private fun PassengerShell(onLogout: () -> Unit) {
                 }
             }
             composable(ROUTE_SERVICES) { PlaceholderTabScreen("Services") }
+            composable(ROUTE_MARKETPLACE) {
+                MarketplaceScreen(
+                    onBackClick = { navController.popBackStack() },
+                )
+            }
             composable(ROUTE_WALLET) {
                 WalletScreen(
                     contentPadding = innerPadding,
@@ -769,6 +783,7 @@ private fun String?.toUserPresenceContext(isSearchingForRider: Boolean): UserPre
         this == ROUTE_BOOKING_REVIEW && isSearchingForRider -> UserPresenceContext.BookingSearch
         this == ROUTE_BOOKING_REVIEW -> UserPresenceContext.BookingReview
         this == ROUTE_HOME -> UserPresenceContext.PassengerHome
+        this == ROUTE_MARKETPLACE -> UserPresenceContext.PassengerHome
         this == ROUTE_RIDE_PLANNER || this == ROUTE_RIDE_PLANNER_WITH_VEHICLE -> UserPresenceContext.RidePlanner
         this?.startsWith("location-search/") == true -> UserPresenceContext.LocationSearch
         this == ROUTE_KUDI -> UserPresenceContext.Kudi

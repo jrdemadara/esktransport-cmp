@@ -59,10 +59,11 @@ import org.noztek.esktransport.feature.passenger.settings.domain.model.SavedPlac
 import org.noztek.esktransport.feature.passenger.settings.domain.model.SavedPlaceType
 
 @Composable
-fun PassengerHomeScreen(
+fun PassengerHome Screen(
     onWhereToClick: () -> Unit = {},
     onPlaceClick: (label: String, point: GeoPoint?) -> Unit = { _, _ -> },
     onSuggestionClick: (Int) -> Unit = {},
+    onMarketplaceClick: () -> Unit = {},
     contentPadding: PaddingValues = PaddingValues(0.dp),
     viewModel: PassengerHomeViewModel = koinViewModel(),
 ) {
@@ -118,13 +119,19 @@ fun PassengerHomeScreen(
             suggestions.forEach { item ->
                 SuggestionCard(
                     item = item,
-                    onClick = { onSuggestionClick(item.vehicleTypeIndex) },
+                    onClick = {
+                        if (item.opensMarketplace) {
+                            onMarketplaceClick()
+                        } else {
+                            onSuggestionClick(item.vehicleTypeIndex)
+                        }
+                    },
                     modifier = Modifier.weight(1f),
                 )
             }
         }
         Spacer(modifier = Modifier.height(14.dp))
-        RentalVehicleCard()
+        RentalVehicleCard(onClick = onMarketplaceClick)
     }
 }
 
@@ -362,8 +369,9 @@ private fun SearchRow(onWhereToClick: () -> Unit) {
 }
 
 @Composable
-private fun RentalVehicleCard() {
+private fun RentalVehicleCard(onClick: () -> Unit) {
     Card(
+        onClick = onClick,
         shape = RoundedCornerShape(14.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface,
@@ -493,6 +501,7 @@ private data class SuggestionItem(
     val label: String,
     val image: DrawableResource,
     val vehicleTypeIndex: Int,
+    val opensMarketplace: Boolean = false,
 )
 private data class RentalVehicleItem(val label: String, val image: DrawableResource)
 
@@ -531,7 +540,7 @@ private val suggestions = listOf(
     SuggestionItem("Moto", Res.drawable.home_scooter, vehicleTypeIndex = 0),
     SuggestionItem("Trike", Res.drawable.home_tricycle, vehicleTypeIndex = 1),
     SuggestionItem("Car", Res.drawable.home_car, vehicleTypeIndex = 2),
-    SuggestionItem("Rentals", Res.drawable.home_big_truck, vehicleTypeIndex = 3),
+    SuggestionItem("Rentals", Res.drawable.home_big_truck, vehicleTypeIndex = 3, opensMarketplace = true),
 )
 
 private val rentalVehicles = listOf(
