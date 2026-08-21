@@ -59,7 +59,7 @@ import org.noztek.esktransport.feature.passenger.settings.domain.model.SavedPlac
 import org.noztek.esktransport.feature.passenger.settings.domain.model.SavedPlaceType
 
 @Composable
-fun PassengerHome Screen(
+fun PassengerHomeScreen(
     onWhereToClick: () -> Unit = {},
     onPlaceClick: (label: String, point: GeoPoint?) -> Unit = { _, _ -> },
     onSuggestionClick: (Int) -> Unit = {},
