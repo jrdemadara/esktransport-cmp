@@ -28,6 +28,7 @@ import org.noztek.esktransport.feature.common.presence.domain.lifecycle.UserPres
 import org.noztek.esktransport.feature.common.presence.domain.model.UserPresenceContext
 import org.noztek.esktransport.feature.common.presence.domain.model.UserPresenceRole
 import org.noztek.esktransport.feature.common.topup.presentation.TopUpScreen
+import org.noztek.esktransport.feature.driver.bookings.presentation.DriverBookingsScreen
 import org.noztek.esktransport.feature.driver.earning.presentation.EarningsScreen
 import org.noztek.esktransport.feature.driver.go.presentation.GoScreen
 import org.noztek.esktransport.feature.driver.home.presentation.HomeScreen
@@ -214,6 +215,13 @@ fun NavGraphBuilder.driverNavGraph(
                         launchSingleTop = true
                     }
                 },
+                onBottomBarNavigate = { route ->
+                    navController.navigateDriverBottomBarRoute(route)
+                },
+            )
+        }
+        composable(route = DriverBottomBarRoute.BOOKINGS) {
+            DriverBookingsScreen(
                 onBottomBarNavigate = { route ->
                     navController.navigateDriverBottomBarRoute(route)
                 },
@@ -592,6 +600,11 @@ private fun NavHostController.navigateDriverBottomBarRoute(route: String) {
         }
         DriverBottomBarRoute.TRIPS -> {
             navigate(DriverBottomBarRoute.TRIPS) {
+                launchSingleTop = true
+            }
+        }
+        DriverBottomBarRoute.BOOKINGS -> {
+            navigate(DriverBottomBarRoute.BOOKINGS) {
                 launchSingleTop = true
             }
         }

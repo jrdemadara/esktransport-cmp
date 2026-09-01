@@ -8,19 +8,24 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.noztek.esktransport.feature.passenger.kudi.domain.model.KudiChatMessage
 import org.noztek.esktransport.feature.passenger.kudi.domain.model.KudiConversation
+import org.noztek.esktransport.feature.passenger.kudi.domain.model.KudiMessageSender
 import org.noztek.esktransport.feature.passenger.kudi.domain.usecase.CreateKudiSessionUseCase
 import org.noztek.esktransport.feature.passenger.kudi.domain.usecase.GetCurrentKudiSessionUseCase
 import org.noztek.esktransport.feature.passenger.kudi.domain.usecase.SendKudiMessageUseCase
+import org.noztek.esktransport.feature.passenger.marketplace.domain.usecase.GetMarketplaceListingPhotoUseCase
 
 class KudiViewModel(
     private val getCurrentKudiSessionUseCase: GetCurrentKudiSessionUseCase,
     private val createKudiSessionUseCase: CreateKudiSessionUseCase,
     private val sendKudiMessageUseCase: SendKudiMessageUseCase,
+    private val getMarketplaceListingPhotoUseCase: GetMarketplaceListingPhotoUseCase,
     private val ioDispatcher: CoroutineDispatcher,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(KudiUiState(isLoading = true))
     val uiState = _uiState.asStateFlow()
+    private var localMessageCounter = 0
 
     init {
         loadSession()
@@ -31,7 +36,20 @@ class KudiViewModel(
         if (trimmed.isEmpty()) return
 
         viewModelScope.launch {
-            _uiState.update { it.copy(isSending = true, errorMessage = null) }
+            val localMessage = KudiChatMessage(
+                id = "local-${++localMessageCounter}",
+                sender = KudiMessageSender.User,
+                message = trimmed,
+                createdAt = null,
+            )
+
+            _uiState.update {
+                it.copy(
+                    messages = it.messages + localMessage,
+                    isSending = true,
+                    errorMessage = null,
+                )
+            }
 
             val sessionId = uiState.value.sessionPublicId ?: createSessionForSend()
 
@@ -52,13 +70,17 @@ class KudiViewModel(
             result
                 .onSuccess { messageResult ->
                     _uiState.update {
+                        val publicIds = messageResult.conversation.messages.suggestionPublicIds().toSet()
                         it.copy(
                             sessionPublicId = messageResult.conversation.session?.publicId ?: sessionId,
                             messages = messageResult.conversation.messages,
+                            vehiclePhotoBytes = it.vehiclePhotoBytes.filterKeys { publicId -> publicId in publicIds },
+                            loadingPhotoPublicIds = it.loadingPhotoPublicIds.filter { publicId -> publicId in publicIds }.toSet(),
                             isSending = false,
                             errorMessage = null,
                         )
                     }
+                    loadSuggestionPhotos(messageResult.conversation.messages)
                 }
                 .onFailure { throwable ->
                     _uiState.update {
@@ -111,20 +133,64 @@ class KudiViewModel(
 
     private suspend fun createSessionForSend(): String? {
         val result = withContext(ioDispatcher) { createKudiSessionUseCase() }
-        return result.getOrNull()?.also { conversation ->
-            applyConversation(conversation, isLoading = false)
-        }?.session?.publicId
+        val conversation = result.getOrNull() ?: return null
+        val sessionId = conversation.session?.publicId
+
+        _uiState.update {
+            it.copy(
+                sessionPublicId = sessionId,
+                isLoading = false,
+                errorMessage = null,
+            )
+        }
+
+        return sessionId
     }
 
     private fun applyConversation(conversation: KudiConversation, isLoading: Boolean) {
         _uiState.update {
+            val publicIds = conversation.messages.suggestionPublicIds().toSet()
             it.copy(
                 sessionPublicId = conversation.session?.publicId,
                 messages = conversation.messages,
+                vehiclePhotoBytes = it.vehiclePhotoBytes.filterKeys { publicId -> publicId in publicIds },
+                loadingPhotoPublicIds = it.loadingPhotoPublicIds.filter { publicId -> publicId in publicIds }.toSet(),
                 isLoading = isLoading,
                 isSending = false,
                 errorMessage = null,
             )
         }
+        loadSuggestionPhotos(conversation.messages)
     }
+
+    private fun loadSuggestionPhotos(messages: List<org.noztek.esktransport.feature.passenger.kudi.domain.model.KudiChatMessage>) {
+        messages
+            .suggestionPublicIds()
+            .filterNot { publicId -> _uiState.value.vehiclePhotoBytes.containsKey(publicId) }
+            .filterNot { publicId -> _uiState.value.loadingPhotoPublicIds.contains(publicId) }
+            .forEach { publicId ->
+                viewModelScope.launch {
+                    _uiState.update {
+                        it.copy(loadingPhotoPublicIds = it.loadingPhotoPublicIds + publicId)
+                    }
+                    val result = withContext(ioDispatcher) { getMarketplaceListingPhotoUseCase(publicId) }
+                    _uiState.update {
+                        val bytes = result.getOrNull()
+                        it.copy(
+                            vehiclePhotoBytes = if (bytes != null) {
+                                it.vehiclePhotoBytes + (publicId to bytes)
+                            } else {
+                                it.vehiclePhotoBytes
+                            },
+                            loadingPhotoPublicIds = it.loadingPhotoPublicIds - publicId,
+                        )
+                    }
+                }
+            }
+    }
+}
+
+private fun List<org.noztek.esktransport.feature.passenger.kudi.domain.model.KudiChatMessage>.suggestionPublicIds(): List<String> {
+    return flatMap { message -> message.vehicleSuggestions.map { suggestion -> suggestion.publicId } }
+        .distinct()
 }

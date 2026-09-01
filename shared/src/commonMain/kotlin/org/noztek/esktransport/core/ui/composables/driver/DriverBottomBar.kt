@@ -16,6 +16,7 @@ import com.composables.icons.heroicons.outline.ChartBarSquare
 import com.composables.icons.heroicons.outline.Cog6Tooth
 import com.composables.icons.heroicons.outline.Home
 import com.composables.icons.heroicons.outline.QueueList
+import com.composables.icons.heroicons.outline.RectangleStack
 
 data class DriverBottomBarItem(
     val route: String,
@@ -25,6 +26,7 @@ data class DriverBottomBarItem(
 
 object DriverBottomBarRoute {
     const val HOME = "driver/home"
+    const val BOOKINGS = "driver/bookings"
     const val TRIPS = "driver/trips"
     const val EARNINGS = "driver/earnings"
     const val PROFILE = "driver/profile"
@@ -35,6 +37,11 @@ val defaultDriverBottomBarItems = listOf(
         route = DriverBottomBarRoute.HOME,
         label = "Home",
         icon = Heroicons.Outline.Home,
+    ),
+    DriverBottomBarItem(
+        route = DriverBottomBarRoute.BOOKINGS,
+        label = "Bookings",
+        icon = Heroicons.Outline.RectangleStack,
     ),
     DriverBottomBarItem(
         route = DriverBottomBarRoute.TRIPS,

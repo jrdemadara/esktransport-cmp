@@ -56,12 +56,20 @@ import org.noztek.esktransport.feature.passenger.ride_planner.domain.usecase.Res
 import org.noztek.esktransport.feature.passenger.ride_planner.domain.usecase.ResolveCurrentLocationPointUseCase
 import org.noztek.esktransport.feature.passenger.ride_planner.presentation.RidePlannerViewModel
 import org.noztek.esktransport.feature.passenger.settings.data.impl.SavedPlacesRepositoryImpl
+import org.noztek.esktransport.feature.passenger.settings.data.impl.PassengerSettingsRepositoryImpl
+import org.noztek.esktransport.feature.passenger.settings.data.remote.PassengerSettingsApi
 import org.noztek.esktransport.feature.passenger.settings.data.remote.SavedPlacesApi
+import org.noztek.esktransport.feature.passenger.settings.domain.repository.PassengerSettingsRepository
 import org.noztek.esktransport.feature.passenger.settings.domain.repository.SavedPlacesRepository
 import org.noztek.esktransport.feature.passenger.settings.domain.usecase.CreateSavedPlaceUseCase
 import org.noztek.esktransport.feature.passenger.settings.domain.usecase.DeleteSavedPlaceUseCase
+import org.noztek.esktransport.feature.passenger.settings.domain.usecase.GetPassengerAccountUseCase
+import org.noztek.esktransport.feature.passenger.settings.domain.usecase.GetPassengerProfilePhotoUseCase
 import org.noztek.esktransport.feature.passenger.settings.domain.usecase.GetSavedPlacesUseCase
+import org.noztek.esktransport.feature.passenger.settings.domain.usecase.UpdatePassengerAccountUseCase
 import org.noztek.esktransport.feature.passenger.settings.domain.usecase.UpdateSavedPlaceUseCase
+import org.noztek.esktransport.feature.passenger.settings.domain.usecase.UploadPassengerProfilePhotoUseCase
+import org.noztek.esktransport.feature.passenger.settings.presentation.PassengerAccountViewModel
 import org.noztek.esktransport.feature.passenger.settings.presentation.SavedPlacesViewModel
 import org.noztek.esktransport.feature.passenger.trip_tracking.data.impl.TripTrackingRepositoryImpl
 import org.noztek.esktransport.feature.passenger.trip_tracking.data.remote.TripTrackingApi
@@ -99,6 +107,7 @@ val passengerModule = module {
             getCurrentKudiSessionUseCase = get(),
             createKudiSessionUseCase = get(),
             sendKudiMessageUseCase = get(),
+            getMarketplaceListingPhotoUseCase = get(),
             ioDispatcher = get(named(IO_DISPATCHER_QUALIFIER)),
         )
     }
@@ -230,6 +239,24 @@ val passengerModule = module {
             deleteSavedPlaceUseCase = get(),
             getCurrentLocationUseCase = get(),
             resolveTapLabelUseCase = get(),
+            ioDispatcher = get(named(IO_DISPATCHER_QUALIFIER)),
+        )
+    }
+
+    single { PassengerSettingsApi(client = get(), baseUrl = get(named(API_BASE_URL_QUALIFIER))) }
+    single<PassengerSettingsRepository> { PassengerSettingsRepositoryImpl(api = get()) }
+    single { GetPassengerAccountUseCase(repository = get()) }
+    single { UpdatePassengerAccountUseCase(repository = get()) }
+    single { GetPassengerProfilePhotoUseCase(repository = get()) }
+    single { UploadPassengerProfilePhotoUseCase(repository = get()) }
+    factory {
+        PassengerAccountViewModel(
+            observeCurrentSessionUseCase = get(),
+            logoutUseCase = get(),
+            getPassengerAccountUseCase = get(),
+            updatePassengerAccountUseCase = get(),
+            getPassengerProfilePhotoUseCase = get(),
+            uploadPassengerProfilePhotoUseCase = get(),
             ioDispatcher = get(named(IO_DISPATCHER_QUALIFIER)),
         )
     }

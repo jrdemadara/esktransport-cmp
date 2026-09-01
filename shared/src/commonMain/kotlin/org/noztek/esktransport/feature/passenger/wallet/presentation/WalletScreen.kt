@@ -49,6 +49,11 @@ import org.koin.compose.viewmodel.koinViewModel
 import org.noztek.esktransport.core.utils.formatApiDateTimeForDisplay
 import org.noztek.esktransport.feature.common.wallet.domain.model.WalletLedgerEntry
 
+private val WalletMainCardBlue = Color(0xFF075BE8)
+private val WalletMainCardLightBlue = Color(0xFF0F6BF2)
+private val WalletMainCardDarkBlue = Color(0xFF0649C7)
+private val WalletActionTrayBlue = Color(0xFF053DAD)
+
 @Composable
 fun WalletScreen(
     contentPadding: PaddingValues = PaddingValues(0.dp),
@@ -102,8 +107,8 @@ private fun WalletBalanceCard(
 ) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(14.dp),
-        color = Color(0xFF075BE8),
+        shape = RoundedCornerShape(10.dp),
+        color = WalletMainCardBlue,
         contentColor = Color.White,
         shadowElevation = 0.dp,
     ) {
@@ -113,8 +118,9 @@ private fun WalletBalanceCard(
                 .background(
                     Brush.verticalGradient(
                         colors = listOf(
-                            Color(0xFF0F6BF2).copy(alpha = 0.16f),
-                            Color(0xFF0649C7).copy(alpha = 0.70f),
+                            WalletMainCardLightBlue.copy(alpha = 0.08f),
+                            WalletMainCardBlue.copy(alpha = 0.28f),
+                            WalletMainCardDarkBlue.copy(alpha = 0.88f),
                         ),
                     ),
                 ),
@@ -177,12 +183,12 @@ private fun WalletActionTray(
 ) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.94f),
-        contentColor = MaterialTheme.colorScheme.onSurface,
+        shape = RoundedCornerShape(10.dp),
+        color = WalletActionTrayBlue.copy(alpha = 0.76f),
+        contentColor = Color.White,
         border = BorderStroke(
             width = 0.5.dp,
-            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.42f),
+            color = Color.White.copy(alpha = 0.14f),
         ),
     ) {
         Row(
@@ -195,14 +201,22 @@ private fun WalletActionTray(
                 onClick = onTopUpClick,
                 modifier = Modifier.weight(1f),
             )
-            VerticalDivider(height = 30.dp, alpha = 0.38f)
+            VerticalDivider(
+                height = 30.dp,
+                alpha = 0.20f,
+                color = Color.White,
+            )
             WalletTrayAction(
                 label = "Send",
                 icon = Heroicons.Outline.PaperAirplane,
                 onClick = {},
                 modifier = Modifier.weight(1f),
             )
-            VerticalDivider(height = 30.dp, alpha = 0.38f)
+            VerticalDivider(
+                height = 30.dp,
+                alpha = 0.20f,
+                color = Color.White,
+            )
             WalletTrayAction(
                 label = "Withdraw",
                 icon = Heroicons.Outline.ArrowDownTray,
@@ -229,14 +243,14 @@ private fun WalletTrayAction(
             imageVector = icon,
             contentDescription = label,
             modifier = Modifier.size(18.dp),
-            tint = MaterialTheme.colorScheme.primary,
+            tint = Color.White,
         )
         Spacer(modifier = Modifier.size(6.dp))
         Text(
             text = label,
             style = MaterialTheme.typography.labelSmall,
             fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onSurface,
+            color = Color.White,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
@@ -265,13 +279,16 @@ private fun WalletSummaryCard(
                 icon = Heroicons.Outline.ArrowPath,
                 modifier = Modifier.weight(1f),
             )
+            Spacer(modifier = Modifier.size(width = 12.dp, height = 1.dp))
             VerticalDivider(height = 42.dp)
+            Spacer(modifier = Modifier.size(width = 12.dp, height = 1.dp))
             WalletSummaryCell(
                 title = "Pending cashout",
                 value = pendingCashoutLabel,
                 icon = Heroicons.Outline.Wallet,
                 modifier = Modifier.weight(1f),
             )
+            Spacer(modifier = Modifier.size(width = 12.dp, height = 1.dp))
             Icon(
                 imageVector = Heroicons.Outline.ChevronRight,
                 contentDescription = null,
@@ -492,11 +509,12 @@ private fun SectionTitle(title: String) {
 private fun VerticalDivider(
     height: androidx.compose.ui.unit.Dp = 48.dp,
     alpha: Float = 0.58f,
+    color: Color = MaterialTheme.colorScheme.outlineVariant,
 ) {
     Spacer(
         modifier = Modifier
             .size(width = 1.dp, height = height)
-            .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = alpha)),
+            .background(color.copy(alpha = alpha)),
     )
 }
 

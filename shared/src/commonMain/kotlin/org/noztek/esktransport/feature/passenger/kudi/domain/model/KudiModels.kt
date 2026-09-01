@@ -22,6 +22,7 @@ data class KudiChatMessage(
     val sender: KudiMessageSender,
     val message: String,
     val createdAt: String?,
+    val vehicleSuggestions: List<KudiVehicleSuggestion> = emptyList(),
 )
 
 enum class KudiMessageSender {
@@ -42,4 +43,25 @@ data class KudiAssistant(
     val intent: String?,
     val reply: String,
     val missingFields: List<String>,
+)
+
+data class KudiVehicleSuggestion(
+    val publicId: String,
+    val serviceType: String,
+    val title: String,
+    val ownerName: String,
+    val vehicleTypeCode: String,
+    val vehicleTypeLabel: String?,
+    val plate: String,
+    val make: String?,
+    val model: String?,
+    val year: Int?,
+    val payloadKg: Double?,
+    val volumeM3: Double?,
+    val passengerCapacity: Int?,
+    val baseRate: Double?,
+    val rateUnit: String?,
+    val includedKm: Double?,
+    val currency: String,
+    val isBestMatch: Boolean,
 )

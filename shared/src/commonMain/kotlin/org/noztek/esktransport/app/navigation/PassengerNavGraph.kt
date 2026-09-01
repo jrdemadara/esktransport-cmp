@@ -104,13 +104,16 @@ import org.noztek.esktransport.feature.passenger.ride_planner.presentation.RideP
 import org.noztek.esktransport.feature.passenger.ride_planner.presentation.RidePlannerUiEvent
 import org.noztek.esktransport.feature.passenger.ride_planner.presentation.RidePlannerViewModel
 import org.noztek.esktransport.feature.passenger.settings.presentation.AccountSettingsScreen
+import org.noztek.esktransport.feature.passenger.settings.presentation.PassengerAccountViewModel
 import org.noztek.esktransport.feature.passenger.settings.presentation.SavedPlacesScreen
 import org.noztek.esktransport.feature.passenger.settings.presentation.SettingsScreen
 import org.noztek.esktransport.feature.passenger.session.presentation.PassengerSessionUiEvent
 import org.noztek.esktransport.feature.passenger.session.presentation.PassengerSessionViewModel
 import org.noztek.esktransport.feature.passenger.trip_tracking.presentation.TripTrackingScreen
 import org.noztek.esktransport.feature.passenger.wallet.presentation.WalletScreen
+import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverOnboardingDocumentType
 import org.noztek.esktransport.feature.driver.onboarding.presentation.CapturedDocumentPreviewImage
+import org.noztek.esktransport.feature.driver.onboarding.presentation.DriverDocumentCaptureScreen
 
 private const val ROUTE_HOME = "home"
 private const val ROUTE_WALLET = "wallet"
@@ -128,6 +131,7 @@ private const val ROUTE_KUDI = "kudi"
 private const val ROUTE_ACTIVITY = "activity"
 private const val ROUTE_PROFILE = "profile"
 private const val ROUTE_PASSENGER_ACCOUNT_SETTINGS = "passenger/settings/account"
+private const val ROUTE_PASSENGER_PROFILE_PHOTO_CAPTURE = "passenger/settings/account/photo-capture"
 private const val ROUTE_PASSENGER_SAVED_PLACES = "passenger/settings/saved-places"
 private const val ROUTE_PASSENGER_TOP_UP = "passenger/wallet/top-up"
 private const val ROUTE_PASSENGER_CASHOUT = "passenger/wallet/cashout"
@@ -147,6 +151,7 @@ private fun PassengerShell(onLogout: () -> Unit) {
     val ridePlannerViewModel: RidePlannerViewModel = koinViewModel()
     val bookingReviewViewModel: BookingReviewViewModel = koinViewModel()
     val passengerSessionViewModel: PassengerSessionViewModel = koinViewModel()
+    val passengerAccountViewModel: PassengerAccountViewModel = koinViewModel()
     val passengerRealtimeCoordinator: PassengerRealtimeCoordinator = koinInject()
     val userPresenceCoordinator: UserPresenceCoordinator = koinInject()
     val sessionManager: SessionManager = koinInject()
@@ -173,6 +178,7 @@ private fun PassengerShell(onLogout: () -> Unit) {
         currentRoute != ROUTE_KUDI &&
         currentRoute != ROUTE_PASSENGER_TOP_UP &&
         currentRoute != ROUTE_PASSENGER_CASHOUT &&
+        currentRoute != ROUTE_PASSENGER_PROFILE_PHOTO_CAPTURE &&
         currentRoute?.startsWith("location-search/") != true
 
     LaunchedEffect(currentRoute, bookingReviewUiState.isSearchingForRider, activeTripTrackingBookingId, isTripTrackingVisible) {
@@ -276,6 +282,7 @@ private fun PassengerShell(onLogout: () -> Unit) {
                 currentRoute == ROUTE_KUDI -> Unit
                 currentRoute == ROUTE_PROFILE -> Unit
                 currentRoute == ROUTE_PASSENGER_ACCOUNT_SETTINGS -> Unit
+                currentRoute == ROUTE_PASSENGER_PROFILE_PHOTO_CAPTURE -> Unit
                 currentRoute == ROUTE_PASSENGER_SAVED_PLACES -> Unit
                 currentRoute == ROUTE_PASSENGER_TOP_UP -> Unit
                 currentRoute == ROUTE_PASSENGER_CASHOUT -> Unit
@@ -518,7 +525,13 @@ private fun PassengerShell(onLogout: () -> Unit) {
                 CashoutScreen(onBackClick = { navController.popBackStack() })
             }
             composable(ROUTE_KUDI) {
-                KudiScreen()
+                KudiScreen(
+                    onListingClick = { listingPublicId ->
+                        navController.navigate("marketplace/listing-details/$listingPublicId") {
+                            launchSingleTop = true
+                        }
+                    },
+                )
             }
             composable(ROUTE_ACTIVITY) {
                 ActivityScreen(
@@ -555,7 +568,27 @@ private fun PassengerShell(onLogout: () -> Unit) {
                     AccountSettingsScreen(
                         onBackClick = { navController.popBackStack() },
                         onLogout = onLogout,
+                        onProfilePhotoClick = {
+                            navController.navigate(ROUTE_PASSENGER_PROFILE_PHOTO_CAPTURE) {
+                                launchSingleTop = true
+                            }
+                        },
                         contentPadding = innerPadding,
+                        viewModel = passengerAccountViewModel,
+                    )
+                }
+                composable(ROUTE_PASSENGER_PROFILE_PHOTO_CAPTURE) {
+                    DriverDocumentCaptureScreen(
+                        type = DriverOnboardingDocumentType.Selfie,
+                        onCaptured = { capture ->
+                            passengerAccountViewModel.uploadProfilePhoto(
+                                fileName = capture.fileName,
+                                mimeType = capture.mimeType,
+                                bytes = capture.bytes,
+                            )
+                            navController.popBackStack()
+                        },
+                        onClose = { navController.popBackStack() },
                     )
                 }
                 composable(ROUTE_PASSENGER_SAVED_PLACES) {

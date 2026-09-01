@@ -42,6 +42,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.TextStyle
@@ -52,9 +53,11 @@ import com.composables.icons.heroicons.Heroicons
 import com.composables.icons.heroicons.outline.ArrowsUpDown
 import com.composables.icons.heroicons.outline.ChartBar
 import com.composables.icons.heroicons.outline.Clock
+import com.composables.icons.heroicons.outline.Cube
 import com.composables.icons.heroicons.outline.MapPin
 import com.composables.icons.heroicons.outline.PaperAirplane
 import com.composables.icons.heroicons.outline.PencilSquare
+import com.composables.icons.heroicons.outline.ShieldCheck
 import com.composables.icons.heroicons.outline.Sparkles
 import com.composables.icons.heroicons.outline.Truck
 import com.composables.icons.heroicons.outline.User
@@ -65,11 +68,14 @@ import esktransport.shared.generated.resources.home_car
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
 import org.koin.compose.viewmodel.koinViewModel
+import org.noztek.esktransport.feature.driver.onboarding.presentation.CapturedDocumentPreviewImage
 import org.noztek.esktransport.feature.passenger.kudi.domain.model.KudiChatMessage
 import org.noztek.esktransport.feature.passenger.kudi.domain.model.KudiMessageSender
+import org.noztek.esktransport.feature.passenger.kudi.domain.model.KudiVehicleSuggestion
 
 @Composable
 fun KudiScreen(
+    onListingClick: (String) -> Unit = {},
     viewModel: KudiViewModel = koinViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -131,7 +137,12 @@ fun KudiScreen(
                 item { LoadingBubble() }
             }
             items(uiState.messages, key = { it.id }) { chatMessage ->
-                KudiMessageRow(message = chatMessage)
+                KudiMessageRow(
+                    message = chatMessage,
+                    vehiclePhotoBytes = uiState.vehiclePhotoBytes,
+                    loadingPhotoPublicIds = uiState.loadingPhotoPublicIds,
+                    onListingClick = onListingClick,
+                )
             }
             if (uiState.isSending) {
                 item { LoadingBubble() }
@@ -200,12 +211,22 @@ private fun KudiTopBar(
 }
 
 @Composable
-private fun KudiMessageRow(message: KudiChatMessage) {
+private fun KudiMessageRow(
+    message: KudiChatMessage,
+    vehiclePhotoBytes: Map<String, ByteArray>,
+    loadingPhotoPublicIds: Set<String>,
+    onListingClick: (String) -> Unit,
+) {
     when (message.sender) {
         KudiMessageSender.User -> UserBubble(message.message)
         KudiMessageSender.Assistant,
         KudiMessageSender.System,
-        -> KudiBubble(message.message)
+        -> KudiAssistantMessage(
+            message = message,
+            vehiclePhotoBytes = vehiclePhotoBytes,
+            loadingPhotoPublicIds = loadingPhotoPublicIds,
+            onListingClick = onListingClick,
+        )
     }
 }
 
@@ -351,6 +372,262 @@ private fun KudiBubble(text: String) {
                 style = MaterialTheme.typography.bodyLarge,
             )
         }
+    }
+}
+
+@Composable
+private fun KudiAssistantMessage(
+    message: KudiChatMessage,
+    vehiclePhotoBytes: Map<String, ByteArray>,
+    loadingPhotoPublicIds: Set<String>,
+    onListingClick: (String) -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        KudiBubble(message.message)
+        if (message.vehicleSuggestions.isNotEmpty()) {
+            SuggestedVehiclesSection(
+                suggestions = message.vehicleSuggestions,
+                vehiclePhotoBytes = vehiclePhotoBytes,
+                loadingPhotoPublicIds = loadingPhotoPublicIds,
+                onListingClick = onListingClick,
+            )
+        }
+    }
+}
+
+@Composable
+private fun SuggestedVehiclesSection(
+    suggestions: List<KudiVehicleSuggestion>,
+    vehiclePhotoBytes: Map<String, ByteArray>,
+    loadingPhotoPublicIds: Set<String>,
+    onListingClick: (String) -> Unit,
+) {
+    Column(
+        modifier = Modifier.padding(start = 44.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Text(
+            text = "Suggested vehicles",
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        suggestions.take(5).forEach { suggestion ->
+            SuggestedVehicleCard(
+                suggestion = suggestion,
+                photoBytes = vehiclePhotoBytes[suggestion.publicId],
+                isPhotoLoading = suggestion.publicId in loadingPhotoPublicIds,
+                onClick = { onListingClick(suggestion.publicId) },
+            )
+        }
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            Icon(
+                imageVector = Heroicons.Outline.ShieldCheck,
+                contentDescription = null,
+                modifier = Modifier.size(15.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Text(
+                text = "Rates are estimates and may change.",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+@Composable
+private fun SuggestedVehicleCard(
+    suggestion: KudiVehicleSuggestion,
+    photoBytes: ByteArray?,
+    isPhotoLoading: Boolean,
+    onClick: () -> Unit,
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        color = MaterialTheme.colorScheme.surface,
+        contentColor = MaterialTheme.colorScheme.onSurface,
+        border = BorderStroke(0.6.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.75f)),
+        onClick = onClick,
+    ) {
+        Column(modifier = Modifier.padding(9.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.Top) {
+                SuggestionImage(
+                    title = suggestion.title,
+                    photoBytes = photoBytes,
+                    isPhotoLoading = isPhotoLoading,
+                )
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            text = suggestion.title,
+                            modifier = Modifier.weight(1f),
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        if (suggestion.isBestMatch) {
+                            BestMatchPill()
+                        }
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        SuggestionStat(
+                            icon = Heroicons.Outline.Truck,
+                            value = formatCargoWeight(suggestion.payloadKg),
+                            label = "Load",
+                            modifier = Modifier.weight(1f),
+                        )
+                        SuggestionStat(
+                            icon = Heroicons.Outline.Cube,
+                            value = formatVolume(suggestion.volumeM3),
+                            label = "Volume",
+                            modifier = Modifier.weight(1f),
+                        )
+                        SuggestionStat(
+                            icon = Heroicons.Outline.MapPin,
+                            value = formatIncludedKm(suggestion.includedKm),
+                            label = "Included",
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
+                }
+            }
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                    Text(
+                        text = formatSuggestionRate(suggestion),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Heroicons.Outline.ShieldCheck,
+                            contentDescription = null,
+                            modifier = Modifier.size(14.dp),
+                            tint = MaterialTheme.colorScheme.primary,
+                        )
+                        Text(
+                            text = "Verified owner",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                    }
+                }
+                Surface(
+                    shape = RoundedCornerShape(10.dp),
+                    color = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                    onClick = onClick,
+                ) {
+                    Text(
+                        text = "View details",
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 9.dp),
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SuggestionImage(
+    title: String,
+    photoBytes: ByteArray?,
+    isPhotoLoading: Boolean,
+) {
+    Box(
+        modifier = Modifier
+            .size(width = 104.dp, height = 92.dp)
+            .clip(RoundedCornerShape(10.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)),
+        contentAlignment = Alignment.Center,
+    ) {
+        photoBytes?.let { bytes ->
+            CapturedDocumentPreviewImage(
+                bytes = bytes,
+                contentDescription = title,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize(),
+            )
+        }
+        if (photoBytes == null && isPhotoLoading) {
+            CircularProgressIndicator(
+                modifier = Modifier.size(21.dp),
+                strokeWidth = 2.dp,
+                color = MaterialTheme.colorScheme.primary,
+            )
+        }
+    }
+}
+
+@Composable
+private fun SuggestionStat(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    value: String,
+    label: String,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                modifier = Modifier.size(14.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Text(
+                text = value,
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
+}
+
+@Composable
+private fun BestMatchPill() {
+    Surface(
+        shape = RoundedCornerShape(999.dp),
+        color = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.14f),
+        contentColor = MaterialTheme.colorScheme.tertiary,
+    ) {
+        Text(
+            text = "Best",
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.SemiBold,
+        )
     }
 }
 
@@ -680,6 +957,43 @@ private fun KudiAvatar(size: androidx.compose.ui.unit.Dp) {
             )
         }
     }
+}
+
+private fun formatSuggestionRate(suggestion: KudiVehicleSuggestion): String {
+    val amount = suggestion.baseRate ?: return "-"
+    val unit = suggestion.rateUnit?.takeIf { it.isNotBlank() } ?: "trip"
+    return "${formatMoney(amount, suggestion.currency)}/$unit"
+}
+
+private fun formatCargoWeight(value: Double?): String {
+    return value?.let { "${formatCompactNumber(it)} kg" } ?: "-"
+}
+
+private fun formatVolume(value: Double?): String {
+    return value?.let { "${formatCompactNumber(it)} m3" } ?: "-"
+}
+
+private fun formatIncludedKm(value: Double?): String {
+    return value?.let { "${formatCompactNumber(it)} km" } ?: "-"
+}
+
+private fun formatMoney(amount: Double, currency: String): String {
+    val prefix = if (currency.equals("PHP", ignoreCase = true)) "₱" else "${currency.uppercase()} "
+    return prefix + formatCompactNumber(amount)
+}
+
+private fun formatCompactNumber(value: Double): String {
+    val whole = value.toLong()
+    val formatted = if (value == whole.toDouble()) {
+        whole.toString()
+    } else {
+        val rounded = kotlin.math.round(value * 100.0) / 100.0
+        rounded.toString().trimEnd('0').trimEnd('.')
+    }
+
+    val parts = formatted.split(".")
+    val integer = parts[0].reversed().chunked(3).joinToString(",").reversed()
+    return if (parts.size > 1) "$integer.${parts[1]}" else integer
 }
 
 private data class TripDetail(

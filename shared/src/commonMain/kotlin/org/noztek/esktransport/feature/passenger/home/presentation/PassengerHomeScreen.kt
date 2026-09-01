@@ -120,6 +120,18 @@ fun PassengerHomeScreen(
                 SuggestionCard(
                     item = item,
                     onClick = {
+
+
+
+
+
+
+
+
+
+
+
+
                         if (item.opensMarketplace) {
                             onMarketplaceClick()
                         } else {

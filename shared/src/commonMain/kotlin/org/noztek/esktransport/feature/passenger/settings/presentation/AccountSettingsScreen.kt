@@ -1,6 +1,7 @@
 package org.noztek.esktransport.feature.passenger.settings.presentation
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -10,6 +11,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
@@ -17,6 +19,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -24,12 +27,17 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -37,14 +45,19 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.composables.icons.heroicons.Heroicons
 import com.composables.icons.heroicons.outline.ArrowLeft
 import com.composables.icons.heroicons.outline.ArrowLeftOnRectangle
+import com.composables.icons.heroicons.outline.Camera
 import com.composables.icons.heroicons.outline.CheckCircle
 import com.composables.icons.heroicons.outline.ChevronRight
 import com.composables.icons.heroicons.outline.Envelope
@@ -53,37 +66,42 @@ import com.composables.icons.heroicons.outline.MapPin
 import com.composables.icons.heroicons.outline.Phone
 import com.composables.icons.heroicons.outline.ShieldCheck
 import com.composables.icons.heroicons.outline.User
-import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
-import org.noztek.esktransport.core.session.SessionManager
+import org.noztek.esktransport.core.ui.composables.common.AppPrimaryButton
 import org.noztek.esktransport.core.utils.uppercaseFirstLetterOfEachWord
-import org.noztek.esktransport.feature.common.logout.presentation.LogoutViewModel
+import org.noztek.esktransport.feature.driver.onboarding.presentation.CapturedDocumentPreviewImage
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AccountSettingsScreen(
     onBackClick: () -> Unit,
     onLogout: () -> Unit,
+    onProfilePhotoClick: () -> Unit,
     contentPadding: PaddingValues = PaddingValues(0.dp),
-    sessionManager: SessionManager = koinInject(),
-    logoutViewModel: LogoutViewModel = koinViewModel(),
+    viewModel: PassengerAccountViewModel = koinViewModel(),
 ) {
-    val name by sessionManager.userName.collectAsState(initial = "")
-    val phone by sessionManager.userPhone.collectAsState(initial = "")
-    val userId by sessionManager.userId.collectAsState(initial = null)
-    val logoutState by logoutViewModel.state.collectAsState()
+    val uiState by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
+    val editSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
-    LaunchedEffect(logoutState.isLoggedOut) {
-        if (logoutState.isLoggedOut) {
-            logoutViewModel.resetState()
+    LaunchedEffect(uiState.isLoggedOut) {
+        if (uiState.isLoggedOut) {
+            viewModel.clearLogoutState()
             onLogout()
         }
     }
 
-    LaunchedEffect(logoutState.error) {
-        val message = logoutState.error ?: return@LaunchedEffect
+    LaunchedEffect(uiState.statusMessage) {
+        val message = uiState.statusMessage ?: return@LaunchedEffect
         snackbarHostState.showSnackbar(message)
+        viewModel.clearStatusMessage()
+    }
+
+    LaunchedEffect(uiState.errorMessage) {
+        val message = uiState.errorMessage ?: return@LaunchedEffect
+        if (uiState.activeEditField == null) {
+            snackbarHostState.showSnackbar(message)
+        }
     }
 
     Scaffold(
@@ -102,15 +120,15 @@ fun AccountSettingsScreen(
                 .padding(horizontal = 22.dp, vertical = 12.dp),
         ) {
             AccountProfileHeader(
-                name = name.orEmpty(),
-                passengerId = userId,
+                uiState = uiState,
+                onPhotoClick = onProfilePhotoClick,
             )
             SettingsSectionDivider(modifier = Modifier.padding(top = 22.dp, bottom = 22.dp))
             AccountSectionTitle("Personal Information")
             AccountInfoRow(
                 icon = Heroicons.Outline.User,
                 title = "Full Name",
-                value = name.orEmpty().capitalizedDisplayValue(),
+                value = uiState.name.capitalizedDisplayValue(),
                 valueFontWeight = FontWeight.SemiBold,
                 showChevron = false,
             )
@@ -118,22 +136,22 @@ fun AccountSettingsScreen(
             AccountInfoRow(
                 icon = Heroicons.Outline.Phone,
                 title = "Phone Number",
-                value = phone.orEmpty().displayValue(),
+                value = uiState.phone.displayValue(),
                 showChevron = false,
             )
             SettingsSectionDivider()
             AccountInfoRow(
                 icon = Heroicons.Outline.Envelope,
                 title = "Email Address",
-                value = "Not provided",
-                showChevron = false,
+                value = uiState.email.displayValue(),
+                onClick = viewModel::editEmail,
             )
             SettingsSectionDivider()
             AccountInfoRow(
                 icon = Heroicons.Outline.MapPin,
                 title = "Address",
-                value = "Not provided",
-                showChevron = false,
+                value = uiState.address.displayValue(),
+                onClick = viewModel::editAddress,
             )
             SettingsSectionDivider(modifier = Modifier.padding(top = 22.dp, bottom = 22.dp))
             AccountSectionTitle("Account Security")
@@ -151,8 +169,30 @@ fun AccountSettingsScreen(
             )
             SettingsSectionDivider(modifier = Modifier.padding(top = 22.dp, bottom = 10.dp))
             AccountLogoutRow(
-                isLoading = logoutState.isLoading,
-                onClick = logoutViewModel::logout,
+                isLoading = uiState.isLoggingOut,
+                onClick = viewModel::logout,
+            )
+        }
+    }
+
+    uiState.activeEditField?.let { field ->
+        ModalBottomSheet(
+            onDismissRequest = {
+                if (!uiState.isSavingAccount) {
+                    viewModel.dismissAccountEditor()
+                }
+            },
+            sheetState = editSheetState,
+            containerColor = MaterialTheme.colorScheme.surface,
+        ) {
+            AccountEditSheet(
+                field = field,
+                value = uiState.editValue,
+                isSaving = uiState.isSavingAccount,
+                errorMessage = uiState.errorMessage,
+                onValueChange = viewModel::onEditValueChange,
+                onSave = viewModel::saveAccountEdit,
+                onCancel = viewModel::dismissAccountEditor,
             )
         }
     }
@@ -188,26 +228,63 @@ private fun AccountTopBar(onBackClick: () -> Unit) {
 
 @Composable
 private fun AccountProfileHeader(
-    name: String,
-    passengerId: Long?,
+    uiState: PassengerAccountUiState,
+    onPhotoClick: () -> Unit,
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Surface(
-            modifier = Modifier.size(76.dp),
-            shape = CircleShape,
-            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.10f),
-            contentColor = MaterialTheme.colorScheme.primary,
+        Box(
+            modifier = Modifier
+                .size(82.dp)
+                .clickable(onClick = onPhotoClick),
         ) {
-            Box(contentAlignment = Alignment.Center) {
-                Icon(
-                    imageVector = Heroicons.Outline.User,
-                    contentDescription = null,
-                    modifier = Modifier.size(36.dp),
-                )
+            Surface(
+                modifier = Modifier
+                    .size(76.dp)
+                    .align(Alignment.TopStart),
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.10f),
+                contentColor = MaterialTheme.colorScheme.primary,
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    if (uiState.profilePhotoBytes != null) {
+                        CapturedDocumentPreviewImage(
+                            bytes = uiState.profilePhotoBytes,
+                            contentDescription = "Passenger profile photo",
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.surfaceVariant, CircleShape),
+                            contentScale = ContentScale.Crop,
+                        )
+                    } else {
+                        Icon(
+                            imageVector = Heroicons.Outline.User,
+                            contentDescription = null,
+                            modifier = Modifier.size(36.dp),
+                        )
+                    }
+                }
+            }
+            Surface(
+                modifier = Modifier
+                    .size(32.dp)
+                    .align(Alignment.BottomEnd),
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.surface,
+                contentColor = MaterialTheme.colorScheme.onSurface,
+                shadowElevation = 2.dp,
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = Heroicons.Outline.Camera,
+                        contentDescription = null,
+                        modifier = Modifier.size(17.dp),
+                    )
+                }
             }
         }
 
@@ -216,7 +293,7 @@ private fun AccountProfileHeader(
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             Text(
-                text = name.takeIf { it.isNotBlank() }?.uppercaseFirstLetterOfEachWord() ?: "Passenger",
+                text = uiState.name.takeIf { it.isNotBlank() }?.uppercaseFirstLetterOfEachWord() ?: "Passenger",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onBackground,
@@ -224,7 +301,7 @@ private fun AccountProfileHeader(
                 overflow = TextOverflow.Ellipsis,
             )
             Text(
-                text = passengerId.passengerIdLabel(),
+                text = uiState.id.passengerIdLabel(),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
@@ -287,10 +364,18 @@ private fun AccountInfoRow(
     valueColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
     valueFontWeight: FontWeight = FontWeight.Normal,
     showChevron: Boolean = true,
+    onClick: (() -> Unit)? = null,
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .then(
+                if (onClick != null) {
+                    Modifier.clickable(onClick = onClick)
+                } else {
+                    Modifier
+                },
+            )
             .padding(vertical = 14.dp),
         horizontalArrangement = Arrangement.spacedBy(18.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -331,6 +416,87 @@ private fun AccountInfoRow(
 }
 
 @Composable
+private fun AccountEditSheet(
+    field: PassengerAccountEditableField,
+    value: String,
+    isSaving: Boolean,
+    errorMessage: String?,
+    onValueChange: (String) -> Unit,
+    onSave: () -> Unit,
+    onCancel: () -> Unit,
+) {
+    val title = when (field) {
+        PassengerAccountEditableField.Email -> "Email Address"
+        PassengerAccountEditableField.Address -> "Address"
+    }
+    val keyboardType = when (field) {
+        PassengerAccountEditableField.Email -> KeyboardType.Email
+        PassengerAccountEditableField.Address -> KeyboardType.Text
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .imePadding()
+            .padding(horizontal = 22.dp)
+            .padding(bottom = 24.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp),
+    ) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+        OutlinedTextField(
+            value = value,
+            onValueChange = onValueChange,
+            modifier = Modifier.fillMaxWidth(),
+            enabled = !isSaving,
+            singleLine = field == PassengerAccountEditableField.Email,
+            minLines = if (field == PassengerAccountEditableField.Address) 3 else 1,
+            label = { Text(title) },
+            keyboardOptions = KeyboardOptions(
+                keyboardType = keyboardType,
+                imeAction = ImeAction.Done,
+            ),
+            shape = RoundedCornerShape(12.dp),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+            ),
+        )
+        errorMessage?.let { message ->
+            Text(
+                text = message,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error,
+            )
+        }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            TextButton(
+                onClick = onCancel,
+                enabled = !isSaving,
+                modifier = Modifier.weight(1f),
+            ) {
+                Text("Cancel")
+            }
+            AppPrimaryButton(
+                text = if (isSaving) "Saving..." else "Save",
+                onClick = onSave,
+                enabled = !isSaving,
+                modifier = Modifier.weight(1f),
+                height = 44.dp,
+            )
+        }
+    }
+}
+
+@Composable
 private fun AccountLogoutRow(
     isLoading: Boolean,
     onClick: () -> Unit,
@@ -338,22 +504,17 @@ private fun AccountLogoutRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .clickable(enabled = !isLoading, onClick = onClick)
             .padding(vertical = 14.dp),
         horizontalArrangement = Arrangement.spacedBy(18.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        IconButton(
-            onClick = onClick,
-            enabled = !isLoading,
-            modifier = Modifier.size(24.dp),
-        ) {
-            Icon(
-                imageVector = Heroicons.Outline.ArrowLeftOnRectangle,
-                contentDescription = null,
-                modifier = Modifier.size(23.dp),
-                tint = Color(0xFFE53935),
-            )
-        }
+        Icon(
+            imageVector = Heroicons.Outline.ArrowLeftOnRectangle,
+            contentDescription = null,
+            modifier = Modifier.size(23.dp),
+            tint = Color(0xFFE53935),
+        )
         Text(
             text = if (isLoading) "Logging out..." else "Logout",
             modifier = Modifier.weight(1f),

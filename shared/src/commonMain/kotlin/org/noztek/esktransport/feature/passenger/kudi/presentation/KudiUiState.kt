@@ -5,6 +5,8 @@ import org.noztek.esktransport.feature.passenger.kudi.domain.model.KudiChatMessa
 data class KudiUiState(
     val sessionPublicId: String? = null,
     val messages: List<KudiChatMessage> = emptyList(),
+    val vehiclePhotoBytes: Map<String, ByteArray> = emptyMap(),
+    val loadingPhotoPublicIds: Set<String> = emptySet(),
     val isLoading: Boolean = false,
     val isSending: Boolean = false,
     val errorMessage: String? = null,
