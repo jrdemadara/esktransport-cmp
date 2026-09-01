@@ -61,6 +61,7 @@ import com.composables.icons.heroicons.outline.Truck
 import com.composables.icons.heroicons.outline.User
 import org.koin.compose.viewmodel.koinViewModel
 import org.noztek.esktransport.core.ui.composables.common.AppPrimaryButton
+import org.noztek.esktransport.core.utils.uppercaseFirstLetterOfEachWord
 import org.noztek.esktransport.feature.driver.onboarding.presentation.CapturedDocumentPreviewImage
 import org.noztek.esktransport.feature.passenger.marketplace.domain.model.MarketplaceListing
 
@@ -220,7 +221,7 @@ private fun ListingHeader(listing: MarketplaceListing) {
                 verticalArrangement = Arrangement.spacedBy(7.dp),
             ) {
                 Text(
-                    text = listing.title,
+                    text = listing.title.displayTitle(),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onBackground,
@@ -228,12 +229,8 @@ private fun ListingHeader(listing: MarketplaceListing) {
                     overflow = TextOverflow.Ellipsis,
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    SolidPill(text = listing.serviceType.replaceFirstChar { it.uppercase() })
-                    SoftPill(text = listing.vehicle.vehicleTypeCode, color = MaterialTheme.colorScheme.primary)
-                }
-                Row(horizontalArrangement = Arrangement.spacedBy(7.dp)) {
-                    StatusPill(text = "active", color = Color(0xFF16A34A))
-                    StatusPill(text = "approved", color = Color(0xFFD97706))
+                    SolidPill(text = listing.serviceType.displayLabel())
+                    SoftPill(text = listing.vehicle.vehicleTypeDisplayLabel(), color = MaterialTheme.colorScheme.primary)
                 }
             }
             Icon(
@@ -261,7 +258,7 @@ private fun OwnerRow(listing: MarketplaceListing) {
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Text(
-                text = listing.owner.name,
+                text = listing.owner.name.displayPersonName(),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onBackground,
                 maxLines = 1,
@@ -325,39 +322,6 @@ private fun VehicleDetailsCard(listing: MarketplaceListing) {
                 value = listing.vehicle.passengerCapacity?.toString() ?: "-",
                 modifier = Modifier.weight(1.08f),
             )
-        }
-        SectionDivider()
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            Surface(
-                modifier = Modifier.size(28.dp),
-                shape = RoundedCornerShape(999.dp),
-                color = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary,
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        imageVector = Heroicons.Outline.CheckCircle,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp),
-                    )
-                }
-            }
-            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(
-                    text = "Availability",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Text(
-                    text = "Available",
-                    style = MaterialTheme.typography.bodySmall,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.primary,
-                )
-            }
         }
     }
 }
@@ -706,26 +670,6 @@ private fun SoftPill(
 }
 
 @Composable
-private fun StatusPill(
-    text: String,
-    color: Color,
-) {
-    Surface(
-        shape = RoundedCornerShape(6.dp),
-        color = color.copy(alpha = 0.10f),
-        contentColor = color,
-        border = BorderStroke(0.6.dp, color.copy(alpha = 0.45f)),
-    ) {
-        Text(
-            text = text,
-            modifier = Modifier.padding(horizontal = 9.dp, vertical = 3.dp),
-            style = MaterialTheme.typography.labelSmall,
-            fontWeight = FontWeight.SemiBold,
-        )
-    }
-}
-
-@Composable
 private fun SectionDivider() {
     Box(
         modifier = Modifier
@@ -752,9 +696,26 @@ private fun MarketplaceListing.rateLabel(): String {
 
 private fun org.noztek.esktransport.feature.passenger.marketplace.domain.model.MarketplaceListingVehicle.modelYearLabel(): String {
     val name = listOfNotNull(make, model).joinToString(" ").ifBlank {
-        vehicleTypeLabel ?: vehicleTypeCode
+        vehicleTypeDisplayLabel()
     }
-    return year?.let { "$name  •  $it" } ?: name
+    val displayName = name.displayTitle()
+    return year?.let { "$displayName  •  $it" } ?: displayName
+}
+
+private fun org.noztek.esktransport.feature.passenger.marketplace.domain.model.MarketplaceListingVehicle.vehicleTypeDisplayLabel(): String {
+    return (vehicleTypeLabel ?: vehicleTypeCode).displayLabel()
+}
+
+private fun String.displayTitle(): String {
+    return trim().uppercaseFirstLetterOfEachWord(lowercaseRest = false)
+}
+
+private fun String.displayPersonName(): String {
+    return trim().uppercaseFirstLetterOfEachWord()
+}
+
+private fun String.displayLabel(): String {
+    return replace("_", " ").trim().uppercaseFirstLetterOfEachWord()
 }
 
 private fun formatWeight(value: Double?): String {

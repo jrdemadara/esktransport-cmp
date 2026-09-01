@@ -42,7 +42,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -64,6 +63,7 @@ import esktransport.shared.generated.resources.medium_truck
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
 import org.koin.compose.viewmodel.koinViewModel
+import org.noztek.esktransport.core.utils.uppercaseFirstLetterOfEachWord
 import org.noztek.esktransport.feature.driver.onboarding.presentation.CapturedDocumentPreviewImage
 import org.noztek.esktransport.feature.passenger.marketplace.domain.model.MarketplaceListing
 
@@ -110,7 +110,7 @@ fun MarketplaceScreen(
                         LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             item {
                                 VehicleTypeFilterChip(
-                                    label = "all",
+                                    label = "All",
                                     image = Res.drawable.home_big_truck,
                                     selected = uiState.selectedVehicleTypeCode == null,
                                     onClick = { viewModel.selectVehicleType(null) },
@@ -118,7 +118,7 @@ fun MarketplaceScreen(
                             }
                             items(uiState.vehicleTypes) { item ->
                                 VehicleTypeFilterChip(
-                                    label = item.name.lowercase(),
+                                    label = item.name.displayLabel(),
                                     image = vehicleTypeImage(item.code),
                                     selected = uiState.selectedVehicleTypeCode == item.code,
                                     onClick = { viewModel.selectVehicleType(item.code) },
@@ -383,7 +383,7 @@ private fun MarketplaceListingCard(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         Text(
-                            text = listing.title,
+                            text = listing.title.displayTitle(),
                             modifier = Modifier.weight(1f),
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.Bold,
@@ -398,8 +398,8 @@ private fun MarketplaceListingCard(
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
-                    OwnerLine(name = listing.owner.name)
-                    SmallBluePill(text = listing.vehicle.vehicleTypeCode)
+                    OwnerLine(name = listing.owner.name.displayPersonName())
+                    SmallBluePill(text = listing.vehicle.vehicleTypeDisplayLabel())
                     Text(
                         text = listing.vehicle.modelYearLabel(),
                         style = MaterialTheme.typography.bodySmall,
@@ -416,20 +416,6 @@ private fun MarketplaceListingCard(
                 }
             }
             ListingStatsRow(listing = listing)
-            MarketplaceDivider()
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 10.dp, vertical = 9.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    StatusPill(text = "active", color = Color(0xFF16A34A))
-                    StatusPill(text = "approved", color = Color(0xFFD97706))
-                }
-                AvailablePill()
-            }
         }
     }
 }
@@ -579,62 +565,6 @@ private fun ThinDivider() {
 }
 
 @Composable
-private fun MarketplaceDivider() {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(0.7.dp)
-            .background(MaterialTheme.colorScheme.outlineVariant),
-    )
-}
-
-@Composable
-private fun StatusPill(
-    text: String,
-    color: Color,
-) {
-    Surface(
-        shape = RoundedCornerShape(6.dp),
-        color = color.copy(alpha = 0.10f),
-        contentColor = color,
-        border = BorderStroke(0.6.dp, color.copy(alpha = 0.45f)),
-    ) {
-        Text(
-            text = text,
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-            style = MaterialTheme.typography.labelSmall,
-            fontWeight = FontWeight.SemiBold,
-        )
-    }
-}
-
-@Composable
-private fun AvailablePill() {
-    Surface(
-        shape = RoundedCornerShape(999.dp),
-        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
-        contentColor = MaterialTheme.colorScheme.primary,
-        border = BorderStroke(0.6.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)),
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-        ) {
-            Icon(
-                imageVector = Heroicons.Outline.CheckCircle,
-                contentDescription = null,
-                modifier = Modifier.size(16.dp),
-            )
-            Text(
-                text = "Available",
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.SemiBold,
-            )
-        }
-    }
-}
-
 private fun vehicleTypeImage(code: String): DrawableResource {
     return when (code) {
         "motorcycle" -> Res.drawable.home_scooter
@@ -659,9 +589,26 @@ private fun MarketplaceListing.includedKmLabel(): String {
 
 private fun org.noztek.esktransport.feature.passenger.marketplace.domain.model.MarketplaceListingVehicle.modelYearLabel(): String {
     val name = listOfNotNull(make, model).joinToString(" ").ifBlank {
-        vehicleTypeLabel ?: vehicleTypeCode
+        vehicleTypeDisplayLabel()
     }
-    return year?.let { "$name  •  $it" } ?: name
+    val displayName = name.displayTitle()
+    return year?.let { "$displayName  •  $it" } ?: displayName
+}
+
+private fun org.noztek.esktransport.feature.passenger.marketplace.domain.model.MarketplaceListingVehicle.vehicleTypeDisplayLabel(): String {
+    return (vehicleTypeLabel ?: vehicleTypeCode).displayLabel()
+}
+
+private fun String.displayTitle(): String {
+    return trim().uppercaseFirstLetterOfEachWord(lowercaseRest = false)
+}
+
+private fun String.displayPersonName(): String {
+    return trim().uppercaseFirstLetterOfEachWord()
+}
+
+private fun String.displayLabel(): String {
+    return replace("_", " ").trim().uppercaseFirstLetterOfEachWord()
 }
 
 private fun formatWeight(value: Double?): String {
