@@ -41,3 +41,32 @@ data class MarketplaceListingVehicle(
     val volumeM3: Double?,
     val passengerCapacity: Int?,
 )
+
+data class MarketplaceServiceRequest(
+    val publicId: String,
+    val serviceType: String,
+    val status: String,
+    val requestedStartAt: String?,
+    val requestedEndAt: String?,
+    val pickupLabel: String?,
+    val destinationLabel: String?,
+    val passengerCount: Int?,
+    val cargoDescription: String?,
+    val cargoWeightKg: Double?,
+    val cargoPieces: Int?,
+    val currency: String,
+    val createdAt: String?,
+)
+
+data class CreateMarketplaceServiceRequestPayload(
+    val listingPublicId: String,
+    val requestedStartAt: String?,
+    val requestedEndAt: String?,
+    val pickupLabel: String?,
+    val destinationLabel: String?,
+    val passengerCount: Int?,
+    val cargoDescription: String?,
+    val cargoWeightKg: Double?,
+    val cargoPieces: Int?,
+    val customerNote: String?,
+)

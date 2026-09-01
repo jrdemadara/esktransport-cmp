@@ -20,6 +20,10 @@ data class DriverMarketplaceInquiryDto(
     val serviceType: String? = null,
     @SerialName("vehicle_service_request_id")
     val vehicleServiceRequestId: Long? = null,
+    @SerialName("vehicle_service_request_public_id")
+    val vehicleServiceRequestPublicId: String? = null,
+    @SerialName("vehicle_service_request_status")
+    val vehicleServiceRequestStatus: String? = null,
     val customer: DriverMarketplaceInquiryCustomerDto,
     val vehicle: DriverMarketplaceInquiryVehicleDto,
     @SerialName("latest_message")
@@ -53,6 +57,8 @@ fun DriverMarketplaceInquiryDto.toDomain(): DriverMarketplaceInquiry {
         threadType = threadType,
         serviceType = serviceType,
         vehicleServiceRequestId = vehicleServiceRequestId,
+        vehicleServiceRequestPublicId = vehicleServiceRequestPublicId,
+        vehicleServiceRequestStatus = vehicleServiceRequestStatus,
         customer = DriverMarketplaceInquiryCustomer(
             name = customer.name,
             phone = customer.phone,

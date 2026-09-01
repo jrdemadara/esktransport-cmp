@@ -13,10 +13,12 @@ import kotlinx.coroutines.withContext
 import org.noztek.esktransport.feature.common.marketplace_chat.domain.model.MarketplaceChatParticipantRole
 import org.noztek.esktransport.feature.common.marketplace_chat.domain.usecase.ObserveMarketplaceChatMessagesUseCase
 import org.noztek.esktransport.feature.common.marketplace_chat.domain.usecase.SubscribeMarketplaceChatUseCase
+import org.noztek.esktransport.feature.driver.bookings.domain.usecase.AcceptDriverMarketplaceRequestUseCase
 import org.noztek.esktransport.feature.driver.bookings.domain.usecase.GetDriverMarketplaceInquiriesUseCase
 
 class DriverBookingsViewModel(
     private val getDriverMarketplaceInquiriesUseCase: GetDriverMarketplaceInquiriesUseCase,
+    private val acceptDriverMarketplaceRequestUseCase: AcceptDriverMarketplaceRequestUseCase,
     private val subscribeMarketplaceChatUseCase: SubscribeMarketplaceChatUseCase,
     private val observeMarketplaceChatMessagesUseCase: ObserveMarketplaceChatMessagesUseCase,
     private val ioDispatcher: CoroutineDispatcher,
@@ -63,5 +65,31 @@ class DriverBookingsViewModel(
 
     fun selectFilter(filter: DriverBookingFilter) {
         _uiState.value = _uiState.value.copy(selectedFilter = filter)
+    }
+
+    fun acceptRequest(requestPublicId: String) {
+        if (requestPublicId.isBlank()) return
+        if (_uiState.value.acceptingRequestPublicId != null) return
+
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(
+                acceptingRequestPublicId = requestPublicId,
+                errorMessage = null,
+            )
+            val result = withContext(ioDispatcher) {
+                acceptDriverMarketplaceRequestUseCase(requestPublicId)
+            }
+            result
+                .onSuccess {
+                    _uiState.value = _uiState.value.copy(acceptingRequestPublicId = null)
+                    load(showLoading = false)
+                }
+                .onFailure { throwable ->
+                    _uiState.value = _uiState.value.copy(
+                        acceptingRequestPublicId = null,
+                        errorMessage = throwable.message ?: "Failed to accept request.",
+                    )
+                }
+        }
     }
 }

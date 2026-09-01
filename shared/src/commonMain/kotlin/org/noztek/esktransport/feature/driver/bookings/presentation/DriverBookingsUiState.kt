@@ -6,6 +6,7 @@ data class DriverBookingsUiState(
     val inquiries: List<DriverMarketplaceInquiry> = emptyList(),
     val selectedFilter: DriverBookingFilter = DriverBookingFilter.All,
     val isLoading: Boolean = false,
+    val acceptingRequestPublicId: String? = null,
     val errorMessage: String? = null,
 ) {
     val visibleInquiries: List<DriverMarketplaceInquiry>

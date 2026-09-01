@@ -34,6 +34,62 @@ data class MarketplaceListingsResponseDto(
 }
 
 @Serializable
+data class MarketplaceServiceRequestResponseDto(
+    val message: String? = null,
+    val data: MarketplaceServiceRequestDto,
+)
+
+@Serializable
+data class MarketplaceServiceRequestDto(
+    @SerialName("public_id")
+    val publicId: String,
+    @SerialName("service_type")
+    val serviceType: String,
+    val status: String,
+    @SerialName("requested_start_at")
+    val requestedStartAt: String? = null,
+    @SerialName("requested_end_at")
+    val requestedEndAt: String? = null,
+    @SerialName("pickup_label")
+    val pickupLabel: String? = null,
+    @SerialName("destination_label")
+    val destinationLabel: String? = null,
+    @SerialName("passenger_count")
+    val passengerCount: Int? = null,
+    @SerialName("cargo_description")
+    val cargoDescription: String? = null,
+    @SerialName("cargo_weight_kg")
+    val cargoWeightKg: Double? = null,
+    @SerialName("cargo_pieces")
+    val cargoPieces: Int? = null,
+    val currency: String = "PHP",
+    @SerialName("created_at")
+    val createdAt: String? = null,
+)
+
+@Serializable
+data class CreateMarketplaceServiceRequestDto(
+    @SerialName("requested_start_at")
+    val requestedStartAt: String? = null,
+    @SerialName("requested_end_at")
+    val requestedEndAt: String? = null,
+    @SerialName("pickup_label")
+    val pickupLabel: String? = null,
+    @SerialName("destination_label")
+    val destinationLabel: String? = null,
+    @SerialName("passenger_count")
+    val passengerCount: Int? = null,
+    @SerialName("cargo_description")
+    val cargoDescription: String? = null,
+    @SerialName("cargo_weight_kg")
+    val cargoWeightKg: Double? = null,
+    @SerialName("cargo_pieces")
+    val cargoPieces: Int? = null,
+    @SerialName("customer_note")
+    val customerNote: String? = null,
+)
+
+@Serializable
 data class MarketplaceListingDto(
     @SerialName("public_id")
     val publicId: String,

@@ -18,6 +18,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -118,6 +119,8 @@ fun DriverBookingsScreen(
                         uiState.visibleInquiries.forEach { inquiry ->
                             DriverMarketplaceInquiryCard(
                                 inquiry = inquiry,
+                                isAccepting = uiState.acceptingRequestPublicId == inquiry.vehicleServiceRequestPublicId,
+                                onAcceptClick = viewModel::acceptRequest,
                                 onClick = { onInquiryClick(inquiry) },
                             )
                         }
@@ -292,6 +295,8 @@ private fun BookingSummaryCell(
 @Composable
 private fun DriverMarketplaceInquiryCard(
     inquiry: DriverMarketplaceInquiry,
+    isAccepting: Boolean,
+    onAcceptClick: (String) -> Unit,
     onClick: () -> Unit,
 ) {
     Surface(
@@ -379,6 +384,35 @@ private fun DriverMarketplaceInquiryCard(
                         maxLines = 1,
                     )
                 }
+                if (inquiry.canAcceptRequest()) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Button(
+                            onClick = { inquiry.vehicleServiceRequestPublicId?.let(onAcceptClick) },
+                            enabled = !isAccepting,
+                            modifier = Modifier.size(width = 92.dp, height = 34.dp),
+                            shape = RoundedCornerShape(8.dp),
+                            contentPadding = PaddingValues(horizontal = 10.dp),
+                        ) {
+                            Text(
+                                text = if (isAccepting) "..." else "Accept",
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                maxLines = 1,
+                            )
+                        }
+                    }
+                } else if (inquiry.requestStatusLabel().isNotBlank()) {
+                    Text(
+                        text = inquiry.requestStatusLabel(),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                    )
+                }
             }
             IconButton(
                 onClick = onClick,
@@ -438,6 +472,20 @@ private fun BookingsMessageState(
 
 private fun DriverMarketplaceInquiry.previewText(): String {
     return latestMessage?.trim()?.takeIf { it.isNotBlank() } ?: "Tap to open the conversation"
+}
+
+private fun DriverMarketplaceInquiry.canAcceptRequest(): Boolean {
+    return vehicleServiceRequestPublicId != null && vehicleServiceRequestStatus == "pending_review"
+}
+
+private fun DriverMarketplaceInquiry.requestStatusLabel(): String {
+    return when (vehicleServiceRequestStatus) {
+        "accepted" -> "Accepted"
+        "rejected" -> "Rejected"
+        "canceled" -> "Canceled"
+        "completed" -> "Completed"
+        else -> ""
+    }
 }
 
 fun DriverMarketplaceInquiry.chatTitle(): String {

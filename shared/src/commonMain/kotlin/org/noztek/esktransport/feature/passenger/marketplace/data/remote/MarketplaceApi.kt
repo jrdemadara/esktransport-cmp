@@ -5,8 +5,14 @@ import io.ktor.client.call.body
 import io.ktor.client.plugins.ClientRequestException
 import io.ktor.client.request.get
 import io.ktor.client.request.parameter
+import io.ktor.client.request.post
+import io.ktor.client.request.setBody
+import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
+import io.ktor.http.contentType
+import org.noztek.esktransport.feature.passenger.marketplace.data.remote.dto.CreateMarketplaceServiceRequestDto
 import org.noztek.esktransport.feature.passenger.marketplace.data.remote.dto.MarketplaceListingsResponseDto
+import org.noztek.esktransport.feature.passenger.marketplace.data.remote.dto.MarketplaceServiceRequestResponseDto
 import org.noztek.esktransport.feature.passenger.marketplace.data.remote.dto.VehicleTypeLookupResponseDto
 
 class MarketplaceApi(
@@ -30,6 +36,16 @@ class MarketplaceApi(
 
     suspend fun getListing(publicId: String): MarketplaceListingsResponseDto.Single {
         return client.get("${baseUrl.trimEnd('/')}/api/passenger/vehicle-listings/$publicId").body()
+    }
+
+    suspend fun sendRequest(
+        publicId: String,
+        request: CreateMarketplaceServiceRequestDto,
+    ): MarketplaceServiceRequestResponseDto {
+        return client.post("${baseUrl.trimEnd('/')}/api/passenger/vehicle-listings/$publicId/requests") {
+            contentType(ContentType.Application.Json)
+            setBody(request)
+        }.body()
     }
 
     suspend fun getListingPhoto(publicId: String): ByteArray? {

@@ -23,19 +23,30 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -44,6 +55,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.composables.icons.heroicons.Heroicons
 import com.composables.icons.heroicons.outline.ArrowLeft
@@ -74,12 +86,22 @@ fun MarketplaceListingDetailsScreen(
     viewModel: MarketplaceListingDetailsViewModel = koinViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(listingPublicId) {
         viewModel.load(listingPublicId)
     }
 
+    LaunchedEffect(viewModel) {
+        viewModel.uiEvents.collect { event ->
+            when (event) {
+                is MarketplaceListingDetailsUiEvent.ShowSnackbar -> snackbarHostState.showSnackbar(event.message)
+            }
+        }
+    }
+
     Scaffold(
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         contentWindowInsets = WindowInsets.safeDrawing,
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
@@ -121,6 +143,18 @@ fun MarketplaceListingDetailsScreen(
                     item { DescriptionCard(listing = listing) }
                     item {
                         RequestVehicleCard(
+                            listing = listing,
+                            uiState = uiState,
+                            onRequestedStartAtChange = viewModel::onRequestedStartAtChange,
+                            onRequestedEndAtChange = viewModel::onRequestedEndAtChange,
+                            onPickupLabelChange = viewModel::onPickupLabelChange,
+                            onDestinationLabelChange = viewModel::onDestinationLabelChange,
+                            onPassengerCountChange = viewModel::onPassengerCountChange,
+                            onCargoDescriptionChange = viewModel::onCargoDescriptionChange,
+                            onCargoWeightKgChange = viewModel::onCargoWeightKgChange,
+                            onCargoPiecesChange = viewModel::onCargoPiecesChange,
+                            onCustomerNoteChange = viewModel::onCustomerNoteChange,
+                            onSendRequestClick = viewModel::sendRequest,
                             onMessageOwnerClick = { onMessageOwnerClick(listing.publicId) },
                         )
                     }
@@ -401,44 +435,125 @@ private fun DescriptionCard(listing: MarketplaceListing) {
 
 @Composable
 private fun RequestVehicleCard(
+    listing: MarketplaceListing,
+    uiState: MarketplaceListingDetailsUiState,
+    onRequestedStartAtChange: (String) -> Unit,
+    onRequestedEndAtChange: (String) -> Unit,
+    onPickupLabelChange: (String) -> Unit,
+    onDestinationLabelChange: (String) -> Unit,
+    onPassengerCountChange: (String) -> Unit,
+    onCargoDescriptionChange: (String) -> Unit,
+    onCargoWeightKgChange: (String) -> Unit,
+    onCargoPiecesChange: (String) -> Unit,
+    onCustomerNoteChange: (String) -> Unit,
+    onSendRequestClick: () -> Unit,
     onMessageOwnerClick: () -> Unit,
 ) {
+    var activeDatePicker by remember { mutableStateOf<RequestDateField?>(null) }
+
     DetailsSectionCard(
         title = "Request this vehicle",
         icon = Heroicons.Outline.CalendarDays,
     ) {
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            RequestField(
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            RequestDatePickerField(
+                value = uiState.requestedStartAt,
                 label = "Requested start",
+                placeholder = "Select date",
                 icon = Heroicons.Outline.CalendarDays,
+                onClick = { activeDatePicker = RequestDateField.Start },
                 modifier = Modifier.weight(1f),
             )
-            RequestField(
+            RequestDatePickerField(
+                value = uiState.requestedEndAt,
                 label = "Requested end",
+                placeholder = "Select date",
                 icon = Heroicons.Outline.CalendarDays,
+                onClick = { activeDatePicker = RequestDateField.End },
                 modifier = Modifier.weight(1f),
             )
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            RequestField(
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            RequestInputField(
+                value = uiState.pickupLabel,
+                onValueChange = onPickupLabelChange,
                 label = "Pickup location",
+                placeholder = "Pickup",
                 icon = Heroicons.Outline.MapPin,
                 modifier = Modifier.weight(1f),
             )
-            RequestField(
+            RequestInputField(
+                value = uiState.destinationLabel,
+                onValueChange = onDestinationLabelChange,
                 label = "Destination",
+                placeholder = "Destination",
                 icon = Heroicons.Outline.MapPin,
                 modifier = Modifier.weight(1f),
             )
         }
-        RequestField(
+        if (listing.serviceType == "cargo") {
+            RequestInputField(
+                value = uiState.cargoDescription,
+                onValueChange = onCargoDescriptionChange,
+                label = "Cargo details",
+                placeholder = "100 sacks cacao",
+                icon = Heroicons.Outline.Cube,
+                singleLine = false,
+                minHeight = 84.dp,
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                RequestInputField(
+                    value = uiState.cargoWeightKg,
+                    onValueChange = onCargoWeightKgChange,
+                    label = "Weight kg",
+                    placeholder = "300",
+                    icon = Heroicons.Outline.Briefcase,
+                    modifier = Modifier.weight(1f),
+                )
+                RequestInputField(
+                    value = uiState.cargoPieces,
+                    onValueChange = onCargoPiecesChange,
+                    label = "Pieces",
+                    placeholder = "100",
+                    icon = Heroicons.Outline.Cube,
+                    modifier = Modifier.weight(1f),
+                )
+            }
+        } else {
+            RequestInputField(
+                value = uiState.passengerCount,
+                onValueChange = onPassengerCountChange,
+                label = "Passengers",
+                placeholder = "1",
+                icon = Heroicons.Outline.User,
+            )
+        }
+        RequestInputField(
+            value = uiState.customerNote,
+            onValueChange = onCustomerNoteChange,
             label = "Customer note (optional)",
+            placeholder = "Add pickup notes",
             icon = Heroicons.Outline.DocumentText,
-            showChevron = false,
+            singleLine = false,
+            minHeight = 84.dp,
         )
         AppPrimaryButton(
-            text = "Send request",
-            onClick = {},
+            text = when {
+                uiState.isSendingRequest -> "Sending..."
+                uiState.sentRequestPublicId != null -> "Request sent"
+                else -> "Send request"
+            },
+            onClick = onSendRequestClick,
+            enabled = !uiState.isSendingRequest && uiState.sentRequestPublicId == null,
             height = 44.dp,
         )
         OutlinedButton(
@@ -464,6 +579,21 @@ private fun RequestVehicleCard(
                 color = MaterialTheme.colorScheme.primary,
             )
         }
+    }
+
+    activeDatePicker?.let { field ->
+        RequestDatePickerDialog(
+            title = if (field == RequestDateField.Start) "Requested start" else "Requested end",
+            onDismiss = { activeDatePicker = null },
+            onDateSelected = { selectedDate ->
+                if (field == RequestDateField.Start) {
+                    onRequestedStartAtChange(selectedDate)
+                } else {
+                    onRequestedEndAtChange(selectedDate)
+                }
+                activeDatePicker = null
+            },
+        )
     }
 }
 
@@ -597,48 +727,157 @@ private fun InfoCell(
 }
 
 @Composable
-private fun RequestField(
+private fun RequestInputField(
+    value: String,
+    onValueChange: (String) -> Unit,
     label: String,
+    placeholder: String,
     icon: ImageVector,
     modifier: Modifier = Modifier,
-    showChevron: Boolean = true,
+    singleLine: Boolean = true,
+    minHeight: Dp = if (singleLine) 56.dp else 84.dp,
 ) {
-    Surface(
+    OutlinedTextField(
+        value = value,
+        onValueChange = onValueChange,
         modifier = modifier
             .fillMaxWidth()
-            .height(42.dp),
-        shape = RoundedCornerShape(8.dp),
-        color = MaterialTheme.colorScheme.surface,
-        contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-        border = BorderStroke(0.7.dp, MaterialTheme.colorScheme.outlineVariant),
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 11.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                modifier = Modifier.size(17.dp),
-            )
+            .height(minHeight),
+        singleLine = singleLine,
+        maxLines = if (singleLine) 1 else 3,
+        textStyle = MaterialTheme.typography.bodySmall,
+        label = {
             Text(
                 text = label,
-                modifier = Modifier.weight(1f),
+                style = MaterialTheme.typography.labelSmall,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        },
+        placeholder = {
+            Text(
+                text = placeholder,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
-            if (showChevron) {
-                Icon(
-                    imageVector = Heroicons.Outline.ChevronRight,
-                    contentDescription = null,
-                    modifier = Modifier.size(16.dp),
-                )
-            }
+        },
+        leadingIcon = {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                modifier = Modifier.size(16.dp),
+            )
+        },
+        shape = RoundedCornerShape(8.dp),
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedBorderColor = MaterialTheme.colorScheme.primary,
+            unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+            focusedContainerColor = MaterialTheme.colorScheme.surface,
+            unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+        ),
+    )
+}
+
+@Composable
+private fun RequestDatePickerField(
+    value: String,
+    label: String,
+    placeholder: String,
+    icon: ImageVector,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    OutlinedButton(
+        onClick = onClick,
+        modifier = modifier
+            .fillMaxWidth()
+            .height(54.dp),
+        shape = RoundedCornerShape(8.dp),
+        border = BorderStroke(0.8.dp, MaterialTheme.colorScheme.outlineVariant),
+        contentPadding = PaddingValues(horizontal = 10.dp),
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            modifier = Modifier.size(16.dp),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(1.dp),
+        ) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                text = value.ifBlank { placeholder },
+                style = MaterialTheme.typography.bodySmall,
+                fontWeight = if (value.isBlank()) FontWeight.Normal else FontWeight.SemiBold,
+                color = if (value.isBlank()) {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                } else {
+                    MaterialTheme.colorScheme.onSurface
+                },
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
         }
     }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun RequestDatePickerDialog(
+    title: String,
+    onDismiss: () -> Unit,
+    onDateSelected: (String) -> Unit,
+) {
+    val datePickerState = rememberDatePickerState()
+
+    DatePickerDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    datePickerState.selectedDateMillis
+                        ?.let(::formatPickerDate)
+                        ?.let(onDateSelected)
+                },
+                enabled = datePickerState.selectedDateMillis != null,
+            ) {
+                Text("Select")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        },
+    ) {
+        DatePicker(
+            state = datePickerState,
+            title = {
+                Text(
+                    text = title,
+                    modifier = Modifier.padding(start = 24.dp, end = 12.dp, top = 16.dp),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                )
+            },
+        )
+    }
+}
+
+private enum class RequestDateField {
+    Start,
+    End,
 }
 
 @Composable
@@ -771,3 +1010,25 @@ private fun formatApiDate(value: String): String {
     val day = parts[2].trimStart('0').ifBlank { parts[2] }
     return "$month $day, ${parts[0]}"
 }
+
+private fun formatPickerDate(epochMillis: Long): String {
+    val epochDay = epochMillis.floorDiv(MillisPerDay)
+    val (year, month, day) = civilDateFromEpochDay(epochDay)
+    return "${year.toString().padStart(4, '0')}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}"
+}
+
+private fun civilDateFromEpochDay(epochDay: Long): Triple<Int, Int, Int> {
+    var zeroDay = epochDay + 719468L
+    val era = zeroDay.floorDiv(146097L)
+    val dayOfEra = zeroDay - era * 146097L
+    val yearOfEra = (dayOfEra - dayOfEra / 1460L + dayOfEra / 36524L - dayOfEra / 146096L) / 365L
+    val year = yearOfEra + era * 400L
+    val dayOfYear = dayOfEra - (365L * yearOfEra + yearOfEra / 4L - yearOfEra / 100L)
+    val monthPart = (5L * dayOfYear + 2L) / 153L
+    val day = dayOfYear - (153L * monthPart + 2L) / 5L + 1L
+    val month = monthPart + if (monthPart < 10L) 3L else -9L
+    val adjustedYear = year + if (month <= 2L) 1L else 0L
+    return Triple(adjustedYear.toInt(), month.toInt(), day.toInt())
+}
+
+private const val MillisPerDay = 86_400_000L

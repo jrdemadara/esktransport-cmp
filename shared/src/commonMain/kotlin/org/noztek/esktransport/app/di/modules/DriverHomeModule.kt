@@ -5,6 +5,7 @@ import org.koin.dsl.module
 import org.noztek.esktransport.feature.driver.bookings.data.impl.DriverMarketplaceInquiriesRepositoryImpl
 import org.noztek.esktransport.feature.driver.bookings.data.remote.DriverMarketplaceInquiriesApi
 import org.noztek.esktransport.feature.driver.bookings.domain.repository.DriverMarketplaceInquiriesRepository
+import org.noztek.esktransport.feature.driver.bookings.domain.usecase.AcceptDriverMarketplaceRequestUseCase
 import org.noztek.esktransport.feature.driver.bookings.domain.usecase.GetDriverMarketplaceInquiriesUseCase
 import org.noztek.esktransport.feature.driver.bookings.presentation.DriverBookingsViewModel
 import org.noztek.esktransport.feature.driver.go.data.impl.GoRepositoryImpl
@@ -146,6 +147,7 @@ val driverHomeModule = module {
     single { GetRiderEarningsUseCase(repository = get()) }
     single { GetDriverTripsUseCase(repository = get()) }
     single { GetDriverMarketplaceInquiriesUseCase(repository = get()) }
+    single { AcceptDriverMarketplaceRequestUseCase(repository = get()) }
     single { GetDriverAccountUseCase(repository = get()) }
     single { UpdateDriverAccountUseCase(repository = get()) }
     single { GetDriverProfilePhotoUseCase(repository = get()) }
@@ -247,6 +249,7 @@ val driverHomeModule = module {
     factory {
         DriverBookingsViewModel(
             getDriverMarketplaceInquiriesUseCase = get(),
+            acceptDriverMarketplaceRequestUseCase = get(),
             subscribeMarketplaceChatUseCase = get(),
             observeMarketplaceChatMessagesUseCase = get(),
             ioDispatcher = get(named(IO_DISPATCHER_QUALIFIER)),

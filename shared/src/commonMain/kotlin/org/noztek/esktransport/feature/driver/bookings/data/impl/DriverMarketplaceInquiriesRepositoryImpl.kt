@@ -17,4 +17,14 @@ class DriverMarketplaceInquiriesRepositoryImpl(
             Result.failure(IllegalStateException(message))
         }
     }
+
+    override suspend fun acceptRequest(requestPublicId: String): Result<Unit> {
+        return try {
+            api.acceptRequest(requestPublicId)
+            Result.success(Unit)
+        } catch (throwable: Throwable) {
+            val message = ApiErrorParser.parse(throwable, "Failed to accept request.")
+            Result.failure(IllegalStateException(message))
+        }
+    }
 }

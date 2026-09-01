@@ -5,6 +5,8 @@ data class DriverMarketplaceInquiry(
     val threadType: String,
     val serviceType: String?,
     val vehicleServiceRequestId: Long?,
+    val vehicleServiceRequestPublicId: String?,
+    val vehicleServiceRequestStatus: String?,
     val customer: DriverMarketplaceInquiryCustomer,
     val vehicle: DriverMarketplaceInquiryVehicle,
     val latestMessage: String?,

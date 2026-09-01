@@ -4,4 +4,5 @@ import org.noztek.esktransport.feature.driver.bookings.domain.model.DriverMarket
 
 interface DriverMarketplaceInquiriesRepository {
     suspend fun getInquiries(): Result<List<DriverMarketplaceInquiry>>
+    suspend fun acceptRequest(requestPublicId: String): Result<Unit>
 }

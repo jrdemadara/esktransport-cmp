@@ -1,7 +1,9 @@
 package org.noztek.esktransport.feature.passenger.marketplace.data.impl
 
 import org.noztek.esktransport.feature.passenger.marketplace.data.remote.dto.MarketplaceListingDto
+import org.noztek.esktransport.feature.passenger.marketplace.data.remote.dto.MarketplaceServiceRequestDto
 import org.noztek.esktransport.feature.passenger.marketplace.data.remote.dto.MarketplaceVehicleTypeDto
+import org.noztek.esktransport.feature.passenger.marketplace.domain.model.MarketplaceServiceRequest
 import org.noztek.esktransport.feature.passenger.marketplace.domain.model.MarketplaceListing
 import org.noztek.esktransport.feature.passenger.marketplace.domain.model.MarketplaceListingOwner
 import org.noztek.esktransport.feature.passenger.marketplace.domain.model.MarketplaceListingVehicle
@@ -44,5 +46,23 @@ fun MarketplaceListingDto.toDomain(): MarketplaceListing {
             passengerCapacity = vehicle.passengerCapacity,
         ),
         updatedAt = updatedAt,
+    )
+}
+
+fun MarketplaceServiceRequestDto.toDomain(): MarketplaceServiceRequest {
+    return MarketplaceServiceRequest(
+        publicId = publicId,
+        serviceType = serviceType,
+        status = status,
+        requestedStartAt = requestedStartAt,
+        requestedEndAt = requestedEndAt,
+        pickupLabel = pickupLabel,
+        destinationLabel = destinationLabel,
+        passengerCount = passengerCount,
+        cargoDescription = cargoDescription,
+        cargoWeightKg = cargoWeightKg,
+        cargoPieces = cargoPieces,
+        currency = currency,
+        createdAt = createdAt,
     )
 }

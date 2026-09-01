@@ -33,6 +33,7 @@ import org.noztek.esktransport.feature.passenger.marketplace.domain.usecase.GetM
 import org.noztek.esktransport.feature.passenger.marketplace.domain.usecase.GetMarketplaceListingPhotoUseCase
 import org.noztek.esktransport.feature.passenger.marketplace.domain.usecase.GetRentalListingsUseCase
 import org.noztek.esktransport.feature.passenger.marketplace.domain.usecase.GetRentalVehicleTypesUseCase
+import org.noztek.esktransport.feature.passenger.marketplace.domain.usecase.SendMarketplaceVehicleRequestUseCase
 import org.noztek.esktransport.feature.passenger.marketplace.presentation.MarketplaceListingDetailsViewModel
 import org.noztek.esktransport.feature.passenger.marketplace.presentation.MarketplaceViewModel
 import org.noztek.esktransport.feature.passenger.location_search.data.impl.LocationRepositoryImpl
@@ -118,6 +119,7 @@ val passengerModule = module {
     single { GetRentalListingsUseCase(repository = get()) }
     single { GetMarketplaceListingUseCase(repository = get()) }
     single { GetMarketplaceListingPhotoUseCase(repository = get()) }
+    single { SendMarketplaceVehicleRequestUseCase(repository = get()) }
     factory {
         MarketplaceViewModel(
             getRentalVehicleTypesUseCase = get(),
@@ -130,6 +132,7 @@ val passengerModule = module {
         MarketplaceListingDetailsViewModel(
             getMarketplaceListingUseCase = get(),
             getMarketplaceListingPhotoUseCase = get(),
+            sendMarketplaceVehicleRequestUseCase = get(),
             ioDispatcher = get(named(IO_DISPATCHER_QUALIFIER)),
         )
     }
