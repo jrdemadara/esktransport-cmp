@@ -24,11 +24,14 @@ import org.noztek.esktransport.core.map.MapboxConfig
 import org.noztek.esktransport.feature.common.cashout.presentation.CashoutScreen
 import org.noztek.esktransport.feature.common.chat.domain.model.TripChatParticipantRole
 import org.noztek.esktransport.feature.common.chat.presentation.TripChatScreen
+import org.noztek.esktransport.feature.common.marketplace_chat.presentation.MarketplaceChatScreen
 import org.noztek.esktransport.feature.common.presence.domain.lifecycle.UserPresenceCoordinator
 import org.noztek.esktransport.feature.common.presence.domain.model.UserPresenceContext
 import org.noztek.esktransport.feature.common.presence.domain.model.UserPresenceRole
 import org.noztek.esktransport.feature.common.topup.presentation.TopUpScreen
 import org.noztek.esktransport.feature.driver.bookings.presentation.DriverBookingsScreen
+import org.noztek.esktransport.feature.driver.bookings.presentation.chatSubtitle
+import org.noztek.esktransport.feature.driver.bookings.presentation.chatTitle
 import org.noztek.esktransport.feature.driver.earning.presentation.EarningsScreen
 import org.noztek.esktransport.feature.driver.go.presentation.GoScreen
 import org.noztek.esktransport.feature.driver.home.presentation.HomeScreen
@@ -221,11 +224,31 @@ fun NavGraphBuilder.driverNavGraph(
             )
         }
         composable(route = DriverBottomBarRoute.BOOKINGS) {
-            DriverBookingsScreen(
-                onBottomBarNavigate = { route ->
-                    navController.navigateDriverBottomBarRoute(route)
-                },
-            )
+            var activeInquiryThreadId by rememberSaveable { mutableStateOf<Long?>(null) }
+            var activeInquiryTitle by rememberSaveable { mutableStateOf("") }
+            var activeInquirySubtitle by rememberSaveable { mutableStateOf("") }
+
+            Box(modifier = Modifier.fillMaxSize()) {
+                DriverBookingsScreen(
+                    onBottomBarNavigate = { route ->
+                        navController.navigateDriverBottomBarRoute(route)
+                    },
+                    onInquiryClick = { inquiry ->
+                        activeInquiryThreadId = inquiry.id
+                        activeInquiryTitle = inquiry.chatTitle()
+                        activeInquirySubtitle = inquiry.chatSubtitle()
+                    },
+                )
+
+                activeInquiryThreadId?.let { threadId ->
+                    MarketplaceChatScreen(
+                        ownerThreadId = threadId,
+                        title = activeInquiryTitle,
+                        subtitle = activeInquirySubtitle,
+                        onBack = { activeInquiryThreadId = null },
+                    )
+                }
+            }
         }
         composable(route = DriverBottomBarRoute.PROFILE) {
             DriverSettingsScreen(

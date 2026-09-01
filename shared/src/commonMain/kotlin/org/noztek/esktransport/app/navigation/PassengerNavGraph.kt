@@ -85,6 +85,7 @@ import org.noztek.esktransport.core.utils.uppercaseFirstLetterOfEachWord
 import org.noztek.esktransport.feature.common.cashout.presentation.CashoutScreen
 import org.noztek.esktransport.feature.common.chat.domain.model.TripChatParticipantRole
 import org.noztek.esktransport.feature.common.chat.presentation.TripChatScreen
+import org.noztek.esktransport.feature.common.marketplace_chat.presentation.MarketplaceChatScreen
 import org.noztek.esktransport.feature.common.presence.domain.lifecycle.UserPresenceCoordinator
 import org.noztek.esktransport.feature.common.presence.domain.model.UserPresenceContext
 import org.noztek.esktransport.feature.common.presence.domain.model.UserPresenceRole
@@ -162,6 +163,7 @@ private fun PassengerShell(onLogout: () -> Unit) {
     var activeTripTrackingBookingId by remember { mutableStateOf<String?>(null) }
     var isTripTrackingVisible by remember { mutableStateOf(false) }
     var activeTripChatBookingId by remember { mutableStateOf<String?>(null) }
+    var activeMarketplaceChatListingId by remember { mutableStateOf<String?>(null) }
     val tabs = passengerTabs
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
@@ -211,6 +213,7 @@ private fun PassengerShell(onLogout: () -> Unit) {
                     activeTripTrackingBookingId = event.bookingId
                     isTripTrackingVisible = true
                     activeTripChatBookingId = null
+                    activeMarketplaceChatListingId = null
                 }
             }
         }
@@ -231,6 +234,7 @@ private fun PassengerShell(onLogout: () -> Unit) {
                 activeTripTrackingBookingId = null
                 isTripTrackingVisible = false
                 activeTripChatBookingId = null
+                activeMarketplaceChatListingId = null
                 navController.navigate(ROUTE_BOOKING_REVIEW) {
                     popUpTo(ROUTE_HOME) { inclusive = false }
                     launchSingleTop = true
@@ -262,6 +266,7 @@ private fun PassengerShell(onLogout: () -> Unit) {
                     is PassengerSessionUiEvent.NavigateToTripTracking -> {
                         activeTripTrackingBookingId = event.bookingPublicId
                         isTripTrackingVisible = true
+                        activeMarketplaceChatListingId = null
                     }
                 }
             }
@@ -501,6 +506,9 @@ private fun PassengerShell(onLogout: () -> Unit) {
                 MarketplaceListingDetailsScreen(
                     listingPublicId = listingPublicId,
                     onBackClick = { navController.popBackStack() },
+                    onMessageOwnerClick = { listingId ->
+                        activeMarketplaceChatListingId = listingId
+                    },
                 )
             }
             composable(ROUTE_WALLET) {
@@ -606,6 +614,7 @@ private fun PassengerShell(onLogout: () -> Unit) {
                         activeTripTrackingBookingId = null
                         isTripTrackingVisible = false
                         activeTripChatBookingId = null
+                        activeMarketplaceChatListingId = null
                         bookingReviewViewModel.showReviewSheet()
                         navController.navigate(ROUTE_BOOKING_REVIEW) {
                             popUpTo(ROUTE_HOME) { inclusive = false }
@@ -616,6 +625,7 @@ private fun PassengerShell(onLogout: () -> Unit) {
                         activeTripTrackingBookingId = null
                         isTripTrackingVisible = false
                         activeTripChatBookingId = null
+                        activeMarketplaceChatListingId = null
                         navController.navigate(ROUTE_HOME) {
                             popUpTo(ROUTE_HOME) { inclusive = false }
                             launchSingleTop = true
@@ -624,6 +634,7 @@ private fun PassengerShell(onLogout: () -> Unit) {
                     onHomeClick = {
                         isTripTrackingVisible = false
                         activeTripChatBookingId = null
+                        activeMarketplaceChatListingId = null
                         navController.navigate(ROUTE_HOME) {
                             popUpTo(ROUTE_HOME) { inclusive = false }
                             launchSingleTop = true
@@ -640,6 +651,13 @@ private fun PassengerShell(onLogout: () -> Unit) {
                     bookingPublicId = bookingId,
                     role = TripChatParticipantRole.Passenger,
                     onBack = { activeTripChatBookingId = null },
+                )
+            }
+
+            activeMarketplaceChatListingId?.let { listingId ->
+                MarketplaceChatScreen(
+                    listingPublicId = listingId,
+                    onBack = { activeMarketplaceChatListingId = null },
                 )
             }
         }

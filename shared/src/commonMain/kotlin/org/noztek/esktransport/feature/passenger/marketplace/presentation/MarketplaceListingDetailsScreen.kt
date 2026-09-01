@@ -70,6 +70,7 @@ import org.noztek.esktransport.feature.passenger.marketplace.domain.model.Market
 fun MarketplaceListingDetailsScreen(
     listingPublicId: String,
     onBackClick: () -> Unit = {},
+    onMessageOwnerClick: (String) -> Unit = {},
     viewModel: MarketplaceListingDetailsViewModel = koinViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -118,7 +119,11 @@ fun MarketplaceListingDetailsScreen(
                     item { VehicleDetailsCard(listing = listing) }
                     item { PricingCard(listing = listing) }
                     item { DescriptionCard(listing = listing) }
-                    item { RequestVehicleCard() }
+                    item {
+                        RequestVehicleCard(
+                            onMessageOwnerClick = { onMessageOwnerClick(listing.publicId) },
+                        )
+                    }
                 }
             }
         }
@@ -395,7 +400,9 @@ private fun DescriptionCard(listing: MarketplaceListing) {
 }
 
 @Composable
-private fun RequestVehicleCard() {
+private fun RequestVehicleCard(
+    onMessageOwnerClick: () -> Unit,
+) {
     DetailsSectionCard(
         title = "Request this vehicle",
         icon = Heroicons.Outline.CalendarDays,
@@ -435,7 +442,7 @@ private fun RequestVehicleCard() {
             height = 44.dp,
         )
         OutlinedButton(
-            onClick = {},
+            onClick = onMessageOwnerClick,
             modifier = Modifier
                 .fillMaxWidth()
                 .height(42.dp),

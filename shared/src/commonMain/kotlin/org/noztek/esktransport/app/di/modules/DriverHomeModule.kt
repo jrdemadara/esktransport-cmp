@@ -2,6 +2,11 @@ package org.noztek.esktransport.app.di.modules
 
 import org.koin.core.qualifier.named
 import org.koin.dsl.module
+import org.noztek.esktransport.feature.driver.bookings.data.impl.DriverMarketplaceInquiriesRepositoryImpl
+import org.noztek.esktransport.feature.driver.bookings.data.remote.DriverMarketplaceInquiriesApi
+import org.noztek.esktransport.feature.driver.bookings.domain.repository.DriverMarketplaceInquiriesRepository
+import org.noztek.esktransport.feature.driver.bookings.domain.usecase.GetDriverMarketplaceInquiriesUseCase
+import org.noztek.esktransport.feature.driver.bookings.presentation.DriverBookingsViewModel
 import org.noztek.esktransport.feature.driver.go.data.impl.GoRepositoryImpl
 import org.noztek.esktransport.feature.driver.go.data.remote.GoApi
 import org.noztek.esktransport.feature.driver.go.domain.repository.GoRepository
@@ -114,6 +119,8 @@ val driverHomeModule = module {
     single<RiderEarningsRepository> { RiderEarningsRepositoryImpl(api = get()) }
     single { DriverTripsApi(client = get(), baseUrl = get(named(API_BASE_URL_QUALIFIER))) }
     single<DriverTripsRepository> { DriverTripsRepositoryImpl(api = get()) }
+    single { DriverMarketplaceInquiriesApi(client = get(), baseUrl = get(named(API_BASE_URL_QUALIFIER))) }
+    single<DriverMarketplaceInquiriesRepository> { DriverMarketplaceInquiriesRepositoryImpl(api = get()) }
     single { DriverSettingsApi(client = get(), baseUrl = get(named(API_BASE_URL_QUALIFIER))) }
     single<DriverSettingsRepository> { DriverSettingsRepositoryImpl(api = get()) }
     single { DriverVehicleApi(client = get(), baseUrl = get(named(API_BASE_URL_QUALIFIER))) }
@@ -138,6 +145,7 @@ val driverHomeModule = module {
     single { CancelDriverCashoutUseCase(repository = get()) }
     single { GetRiderEarningsUseCase(repository = get()) }
     single { GetDriverTripsUseCase(repository = get()) }
+    single { GetDriverMarketplaceInquiriesUseCase(repository = get()) }
     single { GetDriverAccountUseCase(repository = get()) }
     single { UpdateDriverAccountUseCase(repository = get()) }
     single { GetDriverProfilePhotoUseCase(repository = get()) }
@@ -233,6 +241,14 @@ val driverHomeModule = module {
     factory {
         TripsViewModel(
             getDriverTripsUseCase = get(),
+            ioDispatcher = get(named(IO_DISPATCHER_QUALIFIER)),
+        )
+    }
+    factory {
+        DriverBookingsViewModel(
+            getDriverMarketplaceInquiriesUseCase = get(),
+            subscribeMarketplaceChatUseCase = get(),
+            observeMarketplaceChatMessagesUseCase = get(),
             ioDispatcher = get(named(IO_DISPATCHER_QUALIFIER)),
         )
     }

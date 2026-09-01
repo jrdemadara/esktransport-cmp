@@ -53,10 +53,10 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.composables.icons.heroicons.Heroicons
 import com.composables.icons.heroicons.outline.ArrowDown
 import com.composables.icons.heroicons.outline.ChartBarSquare
+import com.composables.icons.heroicons.outline.ChatBubbleOvalLeft
 import com.composables.icons.heroicons.outline.ChevronRight
 import com.composables.icons.heroicons.outline.Clock
 import com.composables.icons.heroicons.outline.MapPin
-import com.composables.icons.heroicons.outline.PaperAirplane
 import com.composables.icons.heroicons.outline.Plus
 import com.composables.icons.heroicons.outline.QueueList
 import com.composables.icons.heroicons.solid.Star
@@ -202,7 +202,7 @@ fun HomeScreen(
             DriverQuickActions(
                 onTripsClick = { onBottomBarNavigate(DriverBottomBarRoute.TRIPS) },
                 onEarningsClick = { onBottomBarNavigate(DriverBottomBarRoute.EARNINGS) },
-                onSupportClick = onProfileClick,
+                onMessagesClick = { onBottomBarNavigate(DriverBottomBarRoute.BOOKINGS) },
                 onVehicleClick = onVehicleSettingsClick,
             )
             RecentActivityCard(
@@ -1063,7 +1063,7 @@ private fun PerformanceMetric(
 private fun DriverQuickActions(
     onTripsClick: () -> Unit,
     onEarningsClick: () -> Unit,
-    onSupportClick: () -> Unit,
+    onMessagesClick: () -> Unit,
     onVehicleClick: () -> Unit,
 ) {
     Row(
@@ -1087,11 +1087,11 @@ private fun DriverQuickActions(
             modifier = Modifier.weight(1f),
         )
         DriverQuickActionTile(
-            title = "Support",
-            subtitle = "Help",
-            icon = Heroicons.Outline.PaperAirplane,
-            iconColor = Color(0xFF7C3AED),
-            onClick = onSupportClick,
+            title = "Messages",
+            subtitle = "Inquiries",
+            icon = Heroicons.Outline.ChatBubbleOvalLeft,
+            iconColor = MaterialTheme.colorScheme.onSurface,
+            onClick = onMessagesClick,
             modifier = Modifier.weight(1f),
         )
         DriverQuickActionTile(
