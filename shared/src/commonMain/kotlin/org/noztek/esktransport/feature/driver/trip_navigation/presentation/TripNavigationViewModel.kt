@@ -324,8 +324,8 @@ class TripNavigationViewModel(
             null -> "to_pickup"
         }
 
+        isPublishingLocation = true
         viewModelScope.launch {
-            isPublishingLocation = true
             try {
                 val result = withContext(ioDispatcher) {
                     updateRiderTripLocationUseCase(
