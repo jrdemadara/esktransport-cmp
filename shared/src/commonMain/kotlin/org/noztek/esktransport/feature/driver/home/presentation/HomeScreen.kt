@@ -57,8 +57,6 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.composables.icons.heroicons.Heroicons
 import com.composables.icons.heroicons.outline.ArrowDown
-import com.composables.icons.heroicons.outline.ChartBarSquare
-import com.composables.icons.heroicons.outline.ChatBubbleOvalLeft
 import com.composables.icons.heroicons.outline.ChevronRight
 import com.composables.icons.heroicons.outline.Clock
 import com.composables.icons.heroicons.outline.MapPin
@@ -108,7 +106,6 @@ fun HomeScreen(
     onTopUpClick: () -> Unit = {},
     onCashoutClick: () -> Unit = {},
     onTransactionHistoryClick: () -> Unit = {},
-    onVehicleSettingsClick: () -> Unit = {},
     viewModel: HomeViewModel = koinViewModel(),
     mapboxConfig: MapboxConfig = koinInject(),
 ) {
@@ -259,18 +256,6 @@ fun HomeScreen(
                 onCashoutClick = onCashoutClick,
                 onHistoryClick = onTransactionHistoryClick,
                 onRetryClick = viewModel::refreshWallet,
-            )
-            PerformancePanel(
-                isLoading = uiState.isLoadingStats,
-                stats = uiState.stats,
-                errorMessage = uiState.statsErrorMessage,
-                onRetryClick = viewModel::refreshStats,
-            )
-            DriverQuickActions(
-                onTripsClick = { onBottomBarNavigate(DriverBottomBarRoute.TRIPS) },
-                onEarningsClick = { onBottomBarNavigate(DriverBottomBarRoute.EARNINGS) },
-                onMessagesClick = { onBottomBarNavigate(DriverBottomBarRoute.BOOKINGS) },
-                onVehicleClick = onVehicleSettingsClick,
             )
             RecentActivityCard(
                 isLoading = uiState.isLoadingRecentActivity,
@@ -960,270 +945,6 @@ private fun DriverStatePill(
 }
 
 @Composable
-private fun PerformancePanel(
-    isLoading: Boolean,
-    stats: DriverHomeStats?,
-    errorMessage: String?,
-    onRetryClick: () -> Unit,
-) {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(10.dp),
-        color = MaterialTheme.colorScheme.surfaceContainer,
-        contentColor = MaterialTheme.colorScheme.onSurface,
-        shadowElevation = 0.5.dp,
-    ) {
-        Column(
-            modifier = Modifier.padding(horizontal = 13.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                Text(
-                    text = "Today's Performance",
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-                Text(
-                    text = "View details",
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(999.dp))
-                        .clickable { onRetryClick() }
-                        .padding(horizontal = 8.dp, vertical = 4.dp),
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.primary,
-                )
-            }
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(8.dp))
-                    .border(
-                        width = 1.dp,
-                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f),
-                        shape = RoundedCornerShape(8.dp),
-                    )
-                    .background(MaterialTheme.colorScheme.surface)
-                    .padding(horizontal = 10.dp, vertical = 12.dp),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                PerformanceMetric(
-                    icon = Heroicons.Outline.QueueList,
-                    iconColor = MaterialTheme.colorScheme.primary,
-                    containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.10f),
-                    value = stats?.totalTrips?.toString() ?: "0",
-                    label = "Trips",
-                    modifier = Modifier.weight(1f),
-                )
-                StatSeparator()
-                PerformanceMetric(
-                    icon = Heroicons.Outline.Clock,
-                    iconColor = Color(0xFF20B66A),
-                    containerColor = Color(0xFF20B66A).copy(alpha = 0.12f),
-                    value = stats?.onlineSeconds.formatOnlineDuration(),
-                    label = "Online",
-                    modifier = Modifier.weight(1f),
-                )
-                StatSeparator()
-                PerformanceMetric(
-                    icon = Heroicons.Solid.Star,
-                    iconColor = Color(0xFFF5B301),
-                    containerColor = Color(0xFFF5B301).copy(alpha = 0.16f),
-                    value = stats.ratingValueLabel(),
-                    label = "Rating",
-                    modifier = Modifier.weight(1f),
-                )
-            }
-            when {
-                isLoading -> {
-                    Text(
-                        text = "Updating stats...",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                errorMessage != null -> {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Text(
-                            text = errorMessage,
-                            modifier = Modifier.weight(1f),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.error,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                        Text(
-                            text = "Retry",
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(999.dp))
-                                .clickable { onRetryClick() }
-                                .padding(horizontal = 8.dp, vertical = 4.dp),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.primary,
-                            fontWeight = FontWeight.SemiBold,
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun PerformanceMetric(
-    icon: ImageVector,
-    iconColor: Color,
-    containerColor: Color,
-    value: String,
-    label: String,
-    modifier: Modifier = Modifier,
-) {
-    Row(
-        modifier = modifier,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Box(
-            modifier = Modifier
-                .size(38.dp)
-                .background(containerColor, CircleShape),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                modifier = Modifier.size(21.dp),
-                tint = iconColor,
-            )
-        }
-        Column(verticalArrangement = Arrangement.spacedBy(0.dp)) {
-            Text(
-                text = value,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
-    }
-}
-
-@Composable
-private fun DriverQuickActions(
-    onTripsClick: () -> Unit,
-    onEarningsClick: () -> Unit,
-    onMessagesClick: () -> Unit,
-    onVehicleClick: () -> Unit,
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
-    ) {
-        DriverQuickActionTile(
-            title = "Trips",
-            subtitle = "History",
-            icon = Heroicons.Outline.QueueList,
-            iconColor = MaterialTheme.colorScheme.primary,
-            onClick = onTripsClick,
-            modifier = Modifier.weight(1f),
-        )
-        DriverQuickActionTile(
-            title = "Earnings",
-            subtitle = "Income",
-            icon = Heroicons.Outline.ChartBarSquare,
-            iconColor = Color(0xFF16A661),
-            onClick = onEarningsClick,
-            modifier = Modifier.weight(1f),
-        )
-        DriverQuickActionTile(
-            title = "Messages",
-            subtitle = "Inquiries",
-            icon = Heroicons.Outline.ChatBubbleOvalLeft,
-            iconColor = MaterialTheme.colorScheme.onSurface,
-            onClick = onMessagesClick,
-            modifier = Modifier.weight(1f),
-        )
-        DriverQuickActionTile(
-            title = "Vehicle",
-            subtitle = "Manage",
-            icon = Heroicons.Outline.MapPin,
-            iconColor = Color(0xFFF59E0B),
-            onClick = onVehicleClick,
-            modifier = Modifier.weight(1f),
-        )
-    }
-}
-
-@Composable
-private fun DriverQuickActionTile(
-    title: String,
-    subtitle: String,
-    icon: ImageVector,
-    iconColor: Color,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Surface(
-        modifier = modifier
-            .height(86.dp)
-            .clip(RoundedCornerShape(10.dp))
-            .clickable(onClick = onClick),
-        shape = RoundedCornerShape(10.dp),
-        color = MaterialTheme.colorScheme.surfaceContainer,
-        contentColor = MaterialTheme.colorScheme.onSurface,
-        tonalElevation = 0.dp,
-        shadowElevation = 1.dp,
-    ) {
-        Column(
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 10.dp),
-            verticalArrangement = Arrangement.SpaceBetween,
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                modifier = Modifier.size(22.dp),
-                tint = iconColor,
-            )
-            Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Text(
-                    text = subtitle,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-        }
-    }
-}
-
-@Composable
 private fun RecentActivityCard(
     isLoading: Boolean,
     trip: DriverTrip?,
@@ -1566,15 +1287,6 @@ private fun RatingDashboardStat(
 }
 
 @Composable
-private fun StatSeparator() {
-    Box(
-        modifier = Modifier
-            .size(width = 1.dp, height = 34.dp)
-            .background(MaterialTheme.colorScheme.outlineVariant),
-    )
-}
-
-@Composable
 private fun VehicleStatusPill(vehicle: DriverVehicleInfo?) {
     val label = when {
         vehicle?.status.equals("active", ignoreCase = true) -> "Active"
@@ -1876,12 +1588,14 @@ private fun List<MapPoint>.recentMapZoom(): Double {
     val lngSpan = maxOf { it.longitude } - minOf { it.longitude }
     val maxSpan = maxOf(abs(latSpan), abs(lngSpan))
 
+    // This preview is small and has no camera-fit API. Use extra padding so both
+    // trip endpoints remain visible instead of filling the card with the route.
     return when {
-        maxSpan < 0.01 -> 14.2
-        maxSpan < 0.025 -> 13.2
-        maxSpan < 0.06 -> 12.0
-        maxSpan < 0.12 -> 11.0
-        else -> 10.0
+        maxSpan < 0.01 -> 11.8
+        maxSpan < 0.025 -> 11.0
+        maxSpan < 0.06 -> 10.0
+        maxSpan < 0.12 -> 9.0
+        else -> 8.0
     }
 }
 
