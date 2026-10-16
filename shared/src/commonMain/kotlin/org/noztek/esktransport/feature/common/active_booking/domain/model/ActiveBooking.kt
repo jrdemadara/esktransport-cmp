@@ -41,5 +41,6 @@ enum class ActiveBookingStatus {
     ACCEPTED,
     ARRIVING_PICKUP,
     IN_PROGRESS,
+    COMPLETED,
     UNKNOWN,
 }

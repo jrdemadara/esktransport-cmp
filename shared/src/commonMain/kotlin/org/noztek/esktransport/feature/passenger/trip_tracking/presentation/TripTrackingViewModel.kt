@@ -61,6 +61,7 @@ class TripTrackingViewModel(
                         isLoading = false,
                         tripSession = sessionWithFare,
                         stage = stage,
+                        showFeedback = sessionWithFare.status == "completed",
                         riderToPickupRoute = routes.riderToPickupRoute,
                         driverToDestinationRoute = routes.driverToDestinationRoute,
                         pickupToDestinationRoute = routes.pickupToDestinationRoute,

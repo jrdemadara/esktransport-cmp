@@ -32,7 +32,8 @@ class PassengerSessionViewModel(
                     ActiveBookingStatus.OFFERED -> Unit
                     ActiveBookingStatus.ACCEPTED,
                     ActiveBookingStatus.ARRIVING_PICKUP,
-                    ActiveBookingStatus.IN_PROGRESS -> {
+                    ActiveBookingStatus.IN_PROGRESS,
+                    ActiveBookingStatus.COMPLETED -> {
                         _uiEvents.emit(
                             PassengerSessionUiEvent.NavigateToTripTracking(activeBooking.bookingPublicId),
                         )

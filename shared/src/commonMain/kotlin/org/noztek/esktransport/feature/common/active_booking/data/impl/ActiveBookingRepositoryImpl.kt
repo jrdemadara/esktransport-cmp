@@ -49,6 +49,7 @@ private fun String.toActiveBookingStatus(): ActiveBookingStatus = when (lowercas
     "accepted" -> ActiveBookingStatus.ACCEPTED
     "arriving_pickup" -> ActiveBookingStatus.ARRIVING_PICKUP
     "in_progress" -> ActiveBookingStatus.IN_PROGRESS
+    "completed" -> ActiveBookingStatus.COMPLETED
     else -> ActiveBookingStatus.UNKNOWN
 }
 
