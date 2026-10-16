@@ -25,17 +25,22 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -72,6 +77,7 @@ import org.noztek.esktransport.core.map.MapPoint
 import org.noztek.esktransport.core.map.MapRouteLine
 import org.noztek.esktransport.core.map.MapboxConfig
 import org.noztek.esktransport.core.map.PlatformMapView
+import org.noztek.esktransport.core.permission.EnsureLocationServiceBeforeAction
 import org.noztek.esktransport.core.ui.composables.common.AppPrimaryButton
 import org.noztek.esktransport.core.ui.composables.driver.DriverBottomBar
 import org.noztek.esktransport.core.ui.composables.driver.DriverBottomBarRoute
@@ -87,6 +93,7 @@ import org.noztek.esktransport.feature.driver.onboarding.domain.model.DriverVehi
 import org.noztek.esktransport.feature.driver.trips.domain.model.DriverTrip
 import org.noztek.esktransport.feature.driver.trips.domain.model.DriverTripStatus
 import org.noztek.esktransport.feature.driver.wallet.domain.model.DriverWalletDashboard
+import kotlinx.coroutines.launch
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
@@ -108,6 +115,63 @@ fun HomeScreen(
     val uiState by viewModel.uiState.collectAsState()
     val lifecycleOwner = LocalLifecycleOwner.current
     val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+    var requestDriverModeLocation by remember { mutableStateOf(false) }
+    var showLocationSettingsDialog by remember { mutableStateOf(false) }
+    var locationSettingsConfirmed by remember { mutableStateOf(false) }
+
+    EnsureLocationServiceBeforeAction(
+        requested = requestDriverModeLocation,
+        settingsConfirmed = locationSettingsConfirmed,
+        onReady = {
+            requestDriverModeLocation = false
+            locationSettingsConfirmed = false
+            onDriverModeClick()
+        },
+        onSettingsRequired = {
+            showLocationSettingsDialog = true
+        },
+        onUnavailable = {
+            requestDriverModeLocation = false
+            locationSettingsConfirmed = false
+            scope.launch {
+                snackbarHostState.showSnackbar("Turn on location services to enter Driver Mode.")
+            }
+        },
+    )
+
+    if (showLocationSettingsDialog) {
+        AlertDialog(
+            onDismissRequest = {
+                showLocationSettingsDialog = false
+                requestDriverModeLocation = false
+                locationSettingsConfirmed = false
+            },
+            title = { Text("Turn on location") },
+            text = { Text("Driver Mode needs location services to receive rides and share your position.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showLocationSettingsDialog = false
+                        locationSettingsConfirmed = true
+                    },
+                ) {
+                    Text("Open settings")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showLocationSettingsDialog = false
+                        requestDriverModeLocation = false
+                        locationSettingsConfirmed = false
+                    },
+                ) {
+                    Text("Cancel")
+                }
+            },
+        )
+    }
 
     DisposableEffect(lifecycleOwner, viewModel) {
         val observer = LifecycleEventObserver { _, event ->
@@ -181,7 +245,10 @@ fun HomeScreen(
                 todaysEarning = uiState.earningsDashboard?.today?.netEarning,
                 earningsCurrency = uiState.earningsDashboard?.currency ?: "PHP",
                 walletDashboard = uiState.walletDashboard,
-                onDriverModeClick = onDriverModeClick,
+                onDriverModeClick = {
+                    requestDriverModeLocation = true
+                    locationSettingsConfirmed = false
+                },
                 onSetupClick = { onSetupClick(uiState.onboardingStatus) },
             )
             DriverWalletStrip(

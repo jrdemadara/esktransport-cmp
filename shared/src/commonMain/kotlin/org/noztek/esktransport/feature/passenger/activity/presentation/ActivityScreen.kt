@@ -676,6 +676,7 @@ private fun ActiveBookingStatus?.statusLabel(isLoading: Boolean): String {
         ActiveBookingStatus.ACCEPTED -> "Driver assigned"
         ActiveBookingStatus.ARRIVING_PICKUP -> "Driver arriving"
         ActiveBookingStatus.IN_PROGRESS -> "On trip"
+        ActiveBookingStatus.COMPLETED -> "Awaiting feedback"
         ActiveBookingStatus.UNKNOWN, null -> "Active"
     }
 }
@@ -688,6 +689,7 @@ private fun ActiveBookingStatus?.statusDescription(isLoading: Boolean): String {
         ActiveBookingStatus.ACCEPTED -> "Driver is preparing for pickup"
         ActiveBookingStatus.ARRIVING_PICKUP -> "Driver is on the way to pickup"
         ActiveBookingStatus.IN_PROGRESS -> "On the way to destination"
+        ActiveBookingStatus.COMPLETED -> "Your trip is complete. Please rate your driver."
         ActiveBookingStatus.UNKNOWN, null -> "Booking is active"
     }
 }

@@ -4,7 +4,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -53,7 +52,6 @@ class TripNavigationViewModel(
     private val _uiEvents = MutableSharedFlow<TripNavigationUiEvent>(extraBufferCapacity = 1)
     val uiEvents: SharedFlow<TripNavigationUiEvent> = _uiEvents.asSharedFlow()
     private var realtimeJob: Job? = null
-    private var mockLocationJob: Job? = null
     private var lastPublishedLocation: DriverNavigationLocation? = null
     private var isPublishingLocation = false
 
@@ -73,9 +71,12 @@ class TripNavigationViewModel(
                     getRiderTripSessionUseCase(bookingPublicId)
                 }
                 result.onSuccess { session ->
-                    startMockLocationUpdates(
-                        bookingPublicId = bookingPublicId,
-                        session = session,
+                    _uiState.value = TripNavigationUiState(
+                        isLoading = false,
+                        tripSession = session,
+                        isAtPickupPoint = session.isAtPickupPoint(),
+                        isAtDestinationPoint = session.isAtDestinationPoint(),
+                        nextInstruction = "Continue on route",
                     )
                     viewModelScope.launch {
                         runCatching {
@@ -125,33 +126,20 @@ class TripNavigationViewModel(
                             }
                             routeResult.onSuccess { routePoints ->
                                 val summary = summaryResult.getOrNull()
-                                _uiState.value = TripNavigationUiState(
-                                    isLoading = false,
-                                    tripSession = session,
-                                    isAtPickupPoint = session.isAtPickupPoint(),
-                                    isAtDestinationPoint = session.isAtDestinationPoint(),
+                                _uiState.value = _uiState.value.copy(
                                     routePoints = routePoints,
                                     distanceMeters = summary?.distanceMeters,
                                     durationSeconds = summary?.durationSeconds,
-                                    nextInstruction = "Continue on route",
                                 )
                                 publishCurrentLocationSnapshot(bookingPublicId)
                             }.onFailure {
-                                _uiState.value = TripNavigationUiState(
-                                    isLoading = false,
-                                    tripSession = session,
-                                    isAtPickupPoint = session.isAtPickupPoint(),
-                                    isAtDestinationPoint = session.isAtDestinationPoint(),
+                                _uiState.value = _uiState.value.copy(
                                     message = "Route loaded with fallback map data only.",
                                 )
                                 publishCurrentLocationSnapshot(bookingPublicId)
                             }
                         }.onFailure { throwable ->
-                            _uiState.value = TripNavigationUiState(
-                                isLoading = false,
-                                tripSession = session,
-                                isAtPickupPoint = session.isAtPickupPoint(),
-                                isAtDestinationPoint = session.isAtDestinationPoint(),
+                            _uiState.value = _uiState.value.copy(
                                 message = throwable.message ?: "Failed to load route.",
                             )
                             publishCurrentLocationSnapshot(bookingPublicId)
@@ -209,8 +197,6 @@ class TripNavigationViewModel(
     fun stopRealtime() {
         realtimeJob?.cancel()
         realtimeJob = null
-        mockLocationJob?.cancel()
-        mockLocationJob = null
     }
 
     fun confirmPickup(bookingPublicId: String) {
@@ -348,7 +334,9 @@ class TripNavigationViewModel(
                     )
                     lastPublishedLocation = location
                 }.onFailure { error ->
-                    println("Driver trip location publish failed: ${error.message}")
+                    val message = error.message ?: "Failed to update driver location."
+                    println("Driver trip location publish failed: $message")
+                    _uiState.value = _uiState.value.copy(message = message)
                 }
             } finally {
                 isPublishingLocation = false
@@ -381,59 +369,6 @@ class TripNavigationViewModel(
         }
     }
 
-    private fun startMockLocationUpdates(
-        bookingPublicId: String,
-        session: RiderTripSession,
-    ) {
-        if (!ENABLE_MOCK_DRIVER_LOCATION_UPDATES || bookingPublicId.isBlank()) return
-        mockLocationJob?.cancel()
-        mockLocationJob = viewModelScope.launch {
-            var tick = 0
-            while (true) {
-                val activeSession = _uiState.value.tripSession ?: session
-                publishMockLocation(
-                    bookingPublicId = bookingPublicId,
-                    location = activeSession.mockDriverLocation(tick),
-                    phase = activeSession.phase,
-                    tick = tick,
-                )
-                tick += 1
-                delay(MOCK_DRIVER_LOCATION_INTERVAL_MS)
-            }
-        }
-    }
-
-    private suspend fun publishMockLocation(
-        bookingPublicId: String,
-        location: DriverNavigationLocation,
-        phase: RiderTripPhase,
-        tick: Int,
-    ) {
-        val phaseValue = when (phase) {
-            RiderTripPhase.TO_DESTINATION -> "to_destination"
-            RiderTripPhase.TO_PICKUP -> "to_pickup"
-        }
-        val result = withContext(ioDispatcher) {
-            updateRiderTripLocationUseCase(
-                bookingPublicId = bookingPublicId,
-                latitude = location.latitude,
-                longitude = location.longitude,
-                bearing = location.bearing,
-                speedKph = location.speedKph,
-                accuracyM = location.accuracyM,
-                phase = phaseValue,
-            )
-        }
-        result.onSuccess {
-            println(
-                "Mock driver trip location published tick=$tick bookingId=$bookingPublicId lat=${location.latitude} lng=${location.longitude} phase=$phaseValue",
-            )
-            lastPublishedLocation = location
-        }.onFailure { error ->
-            println("Mock driver trip location publish failed tick=$tick: ${error.message}")
-        }
-    }
-
     override fun onCleared() {
         stopRealtime()
         super.onCleared()
@@ -449,8 +384,6 @@ private data class StageRoute(
 
 private const val LOCATION_PUBLISH_DISTANCE_METERS = 10.0
 private const val ARRIVAL_CONFIRM_DISTANCE_METERS = 15.0
-private const val ENABLE_MOCK_DRIVER_LOCATION_UPDATES = false
-private const val MOCK_DRIVER_LOCATION_INTERVAL_MS = 5_000L
 
 private fun RiderTripSession.isAtPickupPoint(): Boolean {
     if (status == "arriving_pickup") return true
@@ -463,28 +396,6 @@ private fun RiderTripSession.isAtDestinationPoint(): Boolean {
     val current = riderCurrentPoint ?: return false
     if (phase != RiderTripPhase.TO_DESTINATION) return false
     return current.distanceToMeters(destinationPoint) <= ARRIVAL_CONFIRM_DISTANCE_METERS
-}
-
-private fun RiderTripSession.mockDriverLocation(tick: Int): DriverNavigationLocation {
-    val source = when (phase) {
-        RiderTripPhase.TO_DESTINATION -> destinationPoint
-        RiderTripPhase.TO_PICKUP -> pickupPoint
-    }
-    val step = tick % 12
-    val latitudeOffset = -0.00055 + (step * 0.00010)
-    val longitudeOffset = when (step % 4) {
-        0 -> -0.00018
-        1 -> -0.00006
-        2 -> 0.00006
-        else -> 0.00018
-    }
-    return DriverNavigationLocation(
-        latitude = source.latitude + latitudeOffset,
-        longitude = source.longitude + longitudeOffset,
-        bearing = null,
-        speedKph = 18.0,
-        accuracyM = 6.0,
-    )
 }
 
 private fun DriverNavigationLocation.distanceToMeters(other: DriverNavigationLocation): Double {
