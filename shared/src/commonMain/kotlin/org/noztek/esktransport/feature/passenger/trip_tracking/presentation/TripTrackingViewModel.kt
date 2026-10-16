@@ -232,10 +232,9 @@ class TripTrackingViewModel(
             }
         }.onSuccess { session ->
             val current = _uiState.value.tripSession
-            val latestLocation = session.latestLocation ?: return@onSuccess
             val updatedSession = (current ?: session).copy(
                 status = session.status,
-                latestLocation = latestLocation,
+                latestLocation = session.latestLocation ?: current?.latestLocation,
                 finalFare = current?.finalFare ?: session.finalFare,
                 currency = current?.currency ?: session.currency,
             )
@@ -244,7 +243,10 @@ class TripTrackingViewModel(
             _uiState.value = _uiState.value.copy(
                 tripSession = updatedSession,
                 stage = stage,
+                showFeedback = _uiState.value.showFeedback || session.status == "completed",
             )
+            val latestLocation = session.latestLocation ?: updatedSession.latestLocation
+            if (latestLocation == null) return@onSuccess
             if (!shouldRebuildRoutes) return@onSuccess
 
             viewModelScope.launch(ioDispatcher) {
