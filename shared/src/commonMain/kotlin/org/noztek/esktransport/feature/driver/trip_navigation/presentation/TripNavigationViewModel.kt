@@ -53,6 +53,7 @@ class TripNavigationViewModel(
     val uiEvents: SharedFlow<TripNavigationUiEvent> = _uiEvents.asSharedFlow()
     private var realtimeJob: Job? = null
     private var lastPublishedLocation: DriverNavigationLocation? = null
+    private var pendingLocation: DriverNavigationLocation? = null
     private var isPublishingLocation = false
 
     fun load(bookingPublicId: String) {
@@ -304,9 +305,18 @@ class TripNavigationViewModel(
     ) {
         if (bookingPublicId.isBlank()) return
         updateTripProximity(location)
-        if (isPublishingLocation) return
+        if (isPublishingLocation) {
+            pendingLocation = location
+            return
+        }
         val previousLocation = lastPublishedLocation
-        if (previousLocation != null && previousLocation.distanceToMeters(location) < LOCATION_PUBLISH_DISTANCE_METERS) return
+        val enteredArrivalRadius = previousLocation != null &&
+            !isWithinActiveTarget(previousLocation) &&
+            isWithinActiveTarget(location)
+        if (previousLocation != null &&
+            previousLocation.distanceToMeters(location) < LOCATION_PUBLISH_DISTANCE_METERS &&
+            !enteredArrivalRadius
+        ) return
 
         val phase = when (_uiState.value.tripSession?.phase) {
             RiderTripPhase.TO_DESTINATION -> "to_destination"
@@ -340,8 +350,33 @@ class TripNavigationViewModel(
                 }
             } finally {
                 isPublishingLocation = false
+                val queuedLocation = pendingLocation
+                pendingLocation = null
+                if (queuedLocation != null) {
+                    publishLocationIfNeeded(
+                        bookingPublicId = bookingPublicId,
+                        location = queuedLocation,
+                    )
+                }
             }
         }
+    }
+
+    private fun isWithinActiveTarget(location: DriverNavigationLocation): Boolean {
+        val session = _uiState.value.tripSession ?: return false
+        val targetPoint = when (session.phase) {
+            RiderTripPhase.TO_PICKUP -> session.pickupPoint
+            RiderTripPhase.TO_DESTINATION -> session.destinationPoint
+        }
+        return location.distanceToMeters(
+            DriverNavigationLocation(
+                latitude = targetPoint.latitude,
+                longitude = targetPoint.longitude,
+                bearing = null,
+                speedKph = null,
+                accuracyM = null,
+            ),
+        ) <= ARRIVAL_CONFIRM_DISTANCE_METERS
     }
 
     private fun updateTripProximity(location: DriverNavigationLocation) {
