@@ -127,7 +127,7 @@ fun TripNavigationScreen(
                 val pickup = MapPoint(session.pickupPoint.latitude, session.pickupPoint.longitude)
                 val destination = MapPoint(session.destinationPoint.latitude, session.destinationPoint.longitude)
                 val showConfirmPickup = session.phase == RiderTripPhase.TO_PICKUP
-                val showDropoff = session.phase == RiderTripPhase.TO_DESTINATION && uiState.isAtDestinationPoint
+                val showArrive = session.phase == RiderTripPhase.TO_DESTINATION && uiState.isAtDestinationPoint
                 var showPickupConfirmDialog by rememberSaveable(bookingPublicId) { mutableStateOf(false) }
                 var showCompleteTripDialog by rememberSaveable(bookingPublicId) { mutableStateOf(false) }
                 BottomSheetScaffold(
@@ -147,10 +147,10 @@ fun TripNavigationScreen(
                             isCancelling = uiState.isCancelling,
                             showConfirmPickup = showConfirmPickup,
                             isSubmittingPickup = uiState.isSubmittingPickup,
-                            showDropoff = showDropoff,
+                            showArrive = showArrive,
                             isCompletingTrip = uiState.isCompletingTrip,
                             onConfirmPickup = { showPickupConfirmDialog = true },
-                            onDropoff = { showCompleteTripDialog = true },
+                            onArrive = { showCompleteTripDialog = true },
                             onCancel = { viewModel.cancelTrip(bookingPublicId) },
                         )
                     },
@@ -210,7 +210,7 @@ fun TripNavigationScreen(
                                             viewModel.confirmPickup(bookingPublicId)
                                         },
                                     ) {
-                                        Text("Start dropoff")
+                                        Text("Start destination trip")
                                     }
                                 },
                                 dismissButton = {
@@ -229,8 +229,8 @@ fun TripNavigationScreen(
                                 onDismissRequest = {
                                     if (!uiState.isCompletingTrip) showCompleteTripDialog = false
                                 },
-                                title = { Text("Confirm dropoff") },
-                                text = { Text("Confirm that the passenger has paid in cash and the trip is complete.") },
+                                title = { Text("Confirm arrival") },
+                                text = { Text("Confirm that you have arrived at the destination, the passenger has paid in cash, and the trip is complete.") },
                                 confirmButton = {
                                     TextButton(
                                         enabled = !uiState.isCompletingTrip,
@@ -239,7 +239,7 @@ fun TripNavigationScreen(
                                             viewModel.completeTrip(bookingPublicId)
                                         },
                                     ) {
-                                        Text("Dropoff")
+                                        Text("Arrive")
                                     }
                                 },
                                 dismissButton = {
@@ -287,14 +287,14 @@ private fun TripNavigationBottomSheet(
     isCancelling: Boolean,
     showConfirmPickup: Boolean,
     isSubmittingPickup: Boolean,
-    showDropoff: Boolean,
+    showArrive: Boolean,
     isCompletingTrip: Boolean,
     onConfirmPickup: () -> Unit,
-    onDropoff: () -> Unit,
+    onArrive: () -> Unit,
     onCancel: () -> Unit,
 ) {
     val isPickupPhase = phase == RiderTripPhase.TO_PICKUP
-    val currentStageTitle = if (isPickupPhase) "Pickup $passengerName" else "Dropoff $passengerName"
+    val currentStageTitle = if (isPickupPhase) "Pickup $passengerName" else "Destination $passengerName"
     val currentStageMetric = "$durationLabel • $distanceLabel"
     val stageSummary = if (isPickupPhase) "Picking up $passengerName" else "Dropping off $passengerName"
 
@@ -323,7 +323,7 @@ private fun TripNavigationBottomSheet(
             pickupTitle = "Pickup $passengerName",
             pickupLabel = pickupLabel,
             pickupMetric = if (isPickupPhase) currentStageMetric else "Completed",
-            destinationTitle = "Dropoff $passengerName",
+            destinationTitle = "Destination $passengerName",
             destinationLabel = destinationLabel,
             destinationMetric = if (isPickupPhase) "Pending" else currentStageMetric,
             isPickupPhase = isPickupPhase,
@@ -346,10 +346,10 @@ private fun TripNavigationBottomSheet(
             )
         }
 
-        if (showDropoff) {
+        if (showArrive) {
             AppPrimaryButton(
-                text = if (isCompletingTrip) "Dropping off..." else "Dropoff",
-                onClick = onDropoff,
+                text = if (isCompletingTrip) "Completing..." else "Arrive",
+                onClick = onArrive,
                 enabled = !isCompletingTrip,
                 height = 52.dp,
                 trailingIcon = {
