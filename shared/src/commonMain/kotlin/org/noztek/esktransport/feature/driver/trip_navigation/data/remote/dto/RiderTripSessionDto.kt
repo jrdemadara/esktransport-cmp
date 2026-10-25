@@ -35,4 +35,6 @@ data class RiderTripLocationDto(
 data class RiderTripCoordinatesDto(
     val lat: Double? = null,
     val lng: Double? = null,
+    @SerialName("recorded_at")
+    val recordedAt: String? = null,
 )

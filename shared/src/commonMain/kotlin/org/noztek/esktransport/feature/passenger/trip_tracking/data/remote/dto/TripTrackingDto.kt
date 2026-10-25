@@ -34,11 +34,11 @@ data class RiderTripInfoDto(
     val name: String,
     val rating: Double? = null,
     @SerialName("vehicle_type_code")
-    val vehicleTypeCode: String,
+    val vehicleTypeCode: String? = null,
     @SerialName("vehicle_label")
-    val vehicleLabel: String,
+    val vehicleLabel: String? = null,
     @SerialName("vehicle_plate")
-    val vehiclePlate: String,
+    val vehiclePlate: String? = null,
 )
 
 @Serializable

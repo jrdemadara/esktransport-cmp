@@ -1109,20 +1109,23 @@ private fun RecentTripMapPreview(
         modifier = modifier.border(1.dp, outline.copy(alpha = 0.38f), RoundedCornerShape(8.dp)),
         config = mapboxConfig,
         cameraCenter = routePoints.mapCenter(),
-        cameraDefaults = MapCameraDefaults(zoom = routePoints.recentMapZoom()),
+        cameraDefaults = MapCameraDefaults(
+            zoom = routePoints.recentMapZoom(),
+            pitch = 35.0,
+        ),
         routeLines = listOf(
             MapRouteLine(
                 id = "recent-route-glow",
                 points = routePoints,
                 color = primary,
-                width = 7.0,
+                width = 4.0,
                 opacity = 0.18,
             ),
             MapRouteLine(
                 id = "recent-route",
                 points = routePoints,
                 color = primary,
-                width = 3.5,
+                width = 2.0,
                 opacity = 0.95,
             ),
         ),

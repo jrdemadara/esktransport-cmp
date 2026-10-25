@@ -12,6 +12,7 @@ class UpdateRiderTripLocationUseCase(
         bearing: Double?,
         speedKph: Double?,
         accuracyM: Double?,
+        recordedAt: String?,
         phase: String?,
     ): Result<Unit> {
         return repository.updateTripLocation(
@@ -21,6 +22,7 @@ class UpdateRiderTripLocationUseCase(
             bearing = bearing,
             speedKph = speedKph,
             accuracyM = accuracyM,
+            recordedAt = recordedAt,
             phase = phase,
         )
     }

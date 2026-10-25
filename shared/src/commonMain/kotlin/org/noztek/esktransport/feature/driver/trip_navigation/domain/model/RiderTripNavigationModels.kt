@@ -8,6 +8,7 @@ enum class RiderTripPhase {
 data class RiderTripPoint(
     val latitude: Double,
     val longitude: Double,
+    val recordedAt: String? = null,
 )
 
 data class RiderTripSession(

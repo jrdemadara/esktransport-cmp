@@ -146,6 +146,7 @@ fun TripNavigationScreen(
                             distanceLabel = formatDistance(uiState.distanceMeters),
                             isCancelling = uiState.isCancelling,
                             showConfirmPickup = showConfirmPickup,
+                            isAtPickupPoint = uiState.isAtPickupPoint,
                             isSubmittingPickup = uiState.isSubmittingPickup,
                             showArrive = showArrive,
                             isCompletingTrip = uiState.isCompletingTrip,
@@ -286,6 +287,7 @@ private fun TripNavigationBottomSheet(
     distanceLabel: String,
     isCancelling: Boolean,
     showConfirmPickup: Boolean,
+    isAtPickupPoint: Boolean,
     isSubmittingPickup: Boolean,
     showArrive: Boolean,
     isCompletingTrip: Boolean,
@@ -332,9 +334,13 @@ private fun TripNavigationBottomSheet(
 
         if (showConfirmPickup) {
             AppPrimaryButton(
-                text = if (isSubmittingPickup) "Confirming..." else "Confirm Pickup",
+                text = when {
+                    isSubmittingPickup -> "Confirming..."
+                    isAtPickupPoint -> "Confirm Pickup"
+                    else -> "Drive to pickup"
+                },
                 onClick = onConfirmPickup,
-                enabled = !isSubmittingPickup,
+                enabled = isAtPickupPoint && !isSubmittingPickup,
                 height = 52.dp,
                 trailingIcon = {
                     Icon(

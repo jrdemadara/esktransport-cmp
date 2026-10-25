@@ -11,6 +11,7 @@ data class DriverNavigationLocation(
     val bearing: Double?,
     val speedKph: Double?,
     val accuracyM: Double?,
+    val recordedAt: String? = null,
 )
 
 @Composable

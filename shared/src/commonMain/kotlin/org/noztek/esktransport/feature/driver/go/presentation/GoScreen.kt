@@ -98,6 +98,7 @@ import org.noztek.esktransport.core.map.MapPoint
 import org.noztek.esktransport.core.map.MapboxConfig
 import org.noztek.esktransport.core.map.PlatformMapView
 import org.noztek.esktransport.core.platform.isIosPlatform
+import org.noztek.esktransport.core.utils.uppercaseFirstLetterOfEachWord
 import kotlin.time.Duration.Companion.milliseconds
 
 private val GoButtonBlue = Color(0xFF2F80ED)
@@ -589,7 +590,11 @@ private fun IncomingOfferOverlay(
                         }
                     }
                     Column {
-                        Text(offer.passengerName, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                        Text(
+                            offer.passengerName.uppercaseFirstLetterOfEachWord(),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                        )
                         Row(
                             horizontalArrangement = Arrangement.spacedBy(4.dp),
                             verticalAlignment = Alignment.CenterVertically,

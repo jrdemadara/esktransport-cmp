@@ -147,12 +147,16 @@ class TripTrackingViewModel(
         event: PassengerTripLocationUpdatedEvent,
     ) {
         val currentSession = _uiState.value.tripSession ?: return
+        val eventTime = event.recordedAt
+        val currentTime = currentSession.latestLocation?.recordedAt
+        if (eventTime != null && currentTime != null && eventTime <= currentTime) return
         val updatedSession = currentSession.copy(
             latestLocation = LatestLocation(
                 latitude = event.latitude,
                 longitude = event.longitude,
                 bearing = event.bearing,
                 speedKph = event.speedKph,
+                recordedAt = event.recordedAt,
             ),
         )
         val stage = stageFor(status = updatedSession.status, phase = event.phase)

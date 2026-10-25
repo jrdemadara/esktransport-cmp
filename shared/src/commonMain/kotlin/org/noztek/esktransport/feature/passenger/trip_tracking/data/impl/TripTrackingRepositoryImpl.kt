@@ -31,16 +31,17 @@ class TripTrackingRepositoryImpl(
                 publicId = dto.rider.publicId,
                 name = dto.rider.name,
                 rating = dto.rider.rating,
-                vehicleType = dto.rider.vehicleTypeCode,
-                vehicleLabel = dto.rider.vehicleLabel,
-                vehiclePlate = dto.rider.vehiclePlate
+                vehicleType = dto.rider.vehicleTypeCode ?: "",
+                vehicleLabel = dto.rider.vehicleLabel ?: "",
+                vehiclePlate = dto.rider.vehiclePlate ?: ""
             ),
             latestLocation = dto.latestLocation?.let { latestLocation ->
                 LatestLocation(
                     latitude = latestLocation.lat,
                     longitude = latestLocation.lng,
                     bearing = latestLocation.bearing,
-                    speedKph = latestLocation.speedKph
+                    speedKph = latestLocation.speedKph,
+                    recordedAt = latestLocation.recordedAt,
                 )
             },
             finalFare = dto.finalFare,

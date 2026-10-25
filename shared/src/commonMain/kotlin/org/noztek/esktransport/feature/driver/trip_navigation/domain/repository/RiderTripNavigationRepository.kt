@@ -15,6 +15,7 @@ interface RiderTripNavigationRepository {
         bearing: Double?,
         speedKph: Double?,
         accuracyM: Double?,
+        recordedAt: String?,
         phase: String?,
     ): Result<Unit>
 }

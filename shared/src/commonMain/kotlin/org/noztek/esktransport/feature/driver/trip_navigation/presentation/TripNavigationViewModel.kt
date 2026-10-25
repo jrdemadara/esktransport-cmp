@@ -75,8 +75,8 @@ class TripNavigationViewModel(
                     _uiState.value = TripNavigationUiState(
                         isLoading = false,
                         tripSession = session,
-                        isAtPickupPoint = session.isAtPickupPoint(),
-                        isAtDestinationPoint = session.isAtDestinationPoint(),
+                        isAtPickupPoint = session.status == "arriving_pickup",
+                        isAtDestinationPoint = false,
                         nextInstruction = "Continue on route",
                     )
                     viewModelScope.launch {
@@ -335,6 +335,7 @@ class TripNavigationViewModel(
                         bearing = location.bearing,
                         speedKph = location.speedKph,
                         accuracyM = location.accuracyM,
+                        recordedAt = location.recordedAt,
                         phase = phase,
                     )
                 }
@@ -376,7 +377,7 @@ class TripNavigationViewModel(
                 speedKph = null,
                 accuracyM = null,
             ),
-        ) <= ARRIVAL_CONFIRM_DISTANCE_METERS
+        ) <= arrivalRadiusMeters(session.phase)
     }
 
     private fun updateTripProximity(location: DriverNavigationLocation) {
@@ -392,7 +393,7 @@ class TripNavigationViewModel(
             speedKph = null,
             accuracyM = null,
         )
-        val isAtTarget = location.distanceToMeters(targetLocation) <= ARRIVAL_CONFIRM_DISTANCE_METERS
+        val isAtTarget = location.distanceToMeters(targetLocation) <= arrivalRadiusMeters(session.phase)
         val isAtPickup = session.phase == RiderTripPhase.TO_PICKUP && isAtTarget
         val isAtDestination = session.phase == RiderTripPhase.TO_DESTINATION && isAtTarget
 
@@ -418,19 +419,25 @@ private data class StageRoute(
 )
 
 private const val LOCATION_PUBLISH_DISTANCE_METERS = 10.0
-private const val ARRIVAL_CONFIRM_DISTANCE_METERS = 15.0
+private const val PICKUP_ARRIVAL_RADIUS_METERS = 50.0
+private const val DESTINATION_ARRIVAL_RADIUS_METERS = 15.0
+
+private fun arrivalRadiusMeters(phase: RiderTripPhase): Double = when (phase) {
+    RiderTripPhase.TO_PICKUP -> PICKUP_ARRIVAL_RADIUS_METERS
+    RiderTripPhase.TO_DESTINATION -> DESTINATION_ARRIVAL_RADIUS_METERS
+}
 
 private fun RiderTripSession.isAtPickupPoint(): Boolean {
     if (status == "arriving_pickup") return true
     val current = riderCurrentPoint ?: return false
     if (phase != RiderTripPhase.TO_PICKUP) return false
-    return current.distanceToMeters(pickupPoint) <= ARRIVAL_CONFIRM_DISTANCE_METERS
+    return current.distanceToMeters(pickupPoint) <= PICKUP_ARRIVAL_RADIUS_METERS
 }
 
 private fun RiderTripSession.isAtDestinationPoint(): Boolean {
     val current = riderCurrentPoint ?: return false
     if (phase != RiderTripPhase.TO_DESTINATION) return false
-    return current.distanceToMeters(destinationPoint) <= ARRIVAL_CONFIRM_DISTANCE_METERS
+    return current.distanceToMeters(destinationPoint) <= DESTINATION_ARRIVAL_RADIUS_METERS
 }
 
 private fun DriverNavigationLocation.distanceToMeters(other: DriverNavigationLocation): Double {

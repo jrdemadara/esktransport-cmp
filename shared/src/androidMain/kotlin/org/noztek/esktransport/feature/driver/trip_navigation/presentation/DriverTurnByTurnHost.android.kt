@@ -19,6 +19,7 @@ import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
+import java.time.Instant
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -447,8 +448,12 @@ private class AndroidDriverTurnByTurnHost(
             },
             fitCamera = false,
         )
-        if (waitingForLivePickupOrigin) {
+        if (!pickupConfirmed) {
+            // Do not depend on an old cached fix. The pickup gate uses the
+            // location callback, so request a fresh fix when this stage starts.
             requestFreshDeviceLocationForPickup()
+        }
+        if (waitingForLivePickupOrigin) {
             return
         }
         if (origin == null) return
@@ -636,9 +641,11 @@ private class AndroidDriverTurnByTurnHost(
     private fun getBestLastKnownLocation(): android.location.Location? {
         if (!hasLocationPermission()) return null
         val manager = context.getSystemService(Context.LOCATION_SERVICE) as? LocationManager ?: return null
+        val now = System.currentTimeMillis()
         return runCatching {
             manager.getProviders(true)
                 .mapNotNull { provider -> runCatching { manager.getLastKnownLocation(provider) }.getOrNull() }
+                .filter { location -> now - location.time <= MAX_CACHED_LOCATION_AGE_MS }
                 .maxByOrNull { location -> location.time }
         }.getOrNull()
     }
@@ -768,6 +775,7 @@ private class AndroidDriverTurnByTurnHost(
 
 private const val FALLBACK_ROUTE_SOURCE_ID = "driver-trip-fallback-route-source"
 private const val FALLBACK_ROUTE_LAYER_ID = "driver-trip-fallback-route-layer"
+private const val MAX_CACHED_LOCATION_AGE_MS = 30_000L
 
 private fun MapPoint.isValidCoordinate(): Boolean {
     return latitude in -90.0..90.0 && longitude in -180.0..180.0
@@ -846,6 +854,7 @@ private fun Location.toDriverNavigationLocation(): DriverNavigationLocation {
         bearing = bearing,
         speedKph = speed?.let { it * 3.6 },
         accuracyM = horizontalAccuracy,
+        recordedAt = Instant.ofEpochMilli(timestamp).toString(),
     )
 }
 

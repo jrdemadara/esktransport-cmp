@@ -41,7 +41,11 @@ class RiderTripNavigationRepositoryImpl(
                     pickupLabel = data.pickup.label ?: "Pickup",
                     destinationLabel = data.destination.label ?: "Destination",
                     riderCurrentPoint = if (data.riderCurrent?.lat != null && data.riderCurrent.lng != null) {
-                        RiderTripPoint(latitude = data.riderCurrent.lat, longitude = data.riderCurrent.lng)
+                        RiderTripPoint(
+                            latitude = data.riderCurrent.lat,
+                            longitude = data.riderCurrent.lng,
+                            recordedAt = data.riderCurrent.recordedAt,
+                        )
                     } else {
                         null
                     },
@@ -108,6 +112,7 @@ class RiderTripNavigationRepositoryImpl(
         bearing: Double?,
         speedKph: Double?,
         accuracyM: Double?,
+        recordedAt: String?,
         phase: String?,
     ): Result<Unit> {
         return try {
@@ -119,7 +124,7 @@ class RiderTripNavigationRepositoryImpl(
                     bearing = bearing,
                     speedKph = speedKph,
                     accuracyM = accuracyM,
-                    recordedAt = null,
+                    recordedAt = recordedAt,
                     phase = phase,
                 ),
             )

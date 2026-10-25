@@ -30,5 +30,6 @@ data class LatestLocation(
     val latitude: Double,
     val longitude: Double,
     val bearing: Double?,
-    val speedKph: Double?
+    val speedKph: Double?,
+    val recordedAt: String? = null,
 )
