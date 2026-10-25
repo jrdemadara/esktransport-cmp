@@ -242,15 +242,6 @@ private fun PassengerShell(onLogout: () -> Unit) {
                 snackbarHostState.showSnackbar("Trip cancelled by driver.")
             }
         }
-        launch {
-            passengerRealtimeCoordinator.passengerTripLocationUpdated().collectLatest { event ->
-                if (event.bookingPublicId == activeTripTrackingBookingId) {
-                    snackbarHostState.showSnackbar(
-                        "Driver location received: ${event.latitude.formatCoordinate()}, ${event.longitude.formatCoordinate()}",
-                    )
-                }
-            }
-        }
     }
 
     DisposableEffect(passengerRealtimeCoordinator) {
@@ -857,12 +848,6 @@ private fun String?.toUserPresenceContext(isSearchingForRider: Boolean): UserPre
         else -> UserPresenceContext.PassengerHome
     }
 }
-
-private fun Double.formatCoordinate(): String {
-    val scaled = kotlin.math.round(this * 100_000.0) / 100_000.0
-    return scaled.toString()
-}
-
 
 private fun NavHostController.navigatePassengerRoot(route: String) {
     navigate(route, navOptions {

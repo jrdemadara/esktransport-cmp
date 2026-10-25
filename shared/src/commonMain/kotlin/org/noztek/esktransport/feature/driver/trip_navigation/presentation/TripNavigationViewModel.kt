@@ -24,6 +24,7 @@ import org.noztek.esktransport.feature.rider.trip_navigation.domain.usecase.Conf
 import org.noztek.esktransport.feature.rider.trip_navigation.domain.usecase.GetRiderTripSessionUseCase
 import org.noztek.esktransport.feature.rider.trip_navigation.domain.usecase.SubmitRiderTripFeedbackUseCase
 import org.noztek.esktransport.feature.rider.trip_navigation.domain.usecase.UpdateRiderTripLocationUseCase
+import kotlin.time.Clock
 import kotlin.math.PI
 import kotlin.math.atan2
 import kotlin.math.cos
@@ -205,7 +206,12 @@ class TripNavigationViewModel(
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isSubmittingPickup = true, message = null)
             val result = withContext(ioDispatcher) {
-                confirmRiderPickupUseCase(bookingPublicId)
+                val locationResult = publishLatestLocationForAction(bookingPublicId)
+                if (locationResult.isFailure) {
+                    locationResult
+                } else {
+                    confirmRiderPickupUseCase(bookingPublicId)
+                }
             }
             result.onSuccess {
                 val current = _uiState.value.tripSession
@@ -226,6 +232,29 @@ class TripNavigationViewModel(
                 )
             }
         }
+    }
+
+    private suspend fun publishLatestLocationForAction(bookingPublicId: String): Result<Unit> {
+        val currentLocation = runCatching {
+            currentLocationProvider.getLastKnownLocation()
+        }.getOrNull() ?: return Result.success(Unit)
+
+        val phase = when (_uiState.value.tripSession?.phase) {
+            RiderTripPhase.TO_DESTINATION -> "to_destination"
+            RiderTripPhase.TO_PICKUP,
+            null -> "to_pickup"
+        }
+
+        return updateRiderTripLocationUseCase(
+            bookingPublicId = bookingPublicId,
+            latitude = currentLocation.latitude,
+            longitude = currentLocation.longitude,
+            bearing = null,
+            speedKph = null,
+            accuracyM = null,
+            recordedAt = Clock.System.now().toString(),
+            phase = phase,
+        )
     }
 
     fun cancelTrip(bookingPublicId: String) {

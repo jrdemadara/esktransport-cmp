@@ -32,6 +32,8 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.rememberBottomSheetScaffoldState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -39,7 +41,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -60,7 +62,6 @@ import com.composables.icons.heroicons.outline.ShieldCheck
 import com.composables.icons.heroicons.outline.User
 import com.composables.icons.heroicons.solid.User
 import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.launch
 import org.koin.compose.viewmodel.koinViewModel
 import org.noztek.esktransport.core.ui.composables.common.AppPrimaryButton
 import org.noztek.esktransport.core.ui.composables.common.HoldToCancelButton
@@ -81,8 +82,18 @@ fun TripNavigationScreen(
     mapboxConfig: MapboxConfig,
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    var showFeedbackPreview by rememberSaveable(bookingPublicId) { mutableStateOf(false) }
+    val scaffoldState = rememberBottomSheetScaffoldState()
+    val snackbarHostState = remember { SnackbarHostState() }
 
+    LaunchedEffect(uiState.isAtPickupPoint, uiState.isAtDestinationPoint) {
+        if (uiState.isAtPickupPoint || uiState.isAtDestinationPoint) {
+            scaffoldState.bottomSheetState.expand()
+        }
+    }
+
+    LaunchedEffect(uiState.message) {
+        uiState.message?.let { snackbarHostState.showSnackbar(it) }
+    }
     LaunchedEffect(bookingPublicId) {
         viewModel.load(bookingPublicId)
     }
@@ -111,7 +122,7 @@ fun TripNavigationScreen(
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(12.dp),
-                    ) {
+                ) {
                         Text("Loading trip session…", style = MaterialTheme.typography.titleMedium)
                         CircularProgressIndicator()
                     }
@@ -136,11 +147,6 @@ fun TripNavigationScreen(
                 val destination = MapPoint(session.destinationPoint.latitude, session.destinationPoint.longitude)
                 var showPickupConfirmDialog by rememberSaveable(bookingPublicId) { mutableStateOf(false) }
                 var showCompleteTripDialog by rememberSaveable(bookingPublicId) { mutableStateOf(false) }
-                var previewPhase by rememberSaveable(bookingPublicId) { mutableStateOf<RiderTripPhase?>(null) }
-                val isPreviewingSheet = previewPhase != null
-                val displayedPhase = previewPhase ?: session.phase
-                val scaffoldState = rememberBottomSheetScaffoldState()
-                val previewScope = rememberCoroutineScope()
                 BottomSheetScaffold(
                     scaffoldState = scaffoldState,
                     sheetPeekHeight = 64.dp,
@@ -151,30 +157,23 @@ fun TripNavigationScreen(
                         TripNavigationBottomSheet(
                             passengerName = session.passengerName,
                             fareLabel = session.fareLabel(),
-                            phase = displayedPhase,
+                            phase = session.phase,
                             pickupLabel = session.pickupLabel,
                             destinationLabel = session.destinationLabel,
                             durationLabel = formatDuration(uiState.durationSeconds),
                             distanceLabel = formatDistance(uiState.distanceMeters),
                             isCancelling = uiState.isCancelling,
-                            showConfirmPickup = displayedPhase == RiderTripPhase.TO_PICKUP,
-                            isAtPickupPoint = isPreviewingSheet || uiState.isAtPickupPoint,
+                            showConfirmPickup = session.phase == RiderTripPhase.TO_PICKUP,
+                            isAtPickupPoint = uiState.isAtPickupPoint,
                             isSubmittingPickup = uiState.isSubmittingPickup,
-                            showArrive = displayedPhase == RiderTripPhase.TO_DESTINATION &&
-                                (isPreviewingSheet || uiState.isAtDestinationPoint),
+                            showArrive = session.phase == RiderTripPhase.TO_DESTINATION && uiState.isAtDestinationPoint,
                             isCompletingTrip = uiState.isCompletingTrip,
-                            onConfirmPickup = {
-                                if (!isPreviewingSheet) showPickupConfirmDialog = true
-                            },
-                            onArrive = {
-                                if (!isPreviewingSheet) showCompleteTripDialog = true
-                            },
-                            onCancel = {
-                                if (!isPreviewingSheet) viewModel.cancelTrip(bookingPublicId)
-                            },
+                            onConfirmPickup = { showPickupConfirmDialog = true },
+                            onArrive = { showCompleteTripDialog = true },
+                            onCancel = { viewModel.cancelTrip(bookingPublicId) },
                         )
                     },
-                ) {
+                    ) {
                     Box(modifier = Modifier.fillMaxSize()) {
                         DriverTurnByTurnHost(
                             modifier = Modifier.fillMaxSize(),
@@ -215,49 +214,10 @@ fun TripNavigationScreen(
                             Icon(Heroicons.Outline.ChatBubbleOvalLeft, contentDescription = "Chat")
                         }
 
-                        Surface(
-                            modifier = Modifier
-                                .align(Alignment.TopEnd)
-                                .padding(top = 16.dp, end = 16.dp),
-                            shape = RoundedCornerShape(14.dp),
-                            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.94f),
-                            shadowElevation = 6.dp,
-                        ) {
-                            Column(
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                horizontalAlignment = Alignment.End,
-                            ) {
-                                Text(
-                                    text = "TEMP UI PREVIEW",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                                TextButton(
-                                    onClick = {
-                                        previewPhase = RiderTripPhase.TO_PICKUP
-                                        previewScope.launch { scaffoldState.bottomSheetState.expand() }
-                                    },
-                                ) {
-                                    Text("Pickup sheet")
-                                }
-                                TextButton(
-                                    onClick = {
-                                        previewPhase = RiderTripPhase.TO_DESTINATION
-                                        previewScope.launch { scaffoldState.bottomSheetState.expand() }
-                                    },
-                                ) {
-                                    Text("Destination sheet")
-                                }
-                                TextButton(onClick = { showFeedbackPreview = true }) {
-                                    Text("Feedback dialog")
-                                }
-                                if (isPreviewingSheet) {
-                                    TextButton(onClick = { previewPhase = null }) {
-                                        Text("Use live state")
-                                    }
-                                }
-                            }
-                        }
+                        SnackbarHost(
+                            hostState = snackbarHostState,
+                            modifier = Modifier.align(Alignment.TopCenter).padding(top = 16.dp),
+                        )
 
                         if (showPickupConfirmDialog) {
                             AlertDialog(
@@ -322,28 +282,19 @@ fun TripNavigationScreen(
         }
     }
 
-    if (uiState.showFeedback || showFeedbackPreview) {
-        val isPreview = showFeedbackPreview && !uiState.showFeedback
+    if (uiState.showFeedback) {
         TripFeedbackDialog(
             title = "Rate the passenger",
             message = "Trip completed. Add a quick rating for this passenger.",
-            isSubmitting = if (isPreview) false else uiState.isSubmittingFeedback,
+            isSubmitting = uiState.isSubmittingFeedback,
             onSubmit = { rating, comment ->
-                if (isPreview) {
-                    showFeedbackPreview = false
-                } else {
-                    viewModel.submitFeedback(
-                        bookingPublicId = bookingPublicId,
-                        rating = rating,
-                        comment = comment,
-                    )
-                }
+                viewModel.submitFeedback(
+                    bookingPublicId = bookingPublicId,
+                    rating = rating,
+                    comment = comment,
+                )
             },
-            onDismiss = if (isPreview) {
-                { showFeedbackPreview = false }
-            } else {
-                viewModel::skipFeedback
-            },
+            onDismiss = viewModel::skipFeedback,
         )
     }
 }

@@ -1,7 +1,9 @@
 package org.noztek.esktransport.feature.passenger.trip_tracking.presentation
 
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animate
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
@@ -81,6 +83,7 @@ import kotlin.math.cos
 import kotlin.math.roundToInt
 import kotlin.math.sin
 import kotlin.math.sqrt
+import kotlin.time.Instant
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -97,7 +100,35 @@ fun TripTrackingScreen(
     var initialCameraCenter by remember(bookingId) { mutableStateOf<MapPoint?>(null) }
     var initialCameraDefaults by remember(bookingId) { mutableStateOf<MapCameraDefaults?>(null) }
     var cameraIncludesDriver by remember(bookingId) { mutableStateOf(false) }
+    var displayedDriverLocation by remember(bookingId) { mutableStateOf<LatestLocation?>(null) }
     LaunchedEffect(bookingId) { viewModel.loadTripData(bookingId) }
+
+    val latestLocation = session?.latestLocation
+    LaunchedEffect(
+        bookingId,
+        latestLocation?.latitude,
+        latestLocation?.longitude,
+        latestLocation?.recordedAt,
+    ) {
+        val target = latestLocation ?: return@LaunchedEffect
+        val start = displayedDriverLocation ?: target
+        if (start.latitude == target.latitude && start.longitude == target.longitude) {
+            displayedDriverLocation = target
+            return@LaunchedEffect
+        }
+
+        val durationMillis = markerAnimationDurationMillis(start, target)
+        animate(
+            initialValue = 0f,
+            targetValue = 1f,
+            animationSpec = androidx.compose.animation.core.tween(
+                durationMillis = durationMillis,
+                easing = LinearEasing,
+            ),
+        ) { fraction, _ ->
+            displayedDriverLocation = start.interpolateTo(target, fraction)
+        }
+    }
 
     DisposableEffect(viewModel, bookingId) {
         viewModel.startRealtime(bookingId)
@@ -154,7 +185,8 @@ fun TripTrackingScreen(
                     cameraIncludesDriver = hasDriverLocation
                 }
             }
-            val markers = session?.let { buildTripMarkers(it, uiState.stage) }.orEmpty()
+            val markerSession = session?.copy(latestLocation = displayedDriverLocation ?: session.latestLocation)
+            val markers = markerSession?.let { buildTripMarkers(it, uiState.stage) }.orEmpty()
             val routeLines = buildTripRouteLines(uiState)
             val cameraCenter = initialCameraCenter
             val cameraDefaults = initialCameraDefaults
@@ -655,6 +687,31 @@ private fun buildTripMarkers(
             ),
         )
     }
+}
+
+private fun markerAnimationDurationMillis(previous: LatestLocation, target: LatestLocation): Int {
+    val recordedDelta = runCatching {
+        val previousTime = previous.recordedAt?.let(Instant::parse)
+        val targetTime = target.recordedAt?.let(Instant::parse)
+        if (previousTime != null && targetTime != null) {
+            (targetTime.toEpochMilliseconds() - previousTime.toEpochMilliseconds()).coerceAtLeast(0L)
+        } else {
+            1_500L
+        }
+    }.getOrDefault(1_500L)
+
+    return (recordedDelta - 150L).coerceIn(650L, 4_500L).toInt()
+}
+
+private fun LatestLocation.interpolateTo(target: LatestLocation, fraction: Float): LatestLocation {
+    val progress = fraction.coerceIn(0f, 1f).toDouble()
+    return LatestLocation(
+        latitude = latitude + (target.latitude - latitude) * progress,
+        longitude = longitude + (target.longitude - longitude) * progress,
+        bearing = target.bearing ?: bearing,
+        speedKph = target.speedKph ?: speedKph,
+        recordedAt = target.recordedAt,
+    )
 }
 
 private fun buildTripRouteLines(uiState: TripTrackingUIState): List<MapRouteLine> = buildList {

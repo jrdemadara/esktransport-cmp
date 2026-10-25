@@ -16,6 +16,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -47,12 +48,14 @@ import com.mapbox.maps.extension.style.sources.getSourceAs
 import com.mapbox.maps.plugin.LocationPuck2D
 import com.mapbox.maps.plugin.annotation.annotations
 import com.mapbox.maps.plugin.annotation.generated.PointAnnotationOptions
+import com.mapbox.maps.plugin.annotation.generated.PointAnnotation
 import com.mapbox.maps.plugin.annotation.generated.createPointAnnotationManager
 import com.mapbox.maps.plugin.locationcomponent.OnIndicatorPositionChangedListener
 import com.mapbox.maps.plugin.locationcomponent.location
 import com.mapbox.maps.plugin.gestures.OnMoveListener
 import com.mapbox.maps.plugin.gestures.gestures
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collectLatest
 import androidx.core.graphics.createBitmap
 import kotlin.time.Duration.Companion.milliseconds
 
@@ -107,6 +110,7 @@ actual fun PlatformMapView(
             context.loadComposeBitmap(icon.assetFileName)
         }
     }
+    val currentMarkers = rememberUpdatedState(markers)
 
     MapboxMap(
         modifier = modifier,
@@ -313,26 +317,39 @@ actual fun PlatformMapView(
             }
         }
 
-        MapEffect(markers, markerIconBitmaps) { mapView ->
+        MapEffect(markerIconBitmaps) { mapView ->
             mapView.mapboxMap.awaitStyle()
-            val iconMarkers = markers.filter { it.icon != null }
             val manager = mapView.annotations.createPointAnnotationManager()
-            manager.deleteAll()
-            iconMarkers.forEach { marker ->
-                val icon = marker.icon ?: return@forEach
-                val bitmap = markerIconBitmaps[icon]
-                if (bitmap != null) {
-                    manager.create(
-                        PointAnnotationOptions()
-                            .withPoint(marker.point.toPoint())
-                            .withIconImage(bitmap)
-                            .withIconAnchor(IconAnchor.BOTTOM)
-                            .withIconSize(icon.androidIconSize()),
-                    )
-                }
-            }
+            val annotations = mutableMapOf<String, PointAnnotation>()
             try {
-                kotlinx.coroutines.awaitCancellation()
+                snapshotFlow { currentMarkers.value }
+                    .collectLatest { updatedMarkers ->
+                        val iconMarkers = updatedMarkers.filter { it.icon != null }
+                        val activeIds = iconMarkers.mapTo(mutableSetOf()) { it.id }
+                        annotations.keys.toList()
+                            .filterNot { it in activeIds }
+                            .forEach { id ->
+                                annotations.remove(id)?.let(manager::delete)
+                            }
+
+                        iconMarkers.forEach { marker ->
+                            val icon = marker.icon ?: return@forEach
+                            val bitmap = markerIconBitmaps[icon] ?: return@forEach
+                            val existing = annotations[marker.id]
+                            if (existing != null) {
+                                existing.point = marker.point.toPoint()
+                                manager.update(existing)
+                            } else {
+                                annotations[marker.id] = manager.create(
+                                    PointAnnotationOptions()
+                                        .withPoint(marker.point.toPoint())
+                                        .withIconImage(bitmap)
+                                        .withIconAnchor(IconAnchor.BOTTOM)
+                                        .withIconSize(icon.androidIconSize()),
+                                )
+                            }
+                        }
+                    }
             } finally {
                 manager.deleteAll()
                 mapView.annotations.removeAnnotationManager(manager)
