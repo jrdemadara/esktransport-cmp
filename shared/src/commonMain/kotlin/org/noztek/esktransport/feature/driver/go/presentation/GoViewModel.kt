@@ -23,6 +23,7 @@ import org.noztek.esktransport.feature.driver.go.domain.usecase.ExpireOfferUseCa
 import org.noztek.esktransport.feature.driver.go.domain.usecase.GetDriverAvailabilityUseCase
 import org.noztek.esktransport.feature.driver.go.domain.usecase.SetDriverAvailabilityUseCase
 import org.noztek.esktransport.feature.driver.go.domain.usecase.UpdateDriverLocationUseCase
+import org.noztek.esktransport.feature.driver.earning.domain.usecase.GetRiderEarningsUseCase
 
 private const val DefaultPassengerName = "Passenger"
 
@@ -33,6 +34,8 @@ data class GoUiState(
     val isAcceptingOffer: Boolean = false,
     val statusMessage: String? = null,
     val currentOffer: GoBookingOfferUiModel? = null,
+    val todaysEarning: Double? = null,
+    val earningsCurrency: String = "PHP",
 )
 
 sealed class GoUiEvent {
@@ -50,6 +53,7 @@ class GoViewModel(
     private val availabilityLifecycleCoordinator: DriverAvailabilityLifecycleCoordinator,
     private val currentLocationProvider: CurrentLocationProvider,
     private val updateDriverLocationUseCase: UpdateDriverLocationUseCase,
+    private val getRiderEarningsUseCase: GetRiderEarningsUseCase,
     private val ioDispatcher: CoroutineDispatcher,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(GoUiState())
@@ -62,6 +66,23 @@ class GoViewModel(
 
     init {
         refreshAvailability()
+        refreshEarnings()
+    }
+
+    private fun refreshEarnings() {
+        viewModelScope.launch {
+            val result = withContext(ioDispatcher) { getRiderEarningsUseCase() }
+            result.onSuccess { dashboard ->
+                _uiState.update {
+                    it.copy(
+                        todaysEarning = dashboard.today.netEarning,
+                        earningsCurrency = dashboard.currency,
+                    )
+                }
+            }.onFailure {
+                _uiState.update { it.copy(todaysEarning = null) }
+            }
+        }
     }
 
     fun startRealtime() {

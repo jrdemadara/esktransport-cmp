@@ -100,6 +100,7 @@ import org.noztek.esktransport.core.map.PlatformMapView
 import org.noztek.esktransport.core.platform.isIosPlatform
 import org.noztek.esktransport.core.utils.uppercaseFirstLetterOfEachWord
 import kotlin.time.Duration.Companion.milliseconds
+import kotlin.math.roundToInt
 
 private val GoButtonBlue = Color(0xFF2F80ED)
 private val GoButtonSubmittingGray = Color(0xFF9CA3AF)
@@ -187,6 +188,8 @@ fun GoScreen(
                     .align(Alignment.TopCenter)
                     .padding(horizontal = 18.dp, vertical = 12.dp),
                 isSubmitting = homeState.isSubmitting,
+                todaysEarning = homeState.todaysEarning,
+                earningsCurrency = homeState.earningsCurrency,
                 onExitClick = {
                     viewModel.goOfflineAndExit(onNavigateHome)
                 },
@@ -261,6 +264,8 @@ fun GoScreen(
 private fun DriverHomeToolbar(
     modifier: Modifier = Modifier,
     isSubmitting: Boolean,
+    todaysEarning: Double?,
+    earningsCurrency: String,
     onExitClick: () -> Unit,
 ) {
     Surface(
@@ -292,9 +297,8 @@ private fun DriverHomeToolbar(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
-                    Text("₱", color = Color(0xFF16A34A), fontWeight = FontWeight.Bold)
                     Text(
-                        "0.00",
+                        formatToolbarEarnings(todaysEarning, earningsCurrency),
                         color = Color.White,
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Medium,
@@ -309,6 +313,17 @@ private fun DriverHomeToolbar(
             }
         }
     }
+}
+
+private fun formatToolbarEarnings(amount: Double?, currency: String): String {
+    if (amount == null) return "—"
+    val cents = (amount * 100.0).roundToInt().coerceAtLeast(0)
+    val prefix = when (currency.uppercase()) {
+        "PHP" -> "₱"
+        "USD" -> "\$"
+        else -> "${currency.uppercase()} "
+    }
+    return "$prefix${cents / 100}.${(cents % 100).toString().padStart(2, '0')}"
 }
 
 @Composable

@@ -68,6 +68,7 @@ import org.noztek.esktransport.core.ui.composables.common.HoldToCancelButton
 import org.noztek.esktransport.core.ui.composables.common.TripFeedbackDialog
 import org.noztek.esktransport.core.map.MapPoint
 import org.noztek.esktransport.core.map.MapboxConfig
+import org.noztek.esktransport.core.utils.uppercaseFirstLetterOfEachWord
 import org.noztek.esktransport.feature.rider.trip_navigation.domain.model.RiderTripPhase
 import org.noztek.esktransport.feature.rider.trip_navigation.domain.model.RiderTripSession
 import kotlin.math.roundToInt
@@ -319,9 +320,10 @@ private fun TripNavigationBottomSheet(
     onCancel: () -> Unit,
 ) {
     val isPickupPhase = phase == RiderTripPhase.TO_PICKUP
-    val currentStageTitle = if (isPickupPhase) "Pickup $passengerName" else "Destination $passengerName"
+    val displayPassengerName = passengerName.uppercaseFirstLetterOfEachWord()
+    val currentStageTitle = if (isPickupPhase) "Pickup $displayPassengerName" else "Dropoff $displayPassengerName"
     val currentStageMetric = "$durationLabel • $distanceLabel"
-    val stageSummary = if (isPickupPhase) "Picking up $passengerName" else "Dropping off $passengerName"
+    val stageSummary = if (isPickupPhase) "Picking up $displayPassengerName" else "Dropping off $displayPassengerName"
 
     Column(
         modifier = Modifier
@@ -345,10 +347,10 @@ private fun TripNavigationBottomSheet(
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f))
 
         TripStageTimeline(
-            pickupTitle = "Pickup $passengerName",
+            pickupTitle = "Pickup $displayPassengerName",
             pickupLabel = pickupLabel,
             pickupMetric = if (isPickupPhase) currentStageMetric else "Completed",
-            destinationTitle = "Destination $passengerName",
+            destinationTitle = "Dropoff $displayPassengerName",
             destinationLabel = destinationLabel,
             destinationMetric = if (isPickupPhase) "Pending" else currentStageMetric,
             isPickupPhase = isPickupPhase,

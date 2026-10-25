@@ -234,6 +234,7 @@ val driverHomeModule = module {
             availabilityLifecycleCoordinator = get(),
             currentLocationProvider = get(),
             updateDriverLocationUseCase = get(),
+            getRiderEarningsUseCase = get(),
             ioDispatcher = get(named(IO_DISPATCHER_QUALIFIER)),
         )
     }

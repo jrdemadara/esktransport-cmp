@@ -23,6 +23,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.AlertDialog
@@ -78,6 +79,7 @@ import org.noztek.esktransport.core.map.PlatformMapView
 import org.noztek.esktransport.core.permission.EnsureLocationServiceBeforeAction
 import org.noztek.esktransport.core.ui.composables.common.AppPrimaryButton
 import org.noztek.esktransport.core.ui.composables.driver.DriverBottomBar
+import org.noztek.esktransport.core.utils.uppercaseFirstLetterOfEachWord
 import org.noztek.esktransport.core.ui.composables.driver.DriverBottomBarRoute
 import org.noztek.esktransport.core.ui.composables.driver.DriverTopBar
 import org.noztek.esktransport.core.utils.formatApiDateTimeForDisplay
@@ -259,7 +261,7 @@ fun HomeScreen(
             )
             RecentActivityCard(
                 isLoading = uiState.isLoadingRecentActivity,
-                trip = uiState.recentActivityTrip,
+                trips = uiState.recentActivityTrips,
                 routePoints = uiState.recentActivityRoutePoints,
                 errorMessage = uiState.recentActivityErrorMessage,
                 mapboxConfig = mapboxConfig,
@@ -947,8 +949,8 @@ private fun DriverStatePill(
 @Composable
 private fun RecentActivityCard(
     isLoading: Boolean,
-    trip: DriverTrip?,
-    routePoints: List<MapPoint>,
+    trips: List<DriverTrip>,
+    routePoints: Map<String, List<MapPoint>>,
     errorMessage: String?,
     mapboxConfig: MapboxConfig,
     onSeeAllClick: () -> Unit,
@@ -990,17 +992,22 @@ private fun RecentActivityCard(
             }
 
             when {
-                isLoading && trip == null -> RecentActivityLoading()
-                errorMessage != null && trip == null -> RecentActivityError(
+                isLoading && trips.isEmpty() -> RecentActivityLoading()
+                errorMessage != null && trips.isEmpty() -> RecentActivityError(
                     message = errorMessage,
                     onRetryClick = onRetryClick,
                 )
-                trip == null -> RecentActivityEmpty()
-                else -> RecentActivityTripRow(
-                    trip = trip,
-                    routePoints = routePoints,
-                    mapboxConfig = mapboxConfig,
-                )
+                trips.isEmpty() -> RecentActivityEmpty()
+                else -> trips.forEachIndexed { index, trip ->
+                    RecentActivityTripRow(
+                        trip = trip,
+                        routePoints = routePoints[trip.bookingPublicId].orEmpty(),
+                        mapboxConfig = mapboxConfig,
+                    )
+                    if (index < trips.lastIndex) {
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                    }
+                }
             }
         }
     }
@@ -1031,7 +1038,10 @@ private fun RecentActivityTripRow(
             verticalArrangement = Arrangement.spacedBy(3.dp),
         ) {
             Text(
-                text = trip.passengerName.takeIf { it.isNotBlank() } ?: "Last trip",
+                text = trip.passengerName
+                    .takeIf { it.isNotBlank() }
+                    ?.uppercaseFirstLetterOfEachWord()
+                    ?: "Last trip",
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface,

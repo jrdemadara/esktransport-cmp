@@ -62,6 +62,7 @@ import org.noztek.esktransport.feature.passenger.settings.domain.model.SavedPlac
 fun PassengerHomeScreen(
     onWhereToClick: () -> Unit = {},
     onPlaceClick: (label: String, point: GeoPoint?) -> Unit = { _, _ -> },
+    onSavedPlacesClick: () -> Unit = {},
     onSuggestionClick: (Int) -> Unit = {},
     onMarketplaceClick: () -> Unit = {},
     contentPadding: PaddingValues = PaddingValues(0.dp),
@@ -90,6 +91,7 @@ fun PassengerHomeScreen(
             places = uiState.savedPlaces,
             isLoading = uiState.isLoading,
             onPlaceClick = onPlaceClick,
+            onSavedPlacesClick = onSavedPlacesClick,
         )
         Spacer(modifier = Modifier.height(8.dp))
 
@@ -216,6 +218,7 @@ private fun SavedPlacesSection(
     places: List<SavedPlace>,
     isLoading: Boolean,
     onPlaceClick: (label: String, point: GeoPoint?) -> Unit,
+    onSavedPlacesClick: () -> Unit,
 ) {
     val visiblePlaces = places.take(2)
     when {
@@ -227,6 +230,7 @@ private fun SavedPlacesSection(
                 title = "Save your places",
                 subtitle = "Add Home or Work from Settings for faster booking.",
                 icon = Heroicons.Outline.MapPin,
+                onClick = onSavedPlacesClick,
             )
         }
         else -> {
@@ -236,7 +240,7 @@ private fun SavedPlacesSection(
                     subtitle = place.address,
                     icon = place.placeType.savedPlaceIcon(),
                     onClick = {
-                        onPlaceClick(place.label, place.toGeoPoint())
+                        onPlaceClick(place.address, place.toGeoPoint())
                     },
                 )
                 if (index < visiblePlaces.lastIndex) {

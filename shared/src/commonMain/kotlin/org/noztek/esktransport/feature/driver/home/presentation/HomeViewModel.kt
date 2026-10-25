@@ -40,8 +40,8 @@ data class HomeUiState(
     val isLoadingRecentActivity: Boolean = true,
     val stats: DriverHomeStats? = null,
     val earningsDashboard: RiderEarningsDashboard? = null,
-    val recentActivityTrip: DriverTrip? = null,
-    val recentActivityRoutePoints: List<MapPoint> = emptyList(),
+    val recentActivityTrips: List<DriverTrip> = emptyList(),
+    val recentActivityRoutePoints: Map<String, List<MapPoint>> = emptyMap(),
     val onboardingStatus: DriverOnboardingStatus? = null,
     val walletDashboard: DriverWalletDashboard? = null,
     val errorMessage: String? = null,
@@ -243,12 +243,14 @@ class HomeViewModel(
             val result = withContext(ioDispatcher) { getDriverTripsUseCase() }
             result.fold(
                 onSuccess = { dashboard ->
-                    val recentTrip = dashboard.trips.latestRecentTrip()
-                    val routePoints = recentTrip?.recentNavigationRoutePoints().orEmpty()
+                    val recentTrips = dashboard.trips.latestRecentTrips()
+                    val routePoints = recentTrips.associate { trip ->
+                        trip.bookingPublicId to trip.recentNavigationRoutePoints()
+                    }
                     _uiState.update {
                         it.copy(
                             isLoadingRecentActivity = false,
-                            recentActivityTrip = recentTrip,
+                            recentActivityTrips = recentTrips,
                             recentActivityRoutePoints = routePoints,
                             recentActivityErrorMessage = null,
                         )
@@ -293,7 +295,7 @@ class HomeViewModel(
         }
     }
 
-    private fun List<DriverTrip>.latestRecentTrip(): DriverTrip? {
+    private fun List<DriverTrip>.latestRecentTrips(limit: Int = 3): List<DriverTrip> {
         return sortedWith(
             compareByDescending<DriverTrip> {
                 when (it.status) {
@@ -307,7 +309,7 @@ class HomeViewModel(
                     DriverTripStatus.Unknown -> 0
                 }
             }.thenByDescending { it.activityTimestamp().orEmpty() },
-        ).firstOrNull()
+        ).take(limit)
     }
 
     private fun DriverTrip.activityTimestamp(): String? {

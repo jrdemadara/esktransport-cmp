@@ -158,6 +158,7 @@ private fun PassengerShell(onLogout: () -> Unit) {
     val sessionManager: SessionManager = koinInject()
     val passengerName by sessionManager.userName.collectAsState(initial = null)
     val bookingReviewUiState by bookingReviewViewModel.uiState.collectAsState()
+    val passengerAccountUiState by passengerAccountViewModel.uiState.collectAsState()
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
     var activeTripTrackingBookingId by remember { mutableStateOf<String?>(null) }
@@ -289,6 +290,7 @@ private fun PassengerShell(onLogout: () -> Unit) {
                 }
                 else -> PassengerHomeTopBar(
                     greetingName = passengerName,
+                    profilePhotoBytes = passengerAccountUiState.profilePhotoBytes,
                     title = when (currentRoute) {
                         ROUTE_WALLET -> "Wallet"
                         ROUTE_ACTIVITY -> "Activity"
@@ -360,6 +362,11 @@ private fun PassengerShell(onLogout: () -> Unit) {
                 composable(ROUTE_HOME) {
                     PassengerHomeScreen(
                         onWhereToClick = { navController.navigate(ROUTE_RIDE_PLANNER) },
+                        onSavedPlacesClick = {
+                            navController.navigate(ROUTE_PASSENGER_SAVED_PLACES) {
+                                launchSingleTop = true
+                            }
+                        },
                         onPlaceClick = { label, point ->
                             ridePlannerViewModel.setDestinationLocation(label, point)
                             navController.navigate(ROUTE_RIDE_PLANNER)
