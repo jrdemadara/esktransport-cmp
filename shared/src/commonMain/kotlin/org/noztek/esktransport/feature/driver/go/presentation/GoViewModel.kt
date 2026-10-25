@@ -11,8 +11,10 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import org.noztek.esktransport.core.realtime.driver.DriverBookingOfferRealtime
+import org.noztek.esktransport.core.location.CurrentLocationProvider
 import org.noztek.esktransport.feature.common.active_booking.domain.model.ActiveBookingStatus
 import org.noztek.esktransport.feature.common.active_booking.domain.usecase.GetDriverActiveBookingUseCase
 import org.noztek.esktransport.feature.driver.go.domain.lifecycle.DriverAvailabilityLifecycleCoordinator
@@ -20,6 +22,7 @@ import org.noztek.esktransport.feature.driver.go.domain.usecase.AcceptOfferUseCa
 import org.noztek.esktransport.feature.driver.go.domain.usecase.ExpireOfferUseCase
 import org.noztek.esktransport.feature.driver.go.domain.usecase.GetDriverAvailabilityUseCase
 import org.noztek.esktransport.feature.driver.go.domain.usecase.SetDriverAvailabilityUseCase
+import org.noztek.esktransport.feature.driver.go.domain.usecase.UpdateDriverLocationUseCase
 
 private const val DefaultPassengerName = "Passenger"
 
@@ -45,6 +48,8 @@ class GoViewModel(
     private val getActiveBookingUseCase: GetDriverActiveBookingUseCase,
     private val realtimeCoordinator: DriverBookingOfferRealtime,
     private val availabilityLifecycleCoordinator: DriverAvailabilityLifecycleCoordinator,
+    private val currentLocationProvider: CurrentLocationProvider,
+    private val updateDriverLocationUseCase: UpdateDriverLocationUseCase,
     private val ioDispatcher: CoroutineDispatcher,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(GoUiState())
@@ -53,6 +58,7 @@ class GoViewModel(
     private val _uiEvents = MutableSharedFlow<GoUiEvent>()
     val uiEvents: SharedFlow<GoUiEvent> = _uiEvents
     private var realtimeJob: Job? = null
+    private var locationHeartbeatJob: Job? = null
 
     init {
         refreshAvailability()
@@ -105,6 +111,7 @@ class GoViewModel(
             result.onSuccess { available ->
                 availabilityLifecycleCoordinator.updateAvailability(available)
                 _uiState.update { it.copy(isAvailable = available) }
+                if (available) startLocationHeartbeat() else stopLocationHeartbeat()
             }.onFailure { error ->
                 val message = error.message ?: "Failed to fetch driver availability."
                 _uiState.update { state -> state.copy(statusMessage = message) }
@@ -177,6 +184,7 @@ class GoViewModel(
             val result = withContext(ioDispatcher) { setDriverAvailabilityUseCase(false) }
             result.onSuccess {
                 availabilityLifecycleCoordinator.updateAvailability(false)
+                stopLocationHeartbeat()
                 onExit()
             }.onFailure { error ->
                 val message = error.message ?: "Failed to go offline."
@@ -212,6 +220,7 @@ class GoViewModel(
             val result = withContext(ioDispatcher) { setDriverAvailabilityUseCase(target) }
             result.onSuccess { available ->
                 availabilityLifecycleCoordinator.updateAvailability(available)
+                if (available) startLocationHeartbeat() else stopLocationHeartbeat()
                 val message = if (available) "You're now online." else "You're now offline."
                 _uiState.update {
                     it.copy(
@@ -276,8 +285,26 @@ class GoViewModel(
     }
 
     override fun onCleared() {
+        stopLocationHeartbeat()
         stopRealtime()
         super.onCleared()
+    }
+
+    private fun startLocationHeartbeat() {
+        if (locationHeartbeatJob?.isActive == true) return
+        locationHeartbeatJob = viewModelScope.launch {
+            while (true) {
+                currentLocationProvider.getLastKnownLocation()?.let { point ->
+                    withContext(ioDispatcher) { updateDriverLocationUseCase(point) }
+                }
+                delay(30_000L)
+            }
+        }
+    }
+
+    private fun stopLocationHeartbeat() {
+        locationHeartbeatJob?.cancel()
+        locationHeartbeatJob = null
     }
 
     private fun formatFare(value: Double): String {

@@ -16,6 +16,7 @@ import org.noztek.esktransport.feature.driver.go.domain.usecase.AcceptOfferUseCa
 import org.noztek.esktransport.feature.driver.go.domain.usecase.ExpireOfferUseCase
 import org.noztek.esktransport.feature.driver.go.domain.usecase.GetDriverAvailabilityUseCase
 import org.noztek.esktransport.feature.driver.go.domain.usecase.SetDriverAvailabilityUseCase
+import org.noztek.esktransport.feature.driver.go.domain.usecase.UpdateDriverLocationUseCase
 import org.noztek.esktransport.feature.driver.earning.data.impl.RiderEarningsRepositoryImpl
 import org.noztek.esktransport.feature.driver.earning.data.remote.RiderEarningsApi
 import org.noztek.esktransport.feature.driver.earning.domain.repository.RiderEarningsRepository
@@ -136,6 +137,7 @@ val driverHomeModule = module {
     single<DriverLocationSharingRepository> { DriverLocationSharingRepositoryImpl(api = get()) }
     single { GetDriverAvailabilityUseCase(repository = get()) }
     single { SetDriverAvailabilityUseCase(repository = get()) }
+    single { UpdateDriverLocationUseCase(repository = get()) }
     single { GetDriverHomeStatsUseCase(repository = get()) }
     single { GetDriverOnboardingStatusUseCase(repository = get()) }
     single { GetDriverServiceZonesUseCase(repository = get()) }
@@ -230,6 +232,8 @@ val driverHomeModule = module {
             getActiveBookingUseCase = get(),
             realtimeCoordinator = get(),
             availabilityLifecycleCoordinator = get(),
+            currentLocationProvider = get(),
+            updateDriverLocationUseCase = get(),
             ioDispatcher = get(named(IO_DISPATCHER_QUALIFIER)),
         )
     }

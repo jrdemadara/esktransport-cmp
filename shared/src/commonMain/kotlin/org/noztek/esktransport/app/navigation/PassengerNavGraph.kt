@@ -631,15 +631,6 @@ private fun PassengerShell(onLogout: () -> Unit) {
                             launchSingleTop = true
                         }
                     },
-                    onHomeClick = {
-                        isTripTrackingVisible = false
-                        activeTripChatBookingId = null
-                        activeMarketplaceChatListingId = null
-                        navController.navigate(ROUTE_HOME) {
-                            popUpTo(ROUTE_HOME) { inclusive = false }
-                            launchSingleTop = true
-                        }
-                    },
                     onChatClick = {
                         activeTripChatBookingId = bookingId
                     },

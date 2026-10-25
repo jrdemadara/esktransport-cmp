@@ -9,6 +9,7 @@ import io.ktor.http.ContentType
 import io.ktor.http.contentType
 import org.noztek.esktransport.feature.driver.go.data.remote.dto.AcceptBookingOfferRequestDto
 import org.noztek.esktransport.feature.driver.go.data.remote.dto.DriverAvailabilityRequestDto
+import org.noztek.esktransport.feature.driver.go.data.remote.dto.DriverAvailabilityLocationRequestDto
 import org.noztek.esktransport.feature.driver.go.data.remote.dto.DriverAvailabilityResponseDto
 
 class GoApi(
@@ -24,6 +25,13 @@ class GoApi(
             contentType(ContentType.Application.Json)
             setBody(DriverAvailabilityRequestDto(isAvailable = isAvailable))
         }.body()
+    }
+
+    suspend fun updateLocation(request: DriverAvailabilityLocationRequestDto) {
+        client.post("${baseUrl.trimEnd('/')}/api/v1/rider/availability/location") {
+            contentType(ContentType.Application.Json)
+            setBody(request)
+        }
     }
 
     suspend fun acceptBookingOffer(bookingPublicId: String, latitude: Double?, longitude: Double?) {

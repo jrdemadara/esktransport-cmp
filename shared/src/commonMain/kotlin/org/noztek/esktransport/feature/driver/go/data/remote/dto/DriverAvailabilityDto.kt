@@ -10,6 +10,19 @@ data class DriverAvailabilityRequestDto(
 )
 
 @Serializable
+data class DriverAvailabilityLocationRequestDto(
+    val lat: Double,
+    val lng: Double,
+    val bearing: Double? = null,
+    @SerialName("speed_kph")
+    val speedKph: Double? = null,
+    @SerialName("accuracy_m")
+    val accuracyM: Double? = null,
+    @SerialName("recorded_at")
+    val recordedAt: String? = null,
+)
+
+@Serializable
 data class DriverAvailabilityResponseDto(
     val message: String,
     val data: DriverAvailabilityDataDto,

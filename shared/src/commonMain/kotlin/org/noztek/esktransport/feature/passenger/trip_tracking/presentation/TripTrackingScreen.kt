@@ -56,8 +56,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.composables.icons.heroicons.Heroicons
 import com.composables.icons.heroicons.outline.ChatBubbleOvalLeft
-import com.composables.icons.heroicons.outline.EllipsisVertical
-import com.composables.icons.heroicons.outline.Home
 import com.composables.icons.heroicons.outline.Phone
 import com.composables.icons.heroicons.outline.User
 import com.composables.icons.heroicons.solid.Star
@@ -73,6 +71,7 @@ import org.noztek.esktransport.core.map.MapboxConfig
 import org.noztek.esktransport.core.map.PlatformMapView
 import org.noztek.esktransport.core.ui.composables.common.HoldToCancelButton
 import org.noztek.esktransport.core.ui.composables.common.TripFeedbackDialog
+import org.noztek.esktransport.core.utils.uppercaseFirstLetterOfEachWord
 import org.noztek.esktransport.feature.passenger.trip_tracking.domain.model.LatestLocation
 import org.noztek.esktransport.feature.passenger.trip_tracking.domain.model.TripPoint
 import org.noztek.esktransport.feature.passenger.trip_tracking.domain.model.TripTrackingSession
@@ -89,7 +88,6 @@ fun TripTrackingScreen(
     bookingId: String,
     onCancelled: () -> Unit,
     onCompleted: () -> Unit,
-    onHomeClick: () -> Unit,
     onChatClick: () -> Unit,
     viewModel: TripTrackingViewModel = koinViewModel(),
     mapboxConfig: MapboxConfig = koinInject(),
@@ -133,7 +131,8 @@ fun TripTrackingScreen(
                     riderName = it.riderInfo.name,
                     riderRating = it.riderInfo.rating,
                     fareLabel = it.fareLabel(),
-                    vehicleLabel = "${it.riderInfo.vehicleLabel} - ${it.riderInfo.vehiclePlate}",
+                    vehicleName = it.riderInfo.vehicleLabel,
+                    vehiclePlate = it.riderInfo.vehiclePlate,
                     pickupLabel = it.pickupPoint.label,
                     destinationLabel = it.destinationPoint.label,
                     isCancelling = uiState.isCancelling,
@@ -184,7 +183,6 @@ fun TripTrackingScreen(
 
             TripTrackingTopAppBar(
                 statusLabel = sessionStatusLabel(uiState.stage),
-                onHomeClick = onHomeClick,
                 onChatClick = onChatClick,
                 modifier = Modifier.align(Alignment.TopCenter),
             )
@@ -254,7 +252,8 @@ private fun TripTrackingSheet(
     riderName: String,
     riderRating: Double?,
     fareLabel: String?,
-    vehicleLabel: String,
+    vehicleName: String,
+    vehiclePlate: String,
     pickupLabel: String,
     destinationLabel: String,
     isCancelling: Boolean,
@@ -286,7 +285,7 @@ private fun TripTrackingSheet(
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     Text(
-                        text = riderName,
+                        text = riderName.uppercaseFirstLetterOfEachWord(),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontWeight = FontWeight.Medium,
@@ -301,7 +300,7 @@ private fun TripTrackingSheet(
                     contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
                 ) {
                     Text(
-                        text = vehicleLabel,
+                        text = "${vehicleName.uppercaseFirstLetterOfEachWord()} - $vehiclePlate",
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Medium,
                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
@@ -333,7 +332,6 @@ private fun TripTrackingSheet(
 @Composable
 private fun TripTrackingTopAppBar(
     statusLabel: String,
-    onHomeClick: () -> Unit,
     onChatClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -346,14 +344,6 @@ private fun TripTrackingTopAppBar(
             titleContentColor = MaterialTheme.colorScheme.onSurface,
             actionIconContentColor = MaterialTheme.colorScheme.onSurface,
         ),
-        navigationIcon = {
-            IconButton(onClick = onHomeClick) {
-                Icon(
-                    Heroicons.Outline.Home,
-                    contentDescription = "Home",
-                )
-            }
-        },
         title = {
             Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
                 Text(
@@ -436,14 +426,6 @@ private fun TripTrackingTopAppBar(
                 Icon(
                     Heroicons.Outline.Phone,
                     contentDescription = "Call",
-                )
-            }
-            IconButton(
-                onClick = {},
-            ) {
-                Icon(
-                    Heroicons.Outline.EllipsisVertical,
-                    contentDescription = "More options",
                 )
             }
         },
