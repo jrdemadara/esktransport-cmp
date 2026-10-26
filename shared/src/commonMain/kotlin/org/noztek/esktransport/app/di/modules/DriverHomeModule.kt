@@ -16,6 +16,7 @@ import org.noztek.esktransport.feature.driver.go.domain.repository.GoRepository
 import org.noztek.esktransport.feature.driver.go.domain.lifecycle.DriverAvailabilityLifecycleCoordinator
 import org.noztek.esktransport.feature.driver.go.domain.usecase.AcceptOfferUseCase
 import org.noztek.esktransport.feature.driver.go.domain.usecase.ExpireOfferUseCase
+import org.noztek.esktransport.feature.driver.go.domain.usecase.DeclineOfferUseCase
 import org.noztek.esktransport.feature.driver.go.domain.usecase.GetDriverAvailabilityUseCase
 import org.noztek.esktransport.feature.driver.go.domain.usecase.SetDriverAvailabilityUseCase
 import org.noztek.esktransport.feature.driver.go.domain.usecase.UpdateDriverLocationUseCase
@@ -192,6 +193,7 @@ val driverHomeModule = module {
     single { SubmitDriverServiceZonesUseCase(repository = get()) }
     single { AcceptOfferUseCase(api = get(), currentLocationProvider = get()) }
     single { ExpireOfferUseCase(api = get()) }
+    single { DeclineOfferUseCase(api = get()) }
     single {
         DriverAvailabilityLifecycleCoordinator(
             sessionManager = get(),
@@ -249,6 +251,7 @@ val driverHomeModule = module {
             setDriverAvailabilityUseCase = get(),
             acceptOfferUseCase = get(),
             expireOfferUseCase = get(),
+            declineOfferUseCase = get(),
             getActiveBookingUseCase = get(),
             realtimeCoordinator = get(),
             availabilityLifecycleCoordinator = get(),

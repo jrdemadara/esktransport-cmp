@@ -238,7 +238,7 @@ fun GoScreen(
                     soundEffectPlayer = soundEffectPlayer,
                     onDecline = {
                         soundEffectPlayer.play(SoundEffect.Denied)
-                        viewModel.expireCurrentOffer()
+                        viewModel.declineCurrentOffer()
                     },
                     onTimeout = viewModel::expireCurrentOffer,
                     onAccept = viewModel::acceptCurrentOffer,

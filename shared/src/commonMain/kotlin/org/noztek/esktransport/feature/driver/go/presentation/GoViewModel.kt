@@ -20,6 +20,7 @@ import org.noztek.esktransport.feature.common.active_booking.domain.usecase.GetD
 import org.noztek.esktransport.feature.driver.go.domain.lifecycle.DriverAvailabilityLifecycleCoordinator
 import org.noztek.esktransport.feature.driver.go.domain.usecase.AcceptOfferUseCase
 import org.noztek.esktransport.feature.driver.go.domain.usecase.ExpireOfferUseCase
+import org.noztek.esktransport.feature.driver.go.domain.usecase.DeclineOfferUseCase
 import org.noztek.esktransport.feature.driver.go.domain.usecase.GetDriverAvailabilityUseCase
 import org.noztek.esktransport.feature.driver.go.domain.usecase.SetDriverAvailabilityUseCase
 import org.noztek.esktransport.feature.driver.go.domain.usecase.UpdateDriverLocationUseCase
@@ -48,6 +49,7 @@ class GoViewModel(
     private val setDriverAvailabilityUseCase: SetDriverAvailabilityUseCase,
     private val acceptOfferUseCase: AcceptOfferUseCase,
     private val expireOfferUseCase: ExpireOfferUseCase,
+    private val declineOfferUseCase: DeclineOfferUseCase,
     private val getActiveBookingUseCase: GetDriverActiveBookingUseCase,
     private val realtimeCoordinator: DriverBookingOfferRealtime,
     private val availabilityLifecycleCoordinator: DriverAvailabilityLifecycleCoordinator,
@@ -282,6 +284,24 @@ class GoViewModel(
             }
             result.onFailure { error ->
                 println("Go offer timeout error: ${error.message}")
+            }
+        }
+    }
+
+    fun declineCurrentOffer() {
+        val offer = _uiState.value.currentOffer ?: return
+        if (_uiState.value.isAcceptingOffer) return
+
+        _uiState.update { it.copy(currentOffer = null, isAcceptingOffer = true) }
+        viewModelScope.launch {
+            val result = withContext(ioDispatcher) {
+                declineOfferUseCase(offer.bookingPublicId)
+            }
+            result.onSuccess {
+                _uiState.update { it.copy(isAcceptingOffer = false) }
+            }.onFailure { error ->
+                _uiState.update { it.copy(isAcceptingOffer = false, currentOffer = offer) }
+                _uiEvents.emit(GoUiEvent.ShowSnackbar(error.message ?: "Failed to decline booking."))
             }
         }
     }

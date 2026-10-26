@@ -46,4 +46,8 @@ class GoApi(
     suspend fun expireBookingOffer(bookingPublicId: String) {
         client.post("${baseUrl.trimEnd('/')}/api/v1/rider/bookings/$bookingPublicId/offer-timeout")
     }
+
+    suspend fun declineBookingOffer(bookingPublicId: String) {
+        client.post("${baseUrl.trimEnd('/')}/api/v1/rider/bookings/$bookingPublicId/decline")
+    }
 }
