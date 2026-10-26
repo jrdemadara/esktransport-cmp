@@ -92,6 +92,9 @@ private const val DRIVER_VEHICLE_DETAIL_REFRESH_TOKEN = "driver_vehicle_detail_r
 fun NavGraphBuilder.driverNavGraph(
     navController: NavHostController,
     onLogout: () -> Unit,
+    initialPushAction: String? = null,
+    initialPushRequestPublicId: String? = null,
+    initialPushThreadId: String? = null,
 ) {
     navigation(startDestination = DriverRoute.HOME, route = RootRoute.DRIVER) {
         composable(
@@ -133,6 +136,11 @@ fun NavGraphBuilder.driverNavGraph(
             }
             LaunchedEffect(Unit) {
                 driverSessionViewModel.restoreActiveBooking()
+            }
+            LaunchedEffect(initialPushAction) {
+                if (initialPushAction == "open_request" || initialPushAction == "open_chat") {
+                    navController.navigate(DriverBottomBarRoute.BOOKINGS) { launchSingleTop = true }
+                }
             }
             HomeScreen(
                 statsRefreshToken = statsRefreshToken,
@@ -253,6 +261,17 @@ fun NavGraphBuilder.driverNavGraph(
                         activeRequestPublicId = booking.vehicleServiceRequestPublicId
                     },
                 )
+
+                LaunchedEffect(initialPushAction, initialPushRequestPublicId, initialPushThreadId) {
+                    if (initialPushAction == "open_request" && !initialPushRequestPublicId.isNullOrBlank()) {
+                        activeRequestPublicId = initialPushRequestPublicId
+                    }
+                    if (initialPushAction == "open_chat" && !initialPushThreadId.isNullOrBlank()) {
+                        activeInquiryThreadId = initialPushThreadId.toLongOrNull()
+                        activeInquiryTitle = "Marketplace chat"
+                        activeInquirySubtitle = "New message"
+                    }
+                }
 
                 activeRequestPublicId?.let { requestPublicId ->
                     DriverMarketplaceRequestDetailsScreen(

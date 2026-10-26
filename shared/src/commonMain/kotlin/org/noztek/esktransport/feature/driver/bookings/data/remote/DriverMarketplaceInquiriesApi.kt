@@ -34,6 +34,10 @@ class DriverMarketplaceInquiriesApi(
         }
     }
 
+    suspend fun rejectRequest(requestPublicId: String) {
+        client.post("${baseUrl.trimEnd('/')}/api/v1/rider/vehicle-service-requests/$requestPublicId/reject")
+    }
+
     suspend fun startRequest(requestPublicId: String) {
         client.post("${baseUrl.trimEnd('/')}/api/v1/rider/vehicle-service-requests/$requestPublicId/start")
     }

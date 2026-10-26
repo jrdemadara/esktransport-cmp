@@ -36,6 +36,7 @@ class DriverMarketplaceRequestDetailsViewModel(
     }
 
     fun accept(quotedAmount: Double) = update { id -> repository.acceptRequest(id, quotedAmount, "PHP", null) }
+    fun reject() = update { id -> repository.rejectRequest(id) }
     fun start() = update { id -> repository.startRequest(id) }
     fun complete() = update { id -> repository.completeRequest(id) }
 

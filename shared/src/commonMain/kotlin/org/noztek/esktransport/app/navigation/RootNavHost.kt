@@ -37,6 +37,10 @@ import org.noztek.esktransport.feature.driver.go.domain.lifecycle.DriverAvailabi
 
 @Composable
 fun RootNavHost(
+    pushAction: String? = null,
+    pushRequestPublicId: String? = null,
+    pushThreadId: String? = null,
+    pushListingPublicId: String? = null,
     startupViewModel: StartupViewModel = koinInject(),
     realtimeCoordinator: BaseRealtimeCoordinator = koinInject(),
     driverBookingOfferRealtime: DriverBookingOfferRealtime = koinInject(),
@@ -168,12 +172,19 @@ fun RootNavHost(
         authNavGraph(navController = navController) { route ->
             navController.navigateRoot(route)
         }
-        passengerNavGraph(navController)
+        passengerNavGraph(
+            navController = navController,
+            initialPushAction = pushAction,
+            initialPushListingPublicId = pushListingPublicId,
+        )
         driverNavGraph(
             navController = navController,
             onLogout = {
                 navController.navigateRoot(RootRoute.AUTH)
             },
+            initialPushAction = pushAction,
+            initialPushRequestPublicId = pushRequestPublicId,
+            initialPushThreadId = pushThreadId,
         )
         composable(DevRoute.MAP_PREVIEW) {
             MapPreviewScreen(

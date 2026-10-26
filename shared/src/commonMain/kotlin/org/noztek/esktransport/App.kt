@@ -8,9 +8,19 @@ import org.noztek.esktransport.core.ui.theme.AppTheme
 
 @Composable
 @Preview
-fun App() {
+fun App(
+    pushAction: String? = null,
+    pushRequestPublicId: String? = null,
+    pushThreadId: String? = null,
+    pushListingPublicId: String? = null,
+) {
     AppTheme {
         RequestLocationPermissionIfNeeded()
-        RootNavHost()
+        RootNavHost(
+            pushAction = pushAction,
+            pushRequestPublicId = pushRequestPublicId,
+            pushThreadId = pushThreadId,
+            pushListingPublicId = pushListingPublicId,
+        )
     }
 }

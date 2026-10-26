@@ -40,7 +40,12 @@ class MainActivity : ComponentActivity() {
         requestNotificationPermissionIfNeeded()
 
         setContent {
-            App()
+            App(
+                pushAction = intent?.getStringExtra("push_action"),
+                pushRequestPublicId = intent?.getStringExtra("push_request_public_id"),
+                pushThreadId = intent?.getStringExtra("push_thread_id"),
+                pushListingPublicId = intent?.getStringExtra("push_listing_public_id"),
+            )
         }
     }
 

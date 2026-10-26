@@ -30,6 +30,8 @@ class DriverMarketplaceInquiriesRepositoryImpl(
         }
     }
 
+    override suspend fun rejectRequest(requestPublicId: String): Result<Unit> = runAction("Failed to reject request.") { api.rejectRequest(requestPublicId) }
+
     override suspend fun startRequest(requestPublicId: String): Result<Unit> = runAction("Failed to start service.") { api.startRequest(requestPublicId) }
     override suspend fun completeRequest(requestPublicId: String): Result<Unit> = runAction("Failed to complete service.") { api.completeRequest(requestPublicId) }
 

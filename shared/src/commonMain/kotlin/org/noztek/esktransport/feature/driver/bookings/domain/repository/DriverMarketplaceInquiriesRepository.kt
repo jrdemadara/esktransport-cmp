@@ -8,6 +8,7 @@ interface DriverMarketplaceInquiriesRepository {
     suspend fun getRequest(requestPublicId: String): Result<DriverMarketplaceRequest>
     suspend fun markThreadRead(threadId: Long): Result<Unit>
     suspend fun acceptRequest(requestPublicId: String, quotedAmount: Double, currency: String, ownerNote: String?): Result<Unit>
+    suspend fun rejectRequest(requestPublicId: String): Result<Unit>
     suspend fun startRequest(requestPublicId: String): Result<Unit>
     suspend fun completeRequest(requestPublicId: String): Result<Unit>
 }

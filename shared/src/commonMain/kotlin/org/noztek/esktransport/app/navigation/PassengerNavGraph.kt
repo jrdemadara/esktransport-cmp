@@ -143,17 +143,29 @@ private const val ROUTE_PASSENGER_TOP_UP = "passenger/wallet/top-up"
 private const val ROUTE_PASSENGER_CASHOUT = "passenger/wallet/cashout"
 private const val ROUTE_PASSENGER_NOTIFICATIONS = "passenger/notifications"
 
-fun NavGraphBuilder.passengerNavGraph(navController: NavHostController) {
+fun NavGraphBuilder.passengerNavGraph(
+    navController: NavHostController,
+    initialPushAction: String? = null,
+    initialPushListingPublicId: String? = null,
+) {
     navigation(startDestination = PassengerRoute.HOME, route = RootRoute.PASSENGER) {
         composable(PassengerRoute.HOME) {
-            PassengerShell(onLogout = { navController.navigatePassengerRoot(RootRoute.AUTH) })
+            PassengerShell(
+                onLogout = { navController.navigatePassengerRoot(RootRoute.AUTH) },
+                initialPushAction = initialPushAction,
+                initialPushListingPublicId = initialPushListingPublicId,
+            )
         }
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun PassengerShell(onLogout: () -> Unit) {
+private fun PassengerShell(
+    onLogout: () -> Unit,
+    initialPushAction: String? = null,
+    initialPushListingPublicId: String? = null,
+) {
     val navController = rememberNavController()
     val ridePlannerViewModel: RidePlannerViewModel = koinViewModel()
     val bookingReviewViewModel: BookingReviewViewModel = koinViewModel()
@@ -193,6 +205,17 @@ private fun PassengerShell(onLogout: () -> Unit) {
         currentRoute != ROUTE_PASSENGER_NOTIFICATIONS &&
         currentRoute != ROUTE_PASSENGER_PROFILE_PHOTO_CAPTURE &&
         currentRoute?.startsWith("location-search/") != true
+
+    LaunchedEffect(initialPushAction, initialPushListingPublicId) {
+        if (initialPushAction == "open_chat" && !initialPushListingPublicId.isNullOrBlank()) {
+            activeMarketplaceChatListingId = initialPushListingPublicId
+        }
+        if (initialPushAction == "open_request" && !initialPushListingPublicId.isNullOrBlank()) {
+            navController.navigate("marketplace/listing-details/$initialPushListingPublicId") {
+                launchSingleTop = true
+            }
+        }
+    }
 
     LaunchedEffect(currentRoute, bookingReviewUiState.isSearchingForRider, activeTripTrackingBookingId, isTripTrackingVisible) {
         userPresenceCoordinator.updateContext(

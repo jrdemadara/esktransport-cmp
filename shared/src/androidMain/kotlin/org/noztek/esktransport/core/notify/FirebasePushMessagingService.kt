@@ -46,6 +46,7 @@ class FirebasePushMessagingService : FirebaseMessagingService() {
         showNotification(
             title = title,
             body = body,
+            data = message.data,
             notificationId = message.messageId?.hashCode()?.absoluteValue ?: body.hashCode().absoluteValue,
         )
     }
@@ -53,6 +54,7 @@ class FirebasePushMessagingService : FirebaseMessagingService() {
     private fun showNotification(
         title: String,
         body: String,
+        data: Map<String, String>,
         notificationId: Int,
     ) {
         if (!canPostNotifications()) return
@@ -61,6 +63,7 @@ class FirebasePushMessagingService : FirebaseMessagingService() {
 
         val launchIntent = packageManager.getLaunchIntentForPackage(packageName)?.apply {
             addFlags(android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP or android.content.Intent.FLAG_ACTIVITY_SINGLE_TOP)
+            data.forEach { (key, value) -> putExtra("push_$key", value) }
         } ?: return
         val pendingIntent = PendingIntent.getActivity(
             this,

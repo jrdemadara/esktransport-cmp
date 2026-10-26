@@ -43,6 +43,7 @@ import com.composables.icons.heroicons.outline.Briefcase
 import com.composables.icons.heroicons.outline.CalendarDays
 import com.composables.icons.heroicons.outline.ChatBubbleOvalLeft
 import com.composables.icons.heroicons.outline.Clock
+import com.composables.icons.heroicons.outline.ChevronRight
 import com.composables.icons.heroicons.outline.Truck
 import org.koin.compose.viewmodel.koinViewModel
 import org.noztek.esktransport.core.utils.formatApiDateTimeForDisplay
@@ -112,8 +113,8 @@ fun DriverBookingsScreen(
                 else -> {
                     Text(
                         text = "Bookings",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Medium,
                         color = MaterialTheme.colorScheme.onBackground,
                     )
                     if (uiState.visibleBookings.isEmpty()) {
@@ -135,8 +136,8 @@ fun DriverBookingsScreen(
                     }
                     Text(
                         text = "Customer inquiries",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Medium,
                         color = MaterialTheme.colorScheme.onBackground,
                     )
                     if (uiState.inquiries.isEmpty()) {
@@ -425,6 +426,12 @@ private fun DriverMarketplaceInquiryCard(
                     )
                 }
             }
+            Icon(
+                imageVector = Heroicons.Outline.ChevronRight,
+                contentDescription = "Open details",
+                modifier = Modifier.size(20.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }
