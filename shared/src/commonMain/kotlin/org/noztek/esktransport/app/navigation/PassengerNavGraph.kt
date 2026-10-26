@@ -50,6 +50,9 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
@@ -101,6 +104,8 @@ import org.noztek.esktransport.feature.passenger.location_search.presentation.Lo
 import org.noztek.esktransport.feature.passenger.location_search.presentation.SelectedLocation
 import org.noztek.esktransport.feature.passenger.marketplace.presentation.MarketplaceListingDetailsScreen
 import org.noztek.esktransport.feature.passenger.marketplace.presentation.MarketplaceScreen
+import org.noztek.esktransport.feature.common.notification.presentation.NotificationScreen
+import org.noztek.esktransport.feature.passenger.notification.presentation.PassengerNotificationBadgeViewModel
 import org.noztek.esktransport.feature.passenger.ride_planner.presentation.RidePlannerScreen
 import org.noztek.esktransport.feature.passenger.ride_planner.presentation.RidePlannerUiEvent
 import org.noztek.esktransport.feature.passenger.ride_planner.presentation.RidePlannerViewModel
@@ -136,6 +141,7 @@ private const val ROUTE_PASSENGER_PROFILE_PHOTO_CAPTURE = "passenger/settings/ac
 private const val ROUTE_PASSENGER_SAVED_PLACES = "passenger/settings/saved-places"
 private const val ROUTE_PASSENGER_TOP_UP = "passenger/wallet/top-up"
 private const val ROUTE_PASSENGER_CASHOUT = "passenger/wallet/cashout"
+private const val ROUTE_PASSENGER_NOTIFICATIONS = "passenger/notifications"
 
 fun NavGraphBuilder.passengerNavGraph(navController: NavHostController) {
     navigation(startDestination = PassengerRoute.HOME, route = RootRoute.PASSENGER) {
@@ -153,12 +159,15 @@ private fun PassengerShell(onLogout: () -> Unit) {
     val bookingReviewViewModel: BookingReviewViewModel = koinViewModel()
     val passengerSessionViewModel: PassengerSessionViewModel = koinViewModel()
     val passengerAccountViewModel: PassengerAccountViewModel = koinViewModel()
+    val passengerNotificationBadgeViewModel: PassengerNotificationBadgeViewModel = koinViewModel()
     val passengerRealtimeCoordinator: PassengerRealtimeCoordinator = koinInject()
     val userPresenceCoordinator: UserPresenceCoordinator = koinInject()
     val sessionManager: SessionManager = koinInject()
     val passengerName by sessionManager.userName.collectAsState(initial = null)
     val bookingReviewUiState by bookingReviewViewModel.uiState.collectAsState()
     val passengerAccountUiState by passengerAccountViewModel.uiState.collectAsState()
+    val passengerNotificationBadgeUiState by passengerNotificationBadgeViewModel.uiState.collectAsState()
+    val lifecycleOwner = LocalLifecycleOwner.current
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
     var activeTripTrackingBookingId by remember { mutableStateOf<String?>(null) }
@@ -181,6 +190,7 @@ private fun PassengerShell(onLogout: () -> Unit) {
         currentRoute != ROUTE_KUDI &&
         currentRoute != ROUTE_PASSENGER_TOP_UP &&
         currentRoute != ROUTE_PASSENGER_CASHOUT &&
+        currentRoute != ROUTE_PASSENGER_NOTIFICATIONS &&
         currentRoute != ROUTE_PASSENGER_PROFILE_PHOTO_CAPTURE &&
         currentRoute?.startsWith("location-search/") != true
 
@@ -195,6 +205,22 @@ private fun PassengerShell(onLogout: () -> Unit) {
                 )
             },
         )
+    }
+
+    LaunchedEffect(currentRoute) {
+        if (currentRoute != ROUTE_PASSENGER_NOTIFICATIONS) {
+            passengerNotificationBadgeViewModel.refresh()
+        }
+    }
+
+    DisposableEffect(lifecycleOwner, passengerNotificationBadgeViewModel) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                passengerNotificationBadgeViewModel.refresh()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
     LaunchedEffect(Unit) {
@@ -283,6 +309,7 @@ private fun PassengerShell(onLogout: () -> Unit) {
                 currentRoute == ROUTE_PASSENGER_SAVED_PLACES -> Unit
                 currentRoute == ROUTE_PASSENGER_TOP_UP -> Unit
                 currentRoute == ROUTE_PASSENGER_CASHOUT -> Unit
+                currentRoute == ROUTE_PASSENGER_NOTIFICATIONS -> Unit
                 currentRoute?.startsWith("location-search/") == true -> {
                     PassengerBackTopBar(if (locationMode == "pickup") "Search Pickup" else "Search Destination") {
                         navController.popBackStack()
@@ -291,6 +318,7 @@ private fun PassengerShell(onLogout: () -> Unit) {
                 else -> PassengerHomeTopBar(
                     greetingName = passengerName,
                     profilePhotoBytes = passengerAccountUiState.profilePhotoBytes,
+                    hasUnreadNotifications = passengerNotificationBadgeUiState.unreadCount > 0,
                     title = when (currentRoute) {
                         ROUTE_WALLET -> "Wallet"
                         ROUTE_ACTIVITY -> "Activity"
@@ -301,6 +329,11 @@ private fun PassengerShell(onLogout: () -> Unit) {
                             popUpTo(navController.graph.startDestinationId) { saveState = true }
                             launchSingleTop = true
                             restoreState = true
+                        }
+                    },
+                    onNotificationClick = {
+                        navController.navigate(ROUTE_PASSENGER_NOTIFICATIONS) {
+                            launchSingleTop = true
                         }
                     },
                 )
@@ -530,6 +563,11 @@ private fun PassengerShell(onLogout: () -> Unit) {
             composable(ROUTE_PASSENGER_CASHOUT) {
                 CashoutScreen(onBackClick = { navController.popBackStack() })
             }
+            composable(ROUTE_PASSENGER_NOTIFICATIONS) {
+                NotificationScreen(
+                    onBackClick = { navController.popBackStack() },
+                )
+            }
             composable(ROUTE_KUDI) {
                 KudiScreen(
                     onListingClick = { listingPublicId ->
@@ -683,7 +721,9 @@ private fun PassengerHomeTopBar(
     greetingName: String?,
     title: String? = null,
     onProfileClick: () -> Unit,
+    onNotificationClick: () -> Unit,
     profilePhotoBytes: ByteArray? = null,
+    hasUnreadNotifications: Boolean = false,
 ) {
     TopAppBar(
         windowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top),
@@ -697,16 +737,18 @@ private fun PassengerHomeTopBar(
         },
         actions = {
             Row(horizontalArrangement = Arrangement.spacedBy(2.dp), verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = {}) {
+                IconButton(onClick = onNotificationClick) {
                     Box {
                         Icon(Heroicons.Outline.Bell, contentDescription = "Notifications")
-                        Box(
-                            modifier = Modifier
-                                .align(Alignment.TopEnd)
-                                .size(9.dp)
-                                .background(Color(0xFFE53935), CircleShape)
-                                .border(1.dp, MaterialTheme.colorScheme.background, CircleShape),
-                        )
+                        if (hasUnreadNotifications) {
+                            Box(
+                                modifier = Modifier
+                                    .align(Alignment.TopEnd)
+                                    .size(9.dp)
+                                    .background(Color(0xFFE53935), CircleShape)
+                                    .border(1.dp, MaterialTheme.colorScheme.background, CircleShape),
+                            )
+                        }
                     }
                 }
                 IconButton(onClick = onProfileClick) {

@@ -1386,7 +1386,8 @@ private fun DriverOnboardingDocumentType.captureTitle(): String {
 }
 
 private fun DriverOnboardingDocumentType.usesSimpleVehicleCapture(): Boolean {
-    return this == DriverOnboardingDocumentType.VehiclePhoto
+    return this == DriverOnboardingDocumentType.VehicleRegistration ||
+        this == DriverOnboardingDocumentType.VehiclePhoto
 }
 
 private fun DriverOnboardingDocumentType.initialPrompt(): String {

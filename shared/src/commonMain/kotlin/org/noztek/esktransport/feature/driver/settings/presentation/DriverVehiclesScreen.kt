@@ -25,6 +25,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -35,8 +36,6 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -66,7 +65,6 @@ import com.composables.icons.heroicons.outline.Plus
 import com.composables.icons.heroicons.outline.Tag
 import com.composables.icons.heroicons.outline.Truck
 import org.koin.compose.viewmodel.koinViewModel
-import org.noztek.esktransport.core.ui.composables.common.AppPrimaryButton
 import org.noztek.esktransport.core.ui.composables.driver.DriverBottomBar
 import org.noztek.esktransport.core.ui.composables.driver.DriverBottomBarRoute
 import org.noztek.esktransport.core.utils.uppercaseFirstLetterOfEachWord
@@ -108,6 +106,7 @@ fun DriverVehiclesScreen(
         topBar = {
             VehiclesTopBar(
                 onBackClick = onBackClick,
+                onAddVehicleClick = onAddVehicleClick,
             )
         },
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
@@ -145,18 +144,6 @@ fun DriverVehiclesScreen(
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     HeaderCopy()
-                    AppPrimaryButton(
-                        text = "Add Vehicle",
-                        onClick = onAddVehicleClick,
-                        height = 46.dp,
-                        trailingIcon = {
-                            Icon(
-                                imageVector = Heroicons.Outline.Plus,
-                                contentDescription = null,
-                                modifier = Modifier.size(17.dp),
-                            )
-                        },
-                    )
                     VehicleStatsRow(vehicles = uiState.vehicles)
                     VehicleFilterRow(
                         selectedFilter = selectedFilter,
@@ -173,7 +160,6 @@ fun DriverVehiclesScreen(
                         EmptyVehiclesState(
                             modifier = Modifier.fillMaxWidth(),
                             filter = selectedFilter,
-                            onAddVehicleClick = onAddVehicleClick,
                         )
                     } else {
                         vehicles.forEach { vehicle ->
@@ -198,8 +184,9 @@ fun DriverVehiclesScreen(
 @Composable
 private fun VehiclesTopBar(
     onBackClick: () -> Unit,
+    onAddVehicleClick: () -> Unit,
 ) {
-    TopAppBar(
+    CenterAlignedTopAppBar(
         windowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top),
         colors = TopAppBarDefaults.topAppBarColors(
             containerColor = MaterialTheme.colorScheme.background,
@@ -223,7 +210,15 @@ private fun VehiclesTopBar(
                 fontWeight = FontWeight.SemiBold,
             )
         },
-        actions = {},
+        actions = {
+            IconButton(onClick = onAddVehicleClick) {
+                Icon(
+                    imageVector = Heroicons.Outline.Plus,
+                    contentDescription = "Add vehicle",
+                    modifier = Modifier.size(22.dp),
+                )
+            }
+        },
     )
 }
 
@@ -252,21 +247,18 @@ private fun VehicleStatsRow(vehicles: List<DriverVehicle>) {
             icon = Heroicons.Outline.Truck,
             value = vehicles.size.toString(),
             label = "Registered",
-            color = MaterialTheme.colorScheme.primary,
             modifier = Modifier.weight(1f),
         )
         VehicleStatCard(
             icon = Heroicons.Outline.CheckCircle,
             value = activeCount.toString(),
             label = "Approved",
-            color = Color(0xFF16A34A),
             modifier = Modifier.weight(1f),
         )
         VehicleStatCard(
             icon = Heroicons.Outline.Clock,
             value = pendingCount.toString(),
             label = "Review",
-            color = Color(0xFFD97706),
             modifier = Modifier.weight(1f),
         )
     }
@@ -277,7 +269,6 @@ private fun VehicleStatCard(
     icon: ImageVector,
     value: String,
     label: String,
-    color: Color,
     modifier: Modifier = Modifier,
 ) {
     Surface(
@@ -294,8 +285,8 @@ private fun VehicleStatCard(
             Surface(
                 modifier = Modifier.size(34.dp),
                 shape = CircleShape,
-                color = color.copy(alpha = 0.12f),
-                contentColor = color,
+                color = MaterialTheme.colorScheme.surfaceContainerHighest,
+                contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
@@ -310,7 +301,7 @@ private fun VehicleStatCard(
                     text = value,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    color = color,
+                    color = MaterialTheme.colorScheme.onSurface,
                 )
                 Text(
                     text = label,
@@ -611,8 +602,8 @@ private fun VehicleThumbnail(photoBytes: ByteArray?) {
     Surface(
         modifier = Modifier.size(width = 82.dp, height = 68.dp),
         shape = shape,
-        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.10f),
-        contentColor = MaterialTheme.colorScheme.primary,
+        color = MaterialTheme.colorScheme.surfaceContainerHighest,
+        contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
     ) {
         if (photoBytes != null) {
             CapturedDocumentPreviewImage(
@@ -629,7 +620,7 @@ private fun VehicleThumbnail(photoBytes: ByteArray?) {
                     imageVector = Heroicons.Outline.Truck,
                     contentDescription = null,
                     modifier = Modifier.size(24.dp),
-                    tint = MaterialTheme.colorScheme.primary,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
         }
@@ -654,14 +645,14 @@ private fun VehicleCardAction(
             imageVector = icon,
             contentDescription = null,
             modifier = Modifier.size(18.dp),
-            tint = MaterialTheme.colorScheme.primary,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Spacer(modifier = Modifier.width(8.dp))
         Text(
             text = label,
             style = MaterialTheme.typography.labelLarge,
             fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.primary,
+            color = MaterialTheme.colorScheme.onSurface,
             maxLines = 1,
         )
     }
@@ -691,7 +682,6 @@ private fun VehicleStatusPill(
 private fun EmptyVehiclesState(
     modifier: Modifier,
     filter: VehicleServiceFilter = VehicleServiceFilter.All,
-    onAddVehicleClick: () -> Unit,
 ) {
     Column(
         modifier = modifier,
@@ -715,11 +705,6 @@ private fun EmptyVehiclesState(
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
         )
-        if (filter == VehicleServiceFilter.All) {
-            TextButton(onClick = onAddVehicleClick) {
-                Text("Add vehicle")
-            }
-        }
     }
 }
 

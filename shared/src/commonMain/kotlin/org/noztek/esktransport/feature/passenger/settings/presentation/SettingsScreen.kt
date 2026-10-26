@@ -187,12 +187,27 @@ private fun SettingsMenuRow(
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
-        Icon(
-            imageVector = Heroicons.Outline.ChevronRight,
-            contentDescription = null,
-            modifier = Modifier.size(19.dp),
-            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = chevronAlpha),
-        )
+        if (enabled) {
+            Icon(
+                imageVector = Heroicons.Outline.ChevronRight,
+                contentDescription = null,
+                modifier = Modifier.size(19.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = chevronAlpha),
+            )
+        } else {
+            Surface(
+                shape = RoundedCornerShape(999.dp),
+                color = MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.62f),
+                contentColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.72f),
+            ) {
+                Text(
+                    text = "Soon",
+                    modifier = Modifier.padding(horizontal = 9.dp, vertical = 4.dp),
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Medium,
+                )
+            }
+        }
     }
 }
 
@@ -359,6 +374,7 @@ private enum class SettingsMenuItem(
     RidePreferences("Ride Preferences", Heroicons.Outline.AdjustmentsHorizontal),
     Notifications("Notifications", Heroicons.Outline.Bell),
     PrivacyLocation("Privacy & Location", Heroicons.Outline.ShieldCheck),
+    Safety("Safety", Heroicons.Outline.ShieldCheck),
     AppPreferences("App Preferences", Heroicons.Outline.AdjustmentsHorizontal),
     Support("Support", Heroicons.Outline.Lifebuoy);
 
@@ -470,6 +486,7 @@ private val settingsMenuItems = listOf(
     SettingsMenuItem.RidePreferences,
     SettingsMenuItem.Notifications,
     SettingsMenuItem.PrivacyLocation,
+    SettingsMenuItem.Safety,
     SettingsMenuItem.AppPreferences,
     SettingsMenuItem.Support,
 )

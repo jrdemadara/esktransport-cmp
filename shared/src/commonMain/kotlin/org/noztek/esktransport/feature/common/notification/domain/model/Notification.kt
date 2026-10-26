@@ -1,6 +1,6 @@
-package org.noztek.esktransport.feature.driver.notification.domain.model
+package org.noztek.esktransport.feature.common.notification.domain.model
 
-data class DriverNotification(
+data class Notification(
     val id: Long,
     val type: String,
     val title: String,
@@ -11,7 +11,7 @@ data class DriverNotification(
     val readAt: String?,
 )
 
-data class DriverNotificationsPage(
-    val notifications: List<DriverNotification>,
+data class NotificationsPage(
+    val notifications: List<Notification>,
     val unreadCount: Int,
 )

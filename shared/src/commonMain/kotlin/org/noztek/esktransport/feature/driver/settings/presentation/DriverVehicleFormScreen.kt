@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
@@ -42,6 +43,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -50,6 +52,7 @@ import androidx.compose.ui.unit.dp
 import com.composables.icons.heroicons.Heroicons
 import com.composables.icons.heroicons.outline.ArrowLeft
 import com.composables.icons.heroicons.outline.Camera
+import com.composables.icons.heroicons.outline.CheckCircle
 import com.composables.icons.heroicons.outline.DocumentText
 import com.composables.icons.heroicons.outline.Key
 import com.composables.icons.heroicons.outline.MapPin
@@ -160,6 +163,7 @@ fun DriverVehicleFormScreen(
                     onValueChange = viewModel::updatePlate,
                     label = "Plate number",
                     modifier = Modifier.fillMaxWidth(),
+                    minHeight = 46.dp,
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     AppInputField(
@@ -167,12 +171,14 @@ fun DriverVehicleFormScreen(
                         onValueChange = viewModel::updateMake,
                         label = "Make",
                         modifier = Modifier.weight(1f),
+                        minHeight = 46.dp,
                     )
                     AppInputField(
                         value = uiState.model,
                         onValueChange = viewModel::updateModel,
                         label = "Model",
                         modifier = Modifier.weight(1f),
+                        minHeight = 46.dp,
                     )
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -182,6 +188,7 @@ fun DriverVehicleFormScreen(
                         label = "Year",
                         modifier = Modifier.weight(1f),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        minHeight = 46.dp,
                     )
                     AppInputField(
                         value = uiState.passengerCapacity,
@@ -189,6 +196,7 @@ fun DriverVehicleFormScreen(
                         label = "Seats",
                         modifier = Modifier.weight(1f),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        minHeight = 46.dp,
                     )
                 }
             }
@@ -200,6 +208,7 @@ fun DriverVehicleFormScreen(
                         label = "Payload kg",
                         modifier = Modifier.weight(1f),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        minHeight = 46.dp,
                     )
                     AppInputField(
                         value = uiState.volumeM3,
@@ -207,6 +216,7 @@ fun DriverVehicleFormScreen(
                         label = "Volume m3",
                         modifier = Modifier.weight(1f),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        minHeight = 46.dp,
                     )
                 }
             }
@@ -302,9 +312,24 @@ private fun VehicleTypeOptions(
             ) {
                 rowOptions.forEach { vehicleType ->
                     FilterChip(
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(32.dp),
                         selected = selectedType == vehicleType.code,
                         onClick = { onSelect(vehicleType.code) },
-                        label = { Text(vehicleType.name) },
+                        label = {
+                            Box(
+                                modifier = Modifier.fillMaxWidth(),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Text(
+                                    text = vehicleType.name,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            }
+                        },
                     )
                 }
             }
@@ -379,10 +404,14 @@ private fun VehicleDocumentDraftRow(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(
-            imageVector = icon,
+            imageVector = if (draft != null) Heroicons.Outline.CheckCircle else icon,
             contentDescription = null,
             modifier = Modifier.size(21.dp),
-            tint = MaterialTheme.colorScheme.primary,
+            tint = if (draft != null) {
+                Color(0xFF16A34A)
+            } else {
+                MaterialTheme.colorScheme.onSurfaceVariant
+            },
         )
         Column(
             modifier = Modifier.weight(1f),
@@ -405,14 +434,15 @@ private fun VehicleDocumentDraftRow(
         }
         OutlinedButton(
             onClick = { onCaptureClick(type) },
-            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+            modifier = Modifier.size(36.dp),
+            shape = RoundedCornerShape(8.dp),
+            contentPadding = PaddingValues(0.dp),
         ) {
             Icon(
                 imageVector = Heroicons.Outline.Camera,
-                contentDescription = null,
-                modifier = Modifier.size(15.dp),
+                contentDescription = if (draft == null) "Capture" else "Retake",
+                modifier = Modifier.size(16.dp),
             )
-            Text(if (draft == null) "Capture" else "Retake")
         }
     }
 }

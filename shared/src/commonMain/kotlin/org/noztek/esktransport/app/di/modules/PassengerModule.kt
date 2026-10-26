@@ -85,8 +85,16 @@ import org.noztek.esktransport.feature.common.wallet.data.remote.WalletApi
 import org.noztek.esktransport.feature.common.wallet.domain.repository.WalletRepository
 import org.noztek.esktransport.feature.common.wallet.domain.usecase.GetWalletUseCase
 import org.noztek.esktransport.feature.passenger.wallet.presentation.WalletViewModel
+import org.noztek.esktransport.feature.passenger.notification.presentation.PassengerNotificationBadgeViewModel
+import org.noztek.esktransport.feature.common.notification.domain.usecase.GetNotificationsUseCase
 
 val passengerModule = module {
+    factory {
+        PassengerNotificationBadgeViewModel(
+            getNotificationsUseCase = get<GetNotificationsUseCase>(),
+            ioDispatcher = get(named(IO_DISPATCHER_QUALIFIER)),
+        )
+    }
     single { KnownPlacesApi(client = get(), baseUrl = get(named(API_BASE_URL_QUALIFIER))) }
     single<KnownPlacesRepository> { KnownPlacesRepositoryImpl(api = get()) }
     single { GetKnownPlacesUseCase(repository = get()) }

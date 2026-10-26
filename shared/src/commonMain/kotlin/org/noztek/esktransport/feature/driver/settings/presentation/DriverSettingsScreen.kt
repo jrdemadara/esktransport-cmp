@@ -421,10 +421,10 @@ private val SettingsMenuItem.isEnabled: Boolean
         SettingsMenuItem.Account,
         SettingsMenuItem.DriverVerification,
         SettingsMenuItem.Vehicle,
-        SettingsMenuItem.ServiceAreas,
-        SettingsMenuItem.Safety -> true
+        SettingsMenuItem.ServiceAreas -> true
         SettingsMenuItem.Wallet,
         SettingsMenuItem.Earnings,
+        SettingsMenuItem.Safety,
         SettingsMenuItem.AppPreferences -> false
     }
 

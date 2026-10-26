@@ -1,4 +1,4 @@
-package org.noztek.esktransport.feature.driver.notification.presentation
+package org.noztek.esktransport.feature.common.notification.presentation
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -8,22 +8,22 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import org.noztek.esktransport.feature.driver.notification.domain.model.DriverNotification
-import org.noztek.esktransport.feature.driver.notification.domain.usecase.GetDriverNotificationsUseCase
-import org.noztek.esktransport.feature.driver.notification.domain.usecase.MarkDriverNotificationsReadUseCase
+import org.noztek.esktransport.feature.common.notification.domain.model.Notification
+import org.noztek.esktransport.feature.common.notification.domain.usecase.GetNotificationsUseCase
+import org.noztek.esktransport.feature.common.notification.domain.usecase.MarkNotificationsReadUseCase
 
-data class DriverNotificationUiState(
+data class NotificationUiState(
     val isLoading: Boolean = true,
-    val notifications: List<DriverNotification> = emptyList(),
+    val notifications: List<Notification> = emptyList(),
     val errorMessage: String? = null,
 )
 
-class DriverNotificationViewModel(
-    private val getDriverNotificationsUseCase: GetDriverNotificationsUseCase,
-    private val markDriverNotificationsReadUseCase: MarkDriverNotificationsReadUseCase,
+class NotificationViewModel(
+    private val getNotificationsUseCase: GetNotificationsUseCase,
+    private val markNotificationsReadUseCase: MarkNotificationsReadUseCase,
     private val ioDispatcher: CoroutineDispatcher,
 ) : ViewModel() {
-    private val _uiState = MutableStateFlow(DriverNotificationUiState())
+    private val _uiState = MutableStateFlow(NotificationUiState())
     val uiState = _uiState.asStateFlow()
 
     init {
@@ -33,7 +33,7 @@ class DriverNotificationViewModel(
     fun refresh() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
-            withContext(ioDispatcher) { getDriverNotificationsUseCase() }.fold(
+            withContext(ioDispatcher) { getNotificationsUseCase() }.fold(
                 onSuccess = { page ->
                     _uiState.update {
                         it.copy(
@@ -43,7 +43,7 @@ class DriverNotificationViewModel(
                         )
                     }
                     if (page.unreadCount > 0) {
-                        withContext(ioDispatcher) { markDriverNotificationsReadUseCase() }
+                        withContext(ioDispatcher) { markNotificationsReadUseCase() }
                     }
                 },
                 onFailure = { throwable ->

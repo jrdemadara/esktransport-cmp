@@ -1,4 +1,4 @@
-package org.noztek.esktransport.feature.driver.notification.presentation
+package org.noztek.esktransport.feature.common.notification.presentation
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -31,14 +31,14 @@ import com.composables.icons.heroicons.outline.ArrowLeft
 import com.composables.icons.heroicons.outline.Bell
 import org.koin.compose.viewmodel.koinViewModel
 import org.noztek.esktransport.core.utils.formatApiDateTimeForDisplay
-import org.noztek.esktransport.feature.driver.notification.domain.model.DriverNotification
+import org.noztek.esktransport.feature.common.notification.domain.model.Notification
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DriverNotificationScreen(
+fun NotificationScreen(
     onBackClick: () -> Unit,
     contentPadding: PaddingValues = PaddingValues(0.dp),
-    viewModel: DriverNotificationViewModel = koinViewModel(),
+    viewModel: NotificationViewModel = koinViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
@@ -119,7 +119,7 @@ fun DriverNotificationScreen(
                     verticalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
                     items(uiState.notifications, key = { it.id }) { notification ->
-                        DriverNotificationRow(notification)
+                        NotificationRow(notification)
                     }
                 }
             }
@@ -128,7 +128,7 @@ fun DriverNotificationScreen(
 }
 
 @Composable
-private fun DriverNotificationRow(notification: DriverNotification) {
+private fun NotificationRow(notification: Notification) {
     Column(
         modifier = Modifier
             .fillMaxWidth()

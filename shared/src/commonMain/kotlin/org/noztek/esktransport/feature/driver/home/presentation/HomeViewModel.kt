@@ -23,7 +23,7 @@ import org.noztek.esktransport.feature.driver.onboarding.domain.usecase.GetDrive
 import org.noztek.esktransport.feature.driver.onboarding.domain.usecase.ObserveDriverOnboardingStatusChangedUseCase
 import org.noztek.esktransport.feature.driver.onboarding.domain.usecase.SubscribeDriverOnboardingRealtimeUseCase
 import org.noztek.esktransport.feature.driver.onboarding.domain.usecase.UnsubscribeDriverOnboardingRealtimeUseCase
-import org.noztek.esktransport.feature.driver.notification.domain.usecase.GetDriverNotificationsUseCase
+import org.noztek.esktransport.feature.common.notification.domain.usecase.GetNotificationsUseCase
 import org.noztek.esktransport.feature.driver.settings.domain.usecase.GetDriverProfilePhotoUseCase
 import org.noztek.esktransport.feature.driver.trips.domain.model.DriverTrip
 import org.noztek.esktransport.feature.driver.trips.domain.model.DriverTripStatus
@@ -64,7 +64,7 @@ class HomeViewModel(
     private val getDriverWalletUseCase: GetDriverWalletUseCase,
     private val getRiderEarningsUseCase: GetRiderEarningsUseCase,
     private val getDriverTripsUseCase: GetDriverTripsUseCase,
-    private val getDriverNotificationsUseCase: GetDriverNotificationsUseCase,
+    private val getNotificationsUseCase: GetNotificationsUseCase,
     private val getDriverProfilePhotoUseCase: GetDriverProfilePhotoUseCase,
     private val mapboxDirectionsClient: MapboxDirectionsClient,
     private val ioDispatcher: CoroutineDispatcher,
@@ -274,7 +274,7 @@ class HomeViewModel(
 
     fun refreshNotifications() {
         viewModelScope.launch {
-            withContext(ioDispatcher) { getDriverNotificationsUseCase() }
+            withContext(ioDispatcher) { getNotificationsUseCase() }
                 .onSuccess { page ->
                     _uiState.update { it.copy(unreadNotificationCount = page.unreadCount) }
                 }

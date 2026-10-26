@@ -42,7 +42,7 @@ import org.noztek.esktransport.feature.driver.onboarding.presentation.DriverIden
 import org.noztek.esktransport.feature.driver.onboarding.presentation.DriverServiceZoneScreen
 import org.noztek.esktransport.feature.driver.onboarding.presentation.DriverVehicleRegistrationScreen
 import org.noztek.esktransport.feature.driver.onboarding.presentation.DriverVehicleServicesScreen
-import org.noztek.esktransport.feature.driver.notification.presentation.DriverNotificationScreen
+import org.noztek.esktransport.feature.common.notification.presentation.NotificationScreen
 import org.noztek.esktransport.feature.driver.settings.presentation.DriverAccountScreen
 import org.noztek.esktransport.feature.driver.settings.presentation.DriverEmergencyContactsScreen
 import org.noztek.esktransport.feature.driver.settings.presentation.DriverIncidentReportScreen
@@ -191,7 +191,7 @@ fun NavGraphBuilder.driverNavGraph(
             )
         }
         composable(route = ROUTE_DRIVER_NOTIFICATIONS) {
-            DriverNotificationScreen(
+            NotificationScreen(
                 onBackClick = { navController.popBackStack() },
             )
         }

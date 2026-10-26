@@ -1,17 +1,17 @@
-package org.noztek.esktransport.feature.driver.notification.data.remote.dto
+package org.noztek.esktransport.feature.common.notification.data.remote.dto
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
-data class DriverNotificationsResponseDto(
-    val data: List<DriverNotificationDto> = emptyList(),
+data class NotificationsResponseDto(
+    val data: List<NotificationDto> = emptyList(),
     @SerialName("unread_count")
     val unreadCount: Int = 0,
 )
 
 @Serializable
-data class DriverNotificationDto(
+data class NotificationDto(
     val id: Long,
     val type: String = "notification",
     val title: String = "Notification",
