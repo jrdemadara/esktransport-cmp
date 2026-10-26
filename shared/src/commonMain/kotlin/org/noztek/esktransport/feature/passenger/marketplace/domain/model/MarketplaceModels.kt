@@ -45,6 +45,8 @@ data class MarketplaceListingVehicle(
 data class MarketplaceServiceRequest(
     val publicId: String,
     val serviceType: String,
+    val listingTitle: String? = null,
+    val ownerName: String? = null,
     val status: String,
     val workflowStatus: String = status,
     val requestedStartAt: String?,

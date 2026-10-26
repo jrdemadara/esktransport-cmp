@@ -80,6 +80,7 @@ import org.noztek.esktransport.core.permission.EnsureLocationServiceBeforeAction
 import org.noztek.esktransport.core.ui.composables.common.AppPrimaryButton
 import org.noztek.esktransport.core.ui.composables.driver.DriverBottomBar
 import org.noztek.esktransport.core.utils.uppercaseFirstLetterOfEachWord
+import org.noztek.esktransport.core.notify.PushNotificationEvents
 import org.noztek.esktransport.core.ui.composables.driver.DriverBottomBarRoute
 import org.noztek.esktransport.core.ui.composables.driver.DriverTopBar
 import org.noztek.esktransport.core.utils.formatApiDateTimeForDisplay
@@ -192,6 +193,13 @@ fun HomeScreen(
         uiState.statusMessage?.let { message ->
             snackbarHostState.showSnackbar(message)
             viewModel.clearStatusMessage()
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        PushNotificationEvents.events.collect { event ->
+            viewModel.refreshNotifications()
+            snackbarHostState.showSnackbar("${event.title}: ${event.body}")
         }
     }
 

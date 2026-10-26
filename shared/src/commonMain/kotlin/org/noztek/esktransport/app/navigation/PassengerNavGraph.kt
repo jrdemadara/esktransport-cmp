@@ -83,6 +83,7 @@ import org.jetbrains.compose.resources.painterResource
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 import org.noztek.esktransport.core.realtime.passenger.PassengerRealtimeCoordinator
+import org.noztek.esktransport.core.notify.PushNotificationEvents
 import org.noztek.esktransport.core.session.SessionManager
 import org.noztek.esktransport.core.utils.uppercaseFirstLetterOfEachWord
 import org.noztek.esktransport.feature.common.cashout.presentation.CashoutScreen
@@ -104,6 +105,7 @@ import org.noztek.esktransport.feature.passenger.location_search.presentation.Lo
 import org.noztek.esktransport.feature.passenger.location_search.presentation.SelectedLocation
 import org.noztek.esktransport.feature.passenger.marketplace.presentation.MarketplaceListingDetailsScreen
 import org.noztek.esktransport.feature.passenger.marketplace.presentation.MarketplaceScreen
+import org.noztek.esktransport.feature.passenger.marketplace.presentation.MarketplaceRequestsScreen
 import org.noztek.esktransport.feature.common.notification.presentation.NotificationScreen
 import org.noztek.esktransport.feature.passenger.notification.presentation.PassengerNotificationBadgeViewModel
 import org.noztek.esktransport.feature.passenger.ride_planner.presentation.RidePlannerScreen
@@ -142,6 +144,7 @@ private const val ROUTE_PASSENGER_SAVED_PLACES = "passenger/settings/saved-place
 private const val ROUTE_PASSENGER_TOP_UP = "passenger/wallet/top-up"
 private const val ROUTE_PASSENGER_CASHOUT = "passenger/wallet/cashout"
 private const val ROUTE_PASSENGER_NOTIFICATIONS = "passenger/notifications"
+private const val ROUTE_PASSENGER_MARKETPLACE_REQUESTS = "passenger/marketplace/requests"
 
 fun NavGraphBuilder.passengerNavGraph(
     navController: NavHostController,
@@ -203,6 +206,7 @@ private fun PassengerShell(
         currentRoute != ROUTE_PASSENGER_TOP_UP &&
         currentRoute != ROUTE_PASSENGER_CASHOUT &&
         currentRoute != ROUTE_PASSENGER_NOTIFICATIONS &&
+        currentRoute != ROUTE_PASSENGER_MARKETPLACE_REQUESTS &&
         currentRoute != ROUTE_PASSENGER_PROFILE_PHOTO_CAPTURE &&
         currentRoute?.startsWith("location-search/") != true
 
@@ -233,6 +237,13 @@ private fun PassengerShell(
     LaunchedEffect(currentRoute) {
         if (currentRoute != ROUTE_PASSENGER_NOTIFICATIONS) {
             passengerNotificationBadgeViewModel.refresh()
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        PushNotificationEvents.events.collectLatest { event ->
+            passengerNotificationBadgeViewModel.refresh()
+            snackbarHostState.showSnackbar("${event.title}: ${event.body}")
         }
     }
 
@@ -333,6 +344,7 @@ private fun PassengerShell(
                 currentRoute == ROUTE_PASSENGER_TOP_UP -> Unit
                 currentRoute == ROUTE_PASSENGER_CASHOUT -> Unit
                 currentRoute == ROUTE_PASSENGER_NOTIFICATIONS -> Unit
+                currentRoute == ROUTE_PASSENGER_MARKETPLACE_REQUESTS -> Unit
                 currentRoute?.startsWith("location-search/") == true -> {
                     PassengerBackTopBar(if (locationMode == "pickup") "Search Pickup" else "Search Destination") {
                         navController.popBackStack()
@@ -432,6 +444,11 @@ private fun PassengerShell(
                         },
                         onMarketplaceClick = {
                             navController.navigate(ROUTE_MARKETPLACE) {
+                                launchSingleTop = true
+                            }
+                        },
+                        onMyMarketplaceRequestsClick = {
+                            navController.navigate(ROUTE_PASSENGER_MARKETPLACE_REQUESTS) {
                                 launchSingleTop = true
                             }
                         },
@@ -548,6 +565,11 @@ private fun PassengerShell(
                             launchSingleTop = true
                         }
                     },
+                )
+            }
+            composable(ROUTE_PASSENGER_MARKETPLACE_REQUESTS) {
+                MarketplaceRequestsScreen(
+                    onBackClick = { navController.popBackStack() },
                 )
             }
             composable(

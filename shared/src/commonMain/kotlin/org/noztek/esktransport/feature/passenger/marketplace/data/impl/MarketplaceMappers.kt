@@ -53,6 +53,8 @@ fun MarketplaceServiceRequestDto.toDomain(): MarketplaceServiceRequest {
     return MarketplaceServiceRequest(
         publicId = publicId,
         serviceType = serviceType,
+        listingTitle = listingTitle,
+        ownerName = owner?.name,
         status = status,
         workflowStatus = workflowStatus ?: status,
         requestedStartAt = requestedStartAt,

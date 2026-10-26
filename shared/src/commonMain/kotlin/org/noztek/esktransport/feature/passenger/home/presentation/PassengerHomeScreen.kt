@@ -25,6 +25,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -38,6 +39,7 @@ import com.composables.icons.heroicons.outline.BookOpen
 import com.composables.icons.heroicons.outline.BuildingStorefront
 import com.composables.icons.heroicons.outline.CalendarDays
 import com.composables.icons.heroicons.outline.Clock
+import com.composables.icons.heroicons.outline.ChevronRight
 import com.composables.icons.heroicons.outline.AcademicCap
 import com.composables.icons.heroicons.outline.BuildingLibrary
 import com.composables.icons.heroicons.Heroicons
@@ -65,6 +67,7 @@ fun PassengerHomeScreen(
     onSavedPlacesClick: () -> Unit = {},
     onSuggestionClick: (Int) -> Unit = {},
     onMarketplaceClick: () -> Unit = {},
+    onMyMarketplaceRequestsClick: () -> Unit = {},
     contentPadding: PaddingValues = PaddingValues(0.dp),
     viewModel: PassengerHomeViewModel = koinViewModel(),
 ) {
@@ -145,7 +148,10 @@ fun PassengerHomeScreen(
             }
         }
         Spacer(modifier = Modifier.height(14.dp))
-        RentalVehicleCard(onClick = onMarketplaceClick)
+        RentalVehicleCard(
+            onClick = onMarketplaceClick,
+            onMyRequestsClick = onMyMarketplaceRequestsClick,
+        )
     }
 }
 
@@ -385,7 +391,10 @@ private fun SearchRow(onWhereToClick: () -> Unit) {
 }
 
 @Composable
-private fun RentalVehicleCard(onClick: () -> Unit) {
+private fun RentalVehicleCard(
+    onClick: () -> Unit,
+    onMyRequestsClick: () -> Unit,
+) {
     Card(
         onClick = onClick,
         shape = RoundedCornerShape(14.dp),
@@ -442,6 +451,17 @@ private fun RentalVehicleCard(onClick: () -> Unit) {
                 rentalVehicles.forEach { item ->
                     RentalVehicleOption(item = item, modifier = Modifier.weight(1f))
                 }
+            }
+            TextButton(
+                onClick = onMyRequestsClick,
+                modifier = Modifier.align(Alignment.End),
+            ) {
+                Text("My requests")
+                Icon(
+                    imageVector = Heroicons.Outline.ChevronRight,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp),
+                )
             }
         }
     }

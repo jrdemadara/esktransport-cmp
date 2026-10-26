@@ -13,6 +13,7 @@ import io.ktor.http.contentType
 import org.noztek.esktransport.feature.passenger.marketplace.data.remote.dto.CreateMarketplaceServiceRequestDto
 import org.noztek.esktransport.feature.passenger.marketplace.data.remote.dto.CompleteMarketplaceRequestDto
 import org.noztek.esktransport.feature.passenger.marketplace.data.remote.dto.MarketplaceListingsResponseDto
+import org.noztek.esktransport.feature.passenger.marketplace.data.remote.dto.MarketplaceServiceRequestsResponseDto
 import org.noztek.esktransport.feature.passenger.marketplace.data.remote.dto.MarketplaceServiceRequestResponseDto
 import org.noztek.esktransport.feature.passenger.marketplace.data.remote.dto.VehicleTypeLookupResponseDto
 
@@ -51,6 +52,9 @@ class MarketplaceApi(
 
     suspend fun getRequest(publicId: String): MarketplaceServiceRequestResponseDto =
         client.get("${baseUrl.trimEnd('/')}/api/passenger/vehicle-service-requests/$publicId").body()
+
+    suspend fun getRequests(): MarketplaceServiceRequestsResponseDto =
+        client.get("${baseUrl.trimEnd('/')}/api/passenger/vehicle-service-requests").body()
 
     suspend fun confirmRequest(publicId: String): MarketplaceServiceRequestResponseDto =
         client.post("${baseUrl.trimEnd('/')}/api/passenger/vehicle-service-requests/$publicId/confirm").body()

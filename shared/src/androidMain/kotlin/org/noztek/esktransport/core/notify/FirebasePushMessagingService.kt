@@ -43,6 +43,8 @@ class FirebasePushMessagingService : FirebaseMessagingService() {
             ?: message.data["message"]
             ?: return
 
+        PushNotificationEvents.emit(title = title, body = body)
+
         showNotification(
             title = title,
             body = body,

@@ -31,11 +31,13 @@ import org.noztek.esktransport.feature.passenger.marketplace.data.remote.Marketp
 import org.noztek.esktransport.feature.passenger.marketplace.domain.repository.MarketplaceRepository
 import org.noztek.esktransport.feature.passenger.marketplace.domain.usecase.GetMarketplaceListingUseCase
 import org.noztek.esktransport.feature.passenger.marketplace.domain.usecase.GetMarketplaceListingPhotoUseCase
+import org.noztek.esktransport.feature.passenger.marketplace.domain.usecase.GetMarketplaceRequestsUseCase
 import org.noztek.esktransport.feature.passenger.marketplace.domain.usecase.GetRentalListingsUseCase
 import org.noztek.esktransport.feature.passenger.marketplace.domain.usecase.GetRentalVehicleTypesUseCase
 import org.noztek.esktransport.feature.passenger.marketplace.domain.usecase.SendMarketplaceVehicleRequestUseCase
 import org.noztek.esktransport.feature.passenger.marketplace.presentation.MarketplaceListingDetailsViewModel
 import org.noztek.esktransport.feature.passenger.marketplace.presentation.MarketplaceViewModel
+import org.noztek.esktransport.feature.passenger.marketplace.presentation.MarketplaceRequestsViewModel
 import org.noztek.esktransport.feature.passenger.location_search.data.impl.LocationRepositoryImpl
 import org.noztek.esktransport.feature.passenger.location_search.data.impl.PlaceSearchRepositoryImpl
 import org.noztek.esktransport.feature.passenger.location_search.data.impl.ReverseGeocodeRepositoryImpl
@@ -127,6 +129,7 @@ val passengerModule = module {
     single { GetRentalListingsUseCase(repository = get()) }
     single { GetMarketplaceListingUseCase(repository = get()) }
     single { GetMarketplaceListingPhotoUseCase(repository = get()) }
+    single { GetMarketplaceRequestsUseCase(repository = get()) }
     single { SendMarketplaceVehicleRequestUseCase(repository = get()) }
     factory {
         MarketplaceViewModel(
@@ -141,6 +144,13 @@ val passengerModule = module {
             getMarketplaceListingUseCase = get(),
             getMarketplaceListingPhotoUseCase = get(),
             sendMarketplaceVehicleRequestUseCase = get(),
+            marketplaceRepository = get(),
+            ioDispatcher = get(named(IO_DISPATCHER_QUALIFIER)),
+        )
+    }
+    factory {
+        MarketplaceRequestsViewModel(
+            getMarketplaceRequestsUseCase = get(),
             marketplaceRepository = get(),
             ioDispatcher = get(named(IO_DISPATCHER_QUALIFIER)),
         )
@@ -188,6 +198,7 @@ val passengerModule = module {
             createFareQuoteUseCase = get(),
             createBookingUseCase = get(),
             cancelBookingUseCase = get(),
+            getPassengerActiveBookingUseCase = get(),
             ioDispatcher = get(named(IO_DISPATCHER_QUALIFIER)),
             realtimeCoordinator = get(),
         )

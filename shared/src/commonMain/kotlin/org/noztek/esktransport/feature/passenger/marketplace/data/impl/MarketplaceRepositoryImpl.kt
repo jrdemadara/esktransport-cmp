@@ -75,6 +75,7 @@ class MarketplaceRepositoryImpl(
     }
 
     override suspend fun getRequest(publicId: String): Result<MarketplaceServiceRequest> = runRequest("Failed to load service request.") { api.getRequest(publicId).data.toDomain() }
+    override suspend fun getRequests(): Result<List<MarketplaceServiceRequest>> = runRequest("Failed to load service requests.") { api.getRequests().data.map { it.toDomain() } }
     override suspend fun confirmRequest(publicId: String): Result<MarketplaceServiceRequest> = runRequest("Failed to confirm service request.") { api.confirmRequest(publicId).data.toDomain() }
     override suspend fun cancelRequest(publicId: String): Result<MarketplaceServiceRequest> = runRequest("Failed to cancel service request.") { api.cancelRequest(publicId).data.toDomain() }
     override suspend fun completeRequest(publicId: String, cashAmount: Double, currency: String): Result<MarketplaceServiceRequest> = runRequest("Failed to complete service request.") { api.completeRequest(publicId, cashAmount, currency).data.toDomain() }

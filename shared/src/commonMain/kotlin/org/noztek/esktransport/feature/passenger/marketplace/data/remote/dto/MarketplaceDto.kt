@@ -40,11 +40,18 @@ data class MarketplaceServiceRequestResponseDto(
 )
 
 @Serializable
+data class MarketplaceServiceRequestsResponseDto(
+    val data: List<MarketplaceServiceRequestDto> = emptyList(),
+)
+
+@Serializable
 data class MarketplaceServiceRequestDto(
     @SerialName("public_id")
     val publicId: String,
     @SerialName("service_type")
     val serviceType: String,
+    @SerialName("listing_title") val listingTitle: String? = null,
+    val owner: MarketplaceRequestOwnerDto? = null,
     val status: String,
     @SerialName("workflow_status") val workflowStatus: String? = null,
     @SerialName("requested_start_at")
@@ -70,6 +77,11 @@ data class MarketplaceServiceRequestDto(
     @SerialName("cash_currency") val cashCurrency: String? = null,
     @SerialName("created_at")
     val createdAt: String? = null,
+)
+
+@Serializable
+data class MarketplaceRequestOwnerDto(
+    val name: String = "",
 )
 
 @Serializable

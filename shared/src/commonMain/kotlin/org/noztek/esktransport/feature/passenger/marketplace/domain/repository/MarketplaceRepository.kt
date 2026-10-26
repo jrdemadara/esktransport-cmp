@@ -12,6 +12,7 @@ interface MarketplaceRepository {
     suspend fun getListingPhoto(publicId: String): Result<ByteArray?>
     suspend fun sendRequest(payload: CreateMarketplaceServiceRequestPayload): Result<MarketplaceServiceRequest>
     suspend fun getRequest(publicId: String): Result<MarketplaceServiceRequest>
+    suspend fun getRequests(): Result<List<MarketplaceServiceRequest>>
     suspend fun confirmRequest(publicId: String): Result<MarketplaceServiceRequest>
     suspend fun cancelRequest(publicId: String): Result<MarketplaceServiceRequest>
     suspend fun completeRequest(publicId: String, cashAmount: Double, currency: String): Result<MarketplaceServiceRequest>

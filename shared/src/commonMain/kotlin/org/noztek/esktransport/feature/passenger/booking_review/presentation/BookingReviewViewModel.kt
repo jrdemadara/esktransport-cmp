@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -14,6 +15,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.noztek.esktransport.core.realtime.passenger.PassengerRealtimeCoordinator
+import org.noztek.esktransport.feature.common.active_booking.domain.model.ActiveBookingStatus
+import org.noztek.esktransport.feature.common.active_booking.domain.usecase.GetPassengerActiveBookingUseCase
 import org.noztek.esktransport.feature.passenger.booking_review.domain.model.Booking
 import org.noztek.esktransport.feature.passenger.booking_review.domain.model.BookingReviewInput
 import org.noztek.esktransport.feature.passenger.booking_review.domain.model.FareQuote
@@ -30,6 +33,7 @@ class BookingReviewViewModel(
     private val createFareQuoteUseCase: CreateFareQuoteUseCase,
     private val createBookingUseCase: CreateBookingUseCase,
     private val cancelBookingUseCase: CancelBookingUseCase,
+    private val getPassengerActiveBookingUseCase: GetPassengerActiveBookingUseCase,
     private val ioDispatcher: CoroutineDispatcher,
     private val realtimeCoordinator: PassengerRealtimeCoordinator,
     private val currentDriverAssigned: PassengerDriverAssignedUiModel? = null,
@@ -43,6 +47,7 @@ class BookingReviewViewModel(
     private var searchCountdownJob: Job? = null
     private var fareQuoteJob: Job? = null
     private var realtimeJob: Job? = null
+    private var statusPollingJob: Job? = null
 
     fun startRealtime() {
         if (realtimeJob?.isActive == true) return
@@ -63,8 +68,7 @@ class BookingReviewViewModel(
                         (pendingId != null && event.bookingPublicId == pendingId) ||
                             (pendingId == null && _uiState.value.isSearchingForRider)
                     if (shouldNavigate) {
-                        pendingBookingPublicId = null
-                        stopSearchCountdown()
+                        handleBookingAccepted()
                         println("BookingReviewVM emitting NavigateToTripTracking bookingId=${event.bookingPublicId}")
                         _uiEvents.tryEmit(BookingReviewUiEvent.NavigateToTripTracking(event.bookingPublicId))
                     }
@@ -166,6 +170,7 @@ class BookingReviewViewModel(
                     searchSecondsRemaining = SEARCH_TIMEOUT_SECONDS,
                 )
                 startSearchCountdown()
+                startStatusPolling()
             }.onFailure { error ->
                 _uiEvents.tryEmit(BookingReviewUiEvent.ShowSnackbar("Booking failed: ${error.message}"))
             }
@@ -176,6 +181,7 @@ class BookingReviewViewModel(
         val bookingPublicId = pendingBookingPublicId
         if (bookingPublicId == null) {
             stopSearchCountdown()
+            stopStatusPolling()
             _uiState.value = _uiState.value.copy(
                 isSearchingForRider = false,
                 isCancellingBooking = false,
@@ -195,6 +201,7 @@ class BookingReviewViewModel(
             result.onSuccess {
                 pendingBookingPublicId = null
                 stopSearchCountdown()
+                stopStatusPolling()
                 _uiState.value = _uiState.value.copy(
                     isSearchingForRider = false,
                     isCancellingBooking = false,
@@ -211,6 +218,7 @@ class BookingReviewViewModel(
     fun retryExpiredSearch() {
         pendingBookingPublicId = null
         stopSearchCountdown()
+        stopStatusPolling()
         _uiState.value = _uiState.value.copy(
             isSearchExpired = false,
             isSearchingForRider = false,
@@ -329,9 +337,52 @@ class BookingReviewViewModel(
         searchCountdownJob = null
     }
 
+    private fun startStatusPolling() {
+        statusPollingJob?.cancel()
+        statusPollingJob = viewModelScope.launch {
+            while (isActive && _uiState.value.isSearchingForRider) {
+                val activeBooking = withContext(ioDispatcher) {
+                    getPassengerActiveBookingUseCase().getOrNull()
+                }
+                if (activeBooking != null && activeBooking.status in setOf(
+                        ActiveBookingStatus.ACCEPTED,
+                        ActiveBookingStatus.ARRIVING_PICKUP,
+                        ActiveBookingStatus.IN_PROGRESS,
+                    )
+                ) {
+                    val pendingId = pendingBookingPublicId
+                    if (pendingId == null || activeBooking.bookingPublicId == pendingId) {
+                        handleBookingAccepted()
+                        _uiEvents.emit(BookingReviewUiEvent.NavigateToTripTracking(activeBooking.bookingPublicId))
+                        break
+                    }
+                }
+                delay(2_000)
+            }
+        }
+    }
+
+    private fun stopStatusPolling() {
+        statusPollingJob?.cancel()
+        statusPollingJob = null
+    }
+
+    private fun handleBookingAccepted() {
+        pendingBookingPublicId = null
+        stopSearchCountdown()
+        stopStatusPolling()
+        _uiState.value = _uiState.value.copy(
+            isSearchingForRider = false,
+            isCancellingBooking = false,
+            isSearchExpired = false,
+            searchSecondsRemaining = 0,
+        )
+    }
+
     override fun onCleared() {
         fareQuoteJob?.cancel()
         stopSearchCountdown()
+        stopStatusPolling()
         stopRealtime()
         super.onCleared()
     }
