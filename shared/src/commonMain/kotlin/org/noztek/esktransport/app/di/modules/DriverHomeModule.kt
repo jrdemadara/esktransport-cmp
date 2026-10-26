@@ -91,6 +91,12 @@ import org.noztek.esktransport.feature.driver.settings.presentation.DriverVehicl
 import org.noztek.esktransport.feature.driver.settings.presentation.DriverVehicleFormViewModel
 import org.noztek.esktransport.feature.driver.settings.presentation.DriverVehiclesViewModel
 import org.noztek.esktransport.feature.driver.session.presentation.DriverSessionViewModel
+import org.noztek.esktransport.feature.driver.notification.data.impl.DriverNotificationRepositoryImpl
+import org.noztek.esktransport.feature.driver.notification.data.remote.DriverNotificationApi
+import org.noztek.esktransport.feature.driver.notification.domain.repository.DriverNotificationRepository
+import org.noztek.esktransport.feature.driver.notification.domain.usecase.GetDriverNotificationsUseCase
+import org.noztek.esktransport.feature.driver.notification.domain.usecase.MarkDriverNotificationsReadUseCase
+import org.noztek.esktransport.feature.driver.notification.presentation.DriverNotificationViewModel
 import org.noztek.esktransport.feature.driver.trips.data.impl.DriverTripsRepositoryImpl
 import org.noztek.esktransport.feature.driver.trips.data.remote.DriverTripsApi
 import org.noztek.esktransport.feature.driver.trips.domain.repository.DriverTripsRepository
@@ -121,6 +127,8 @@ val driverHomeModule = module {
     single<RiderEarningsRepository> { RiderEarningsRepositoryImpl(api = get()) }
     single { DriverTripsApi(client = get(), baseUrl = get(named(API_BASE_URL_QUALIFIER))) }
     single<DriverTripsRepository> { DriverTripsRepositoryImpl(api = get()) }
+    single { DriverNotificationApi(client = get(), baseUrl = get(named(API_BASE_URL_QUALIFIER))) }
+    single<DriverNotificationRepository> { DriverNotificationRepositoryImpl(api = get()) }
     single { DriverMarketplaceInquiriesApi(client = get(), baseUrl = get(named(API_BASE_URL_QUALIFIER))) }
     single<DriverMarketplaceInquiriesRepository> { DriverMarketplaceInquiriesRepositoryImpl(api = get()) }
     single { DriverSettingsApi(client = get(), baseUrl = get(named(API_BASE_URL_QUALIFIER))) }
@@ -148,6 +156,8 @@ val driverHomeModule = module {
     single { CancelDriverCashoutUseCase(repository = get()) }
     single { GetRiderEarningsUseCase(repository = get()) }
     single { GetDriverTripsUseCase(repository = get()) }
+    single { GetDriverNotificationsUseCase(repository = get()) }
+    single { MarkDriverNotificationsReadUseCase(repository = get()) }
     single { GetDriverMarketplaceInquiriesUseCase(repository = get()) }
     single { AcceptDriverMarketplaceRequestUseCase(repository = get()) }
     single { GetDriverAccountUseCase(repository = get()) }
@@ -198,6 +208,7 @@ val driverHomeModule = module {
             getDriverWalletUseCase = get(),
             getRiderEarningsUseCase = get(),
             getDriverTripsUseCase = get(),
+            getDriverNotificationsUseCase = get(),
             getDriverProfilePhotoUseCase = get(),
             mapboxDirectionsClient = get(),
             ioDispatcher = get(named(IO_DISPATCHER_QUALIFIER)),
@@ -206,6 +217,13 @@ val driverHomeModule = module {
     factory {
         DriverSessionViewModel(
             getDriverActiveBookingUseCase = get(),
+            ioDispatcher = get(named(IO_DISPATCHER_QUALIFIER)),
+        )
+    }
+    factory {
+        DriverNotificationViewModel(
+            getDriverNotificationsUseCase = get(),
+            markDriverNotificationsReadUseCase = get(),
             ioDispatcher = get(named(IO_DISPATCHER_QUALIFIER)),
         )
     }

@@ -42,6 +42,7 @@ import org.noztek.esktransport.feature.driver.onboarding.presentation.DriverIden
 import org.noztek.esktransport.feature.driver.onboarding.presentation.DriverServiceZoneScreen
 import org.noztek.esktransport.feature.driver.onboarding.presentation.DriverVehicleRegistrationScreen
 import org.noztek.esktransport.feature.driver.onboarding.presentation.DriverVehicleServicesScreen
+import org.noztek.esktransport.feature.driver.notification.presentation.DriverNotificationScreen
 import org.noztek.esktransport.feature.driver.settings.presentation.DriverAccountScreen
 import org.noztek.esktransport.feature.driver.settings.presentation.DriverEmergencyContactsScreen
 import org.noztek.esktransport.feature.driver.settings.presentation.DriverIncidentReportScreen
@@ -69,6 +70,7 @@ private const val ROUTE_DRIVER_SERVICE_ZONE = "driver-onboarding/service-zone"
 private const val ROUTE_DRIVER_TOP_UP = "driver/wallet/top-up"
 private const val ROUTE_DRIVER_CASHOUT = "driver/wallet/cashout"
 private const val ROUTE_DRIVER_WALLET_HISTORY = "driver/wallet/history"
+private const val ROUTE_DRIVER_NOTIFICATIONS = "driver/notifications"
 private const val ROUTE_DRIVER_ACCOUNT_SETTINGS = "driver/settings/account"
 private const val ROUTE_DRIVER_VERIFICATION_SETTINGS = "driver/settings/verification"
 private const val ROUTE_DRIVER_SAFETY_SETTINGS = "driver/settings/safety"
@@ -133,6 +135,11 @@ fun NavGraphBuilder.driverNavGraph(
             }
             HomeScreen(
                 statsRefreshToken = statsRefreshToken,
+                onNotificationClick = {
+                    navController.navigate(ROUTE_DRIVER_NOTIFICATIONS) {
+                        launchSingleTop = true
+                    }
+                },
                 onBottomBarNavigate = { route ->
                     navController.navigateDriverBottomBarRoute(route)
                 },
@@ -180,6 +187,11 @@ fun NavGraphBuilder.driverNavGraph(
         }
         composable(route = ROUTE_DRIVER_WALLET_HISTORY) {
             TransactionHistoryScreen(
+                onBackClick = { navController.popBackStack() },
+            )
+        }
+        composable(route = ROUTE_DRIVER_NOTIFICATIONS) {
+            DriverNotificationScreen(
                 onBackClick = { navController.popBackStack() },
             )
         }

@@ -180,6 +180,7 @@ fun HomeScreen(
                 viewModel.refreshWallet(showLoading = false)
                 viewModel.refreshEarnings(showLoading = false)
                 viewModel.refreshRecentActivity(showLoading = false)
+                viewModel.refreshNotifications()
                 viewModel.refreshProfilePhoto()
             }
         }
@@ -199,6 +200,7 @@ fun HomeScreen(
             viewModel.refreshStats(showLoading = false)
             viewModel.refreshEarnings(showLoading = false)
             viewModel.refreshRecentActivity(showLoading = false)
+            viewModel.refreshNotifications()
         }
     }
 
@@ -210,6 +212,7 @@ fun HomeScreen(
                 onProfileClick = onProfileClick,
                 greetingName = uiState.userName,
                 profilePhotoBytes = uiState.profilePhotoBytes,
+                hasUnreadNotifications = uiState.unreadNotificationCount > 0,
             )
         },
         bottomBar = {

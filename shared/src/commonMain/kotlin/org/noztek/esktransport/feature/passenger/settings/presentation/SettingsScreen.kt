@@ -157,11 +157,15 @@ private fun SettingsMenuRow(
     item: SettingsMenuItem,
     onClick: () -> Unit,
 ) {
+    val enabled = item.isEnabled
+    val contentAlpha = if (enabled) 1f else 0.38f
+    val chevronAlpha = if (enabled) 1f else 0.24f
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(
-                enabled = item == SettingsMenuItem.Account || item == SettingsMenuItem.SavedPlaces,
+                enabled = enabled,
                 onClick = onClick,
             )
             .padding(vertical = 13.dp),
@@ -172,14 +176,14 @@ private fun SettingsMenuRow(
             imageVector = item.icon,
             contentDescription = null,
             modifier = Modifier.size(24.dp),
-            tint = MaterialTheme.colorScheme.onBackground,
+            tint = MaterialTheme.colorScheme.onBackground.copy(alpha = contentAlpha),
         )
         Text(
             text = item.title,
             modifier = Modifier.weight(1f),
             style = MaterialTheme.typography.bodyMedium,
             fontWeight = FontWeight.Medium,
-            color = MaterialTheme.colorScheme.onBackground,
+            color = MaterialTheme.colorScheme.onBackground.copy(alpha = contentAlpha),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
@@ -187,7 +191,7 @@ private fun SettingsMenuRow(
             imageVector = Heroicons.Outline.ChevronRight,
             contentDescription = null,
             modifier = Modifier.size(19.dp),
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = chevronAlpha),
         )
     }
 }
@@ -356,7 +360,10 @@ private enum class SettingsMenuItem(
     Notifications("Notifications", Heroicons.Outline.Bell),
     PrivacyLocation("Privacy & Location", Heroicons.Outline.ShieldCheck),
     AppPreferences("App Preferences", Heroicons.Outline.AdjustmentsHorizontal),
-    Support("Support", Heroicons.Outline.Lifebuoy),
+    Support("Support", Heroicons.Outline.Lifebuoy);
+
+    val isEnabled: Boolean
+        get() = this == Account || this == SavedPlaces
 }
 
 private data class SettingsFooterItem(

@@ -23,6 +23,7 @@ import org.noztek.esktransport.feature.driver.onboarding.domain.usecase.GetDrive
 import org.noztek.esktransport.feature.driver.onboarding.domain.usecase.ObserveDriverOnboardingStatusChangedUseCase
 import org.noztek.esktransport.feature.driver.onboarding.domain.usecase.SubscribeDriverOnboardingRealtimeUseCase
 import org.noztek.esktransport.feature.driver.onboarding.domain.usecase.UnsubscribeDriverOnboardingRealtimeUseCase
+import org.noztek.esktransport.feature.driver.notification.domain.usecase.GetDriverNotificationsUseCase
 import org.noztek.esktransport.feature.driver.settings.domain.usecase.GetDriverProfilePhotoUseCase
 import org.noztek.esktransport.feature.driver.trips.domain.model.DriverTrip
 import org.noztek.esktransport.feature.driver.trips.domain.model.DriverTripStatus
@@ -42,6 +43,7 @@ data class HomeUiState(
     val earningsDashboard: RiderEarningsDashboard? = null,
     val recentActivityTrips: List<DriverTrip> = emptyList(),
     val recentActivityRoutePoints: Map<String, List<MapPoint>> = emptyMap(),
+    val unreadNotificationCount: Int = 0,
     val onboardingStatus: DriverOnboardingStatus? = null,
     val walletDashboard: DriverWalletDashboard? = null,
     val errorMessage: String? = null,
@@ -62,6 +64,7 @@ class HomeViewModel(
     private val getDriverWalletUseCase: GetDriverWalletUseCase,
     private val getRiderEarningsUseCase: GetRiderEarningsUseCase,
     private val getDriverTripsUseCase: GetDriverTripsUseCase,
+    private val getDriverNotificationsUseCase: GetDriverNotificationsUseCase,
     private val getDriverProfilePhotoUseCase: GetDriverProfilePhotoUseCase,
     private val mapboxDirectionsClient: MapboxDirectionsClient,
     private val ioDispatcher: CoroutineDispatcher,
@@ -77,6 +80,7 @@ class HomeViewModel(
         refreshWallet()
         refreshEarnings()
         refreshRecentActivity()
+        refreshNotifications()
         refreshProfilePhoto()
     }
 
@@ -265,6 +269,15 @@ class HomeViewModel(
                     }
                 },
             )
+        }
+    }
+
+    fun refreshNotifications() {
+        viewModelScope.launch {
+            withContext(ioDispatcher) { getDriverNotificationsUseCase() }
+                .onSuccess { page ->
+                    _uiState.update { it.copy(unreadNotificationCount = page.unreadCount) }
+                }
         }
     }
 

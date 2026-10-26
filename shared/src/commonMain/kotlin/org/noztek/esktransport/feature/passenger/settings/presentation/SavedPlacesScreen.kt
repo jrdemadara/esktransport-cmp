@@ -221,7 +221,7 @@ fun SavedPlacesScreen(
 
     activeEditor?.let { editor ->
         ModalBottomSheet(
-            onDismissRequest = {},
+            onDismissRequest = { activeEditor = null },
             sheetState = editorSheetState,
             sheetGesturesEnabled = false,
             containerColor = MaterialTheme.colorScheme.surface,
