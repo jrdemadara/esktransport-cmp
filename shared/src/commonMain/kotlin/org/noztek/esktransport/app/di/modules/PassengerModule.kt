@@ -141,6 +141,7 @@ val passengerModule = module {
             getMarketplaceListingUseCase = get(),
             getMarketplaceListingPhotoUseCase = get(),
             sendMarketplaceVehicleRequestUseCase = get(),
+            marketplaceRepository = get(),
             ioDispatcher = get(named(IO_DISPATCHER_QUALIFIER)),
         )
     }

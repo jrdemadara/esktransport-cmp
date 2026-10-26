@@ -273,6 +273,7 @@ val driverHomeModule = module {
         DriverBookingsViewModel(
             getDriverMarketplaceInquiriesUseCase = get(),
             acceptDriverMarketplaceRequestUseCase = get(),
+            marketplaceRepository = get(),
             subscribeMarketplaceChatUseCase = get(),
             observeMarketplaceChatMessagesUseCase = get(),
             ioDispatcher = get(named(IO_DISPATCHER_QUALIFIER)),

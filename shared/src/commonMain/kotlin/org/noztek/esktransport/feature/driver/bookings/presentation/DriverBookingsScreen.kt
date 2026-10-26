@@ -19,17 +19,22 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -41,7 +46,6 @@ import com.composables.icons.heroicons.Heroicons
 import com.composables.icons.heroicons.outline.Briefcase
 import com.composables.icons.heroicons.outline.CalendarDays
 import com.composables.icons.heroicons.outline.ChatBubbleOvalLeft
-import com.composables.icons.heroicons.outline.ChevronRight
 import com.composables.icons.heroicons.outline.Clock
 import com.composables.icons.heroicons.outline.Truck
 import org.koin.compose.viewmodel.koinViewModel
@@ -58,6 +62,8 @@ fun DriverBookingsScreen(
     viewModel: DriverBookingsViewModel = koinViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    var quoteRequestId by remember { mutableStateOf<String?>(null) }
+    var quoteAmount by remember { mutableStateOf("") }
 
     LaunchedEffect(Unit) {
         viewModel.subscribe()
@@ -80,8 +86,8 @@ fun DriverBookingsScreen(
                 .background(MaterialTheme.colorScheme.background)
                 .padding(innerPadding)
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 18.dp, vertical = 14.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp),
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             DriverBookingsHeader()
             BookingFilterRow(
@@ -115,12 +121,17 @@ fun DriverBookingsScreen(
                     )
                 }
                 else -> {
-                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         uiState.visibleInquiries.forEach { inquiry ->
                             DriverMarketplaceInquiryCard(
                                 inquiry = inquiry,
                                 isAccepting = uiState.acceptingRequestPublicId == inquiry.vehicleServiceRequestPublicId,
-                                onAcceptClick = viewModel::acceptRequest,
+                                onAcceptClick = { requestId ->
+                                    quoteRequestId = requestId
+                                    quoteAmount = ""
+                                },
+                                onStartClick = viewModel::startRequest,
+                                onCompleteClick = viewModel::completeRequest,
                                 onClick = { onInquiryClick(inquiry) },
                             )
                         }
@@ -128,6 +139,33 @@ fun DriverBookingsScreen(
                 }
             }
         }
+    }
+
+    quoteRequestId?.let { requestId ->
+        AlertDialog(
+            onDismissRequest = { quoteRequestId = null },
+            title = { Text("Send a quote") },
+            text = {
+                OutlinedTextField(
+                    value = quoteAmount,
+                    onValueChange = { quoteAmount = it },
+                    label = { Text("Amount") },
+                    singleLine = true,
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    enabled = quoteAmount.toDoubleOrNull() != null,
+                    onClick = {
+                        quoteAmount.toDoubleOrNull()?.let { amount ->
+                            quoteRequestId = null
+                            viewModel.acceptRequest(requestId, amount)
+                        }
+                    },
+                ) { Text("Send") }
+            },
+            dismissButton = { TextButton(onClick = { quoteRequestId = null }) { Text("Cancel") } },
+        )
     }
 }
 
@@ -297,26 +335,30 @@ private fun DriverMarketplaceInquiryCard(
     inquiry: DriverMarketplaceInquiry,
     isAccepting: Boolean,
     onAcceptClick: (String) -> Unit,
+    onStartClick: (String) -> Unit,
+    onCompleteClick: (String) -> Unit,
     onClick: () -> Unit,
 ) {
     Surface(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
-        shape = RoundedCornerShape(10.dp),
-        color = MaterialTheme.colorScheme.surface,
+        shape = RoundedCornerShape(14.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
         contentColor = MaterialTheme.colorScheme.onSurface,
-        border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.38f)),
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 12.dp),
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Box(
                 modifier = Modifier
-                    .size(38.dp)
-                    .background(MaterialTheme.colorScheme.surfaceContainerHigh, CircleShape),
+                    .size(36.dp)
+                    .background(
+                        MaterialTheme.colorScheme.primary.copy(alpha = 0.10f),
+                        CircleShape,
+                    ),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
@@ -326,13 +368,13 @@ private fun DriverMarketplaceInquiryCard(
                         Heroicons.Outline.CalendarDays
                     },
                     contentDescription = null,
-                    modifier = Modifier.size(19.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(18.dp),
+                    tint = MaterialTheme.colorScheme.primary,
                 )
             }
             Column(
                 modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(3.dp),
+                verticalArrangement = Arrangement.spacedBy(2.dp),
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -348,64 +390,23 @@ private fun DriverMarketplaceInquiryCard(
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
-                    Text(
-                        text = inquiry.serviceLabel(),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.primary,
-                        maxLines = 1,
-                    )
                 }
                 Text(
-                    text = inquiry.previewText(),
+                    text = inquiry.vehicleLabel(),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        text = inquiry.vehicleLabel(),
-                        modifier = Modifier.weight(1f),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    Text(
-                        text = inquiry.latestSentAt.formatApiDateTimeForDisplay(
-                            fallback = inquiry.updatedAt.formatApiDateTimeForDisplay(""),
-                        ),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                    )
-                }
-                if (inquiry.canAcceptRequest()) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.End,
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Button(
-                            onClick = { inquiry.vehicleServiceRequestPublicId?.let(onAcceptClick) },
-                            enabled = !isAccepting,
-                            modifier = Modifier.size(width = 92.dp, height = 34.dp),
-                            shape = RoundedCornerShape(8.dp),
-                            contentPadding = PaddingValues(horizontal = 10.dp),
-                        ) {
-                            Text(
-                                text = if (isAccepting) "..." else "Accept",
-                                style = MaterialTheme.typography.labelMedium,
-                                fontWeight = FontWeight.SemiBold,
-                                maxLines = 1,
-                            )
-                        }
-                    }
-                } else if (inquiry.requestStatusLabel().isNotBlank()) {
+                Text(
+                    text = inquiry.latestSentAt.formatApiDateTimeForDisplay(
+                        fallback = inquiry.updatedAt.formatApiDateTimeForDisplay(""),
+                    ),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                )
+                if (!inquiry.canAcceptRequest() && inquiry.requestStatusLabel().isNotBlank()) {
                     Text(
                         text = inquiry.requestStatusLabel(),
                         style = MaterialTheme.typography.labelSmall,
@@ -414,16 +415,25 @@ private fun DriverMarketplaceInquiryCard(
                     )
                 }
             }
-            IconButton(
-                onClick = onClick,
-                modifier = Modifier.size(36.dp),
-            ) {
-                Icon(
-                    imageVector = Heroicons.Outline.ChevronRight,
-                    contentDescription = "Open chat",
-                    modifier = Modifier.size(18.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+            if (inquiry.canAcceptRequest()) {
+                Button(
+                    onClick = { inquiry.vehicleServiceRequestPublicId?.let(onAcceptClick) },
+                    enabled = !isAccepting,
+                    modifier = Modifier.size(width = 84.dp, height = 32.dp),
+                    shape = RoundedCornerShape(8.dp),
+                    contentPadding = PaddingValues(horizontal = 8.dp),
+                ) {
+                    Text(
+                        text = if (isAccepting) "..." else "Accept",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 1,
+                    )
+                }
+            } else if (inquiry.vehicleServiceRequestWorkflowStatus == "confirmed") {
+                Button(onClick = { inquiry.vehicleServiceRequestPublicId?.let(onStartClick) }, enabled = !isAccepting, modifier = Modifier.size(width = 84.dp, height = 32.dp), shape = RoundedCornerShape(8.dp), contentPadding = PaddingValues(horizontal = 6.dp)) { Text("Start", style = MaterialTheme.typography.labelMedium) }
+            } else if (inquiry.vehicleServiceRequestWorkflowStatus == "in_progress") {
+                Button(onClick = { inquiry.vehicleServiceRequestPublicId?.let(onCompleteClick) }, enabled = !isAccepting, modifier = Modifier.size(width = 84.dp, height = 32.dp), shape = RoundedCornerShape(8.dp), contentPadding = PaddingValues(horizontal = 6.dp)) { Text("Complete", style = MaterialTheme.typography.labelMedium) }
             }
         }
     }
@@ -468,10 +478,6 @@ private fun BookingsMessageState(
             )
         }
     }
-}
-
-private fun DriverMarketplaceInquiry.previewText(): String {
-    return latestMessage?.trim()?.takeIf { it.isNotBlank() } ?: "Tap to open the conversation"
 }
 
 private fun DriverMarketplaceInquiry.canAcceptRequest(): Boolean {

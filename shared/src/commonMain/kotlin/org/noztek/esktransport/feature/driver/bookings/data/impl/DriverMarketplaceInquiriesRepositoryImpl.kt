@@ -18,13 +18,22 @@ class DriverMarketplaceInquiriesRepositoryImpl(
         }
     }
 
-    override suspend fun acceptRequest(requestPublicId: String): Result<Unit> {
+    override suspend fun acceptRequest(requestPublicId: String, quotedAmount: Double, currency: String, ownerNote: String?): Result<Unit> {
         return try {
-            api.acceptRequest(requestPublicId)
+            api.acceptRequest(requestPublicId, quotedAmount, currency, ownerNote)
             Result.success(Unit)
         } catch (throwable: Throwable) {
             val message = ApiErrorParser.parse(throwable, "Failed to accept request.")
             Result.failure(IllegalStateException(message))
+        }
+    }
+
+    override suspend fun startRequest(requestPublicId: String): Result<Unit> = runAction("Failed to start service.") { api.startRequest(requestPublicId) }
+    override suspend fun completeRequest(requestPublicId: String): Result<Unit> = runAction("Failed to complete service.") { api.completeRequest(requestPublicId) }
+
+    private suspend fun runAction(message: String, action: suspend () -> Unit): Result<Unit> {
+        return try { action(); Result.success(Unit) } catch (throwable: Throwable) {
+            Result.failure(IllegalStateException(ApiErrorParser.parse(throwable, message)))
         }
     }
 }

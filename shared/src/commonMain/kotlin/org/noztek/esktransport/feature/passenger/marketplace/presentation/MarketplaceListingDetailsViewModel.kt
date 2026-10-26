@@ -13,6 +13,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.noztek.esktransport.feature.passenger.marketplace.domain.model.CreateMarketplaceServiceRequestPayload
 import org.noztek.esktransport.feature.passenger.marketplace.domain.model.MarketplaceListing
+import org.noztek.esktransport.feature.passenger.marketplace.domain.repository.MarketplaceRepository
 import org.noztek.esktransport.feature.passenger.marketplace.domain.usecase.GetMarketplaceListingPhotoUseCase
 import org.noztek.esktransport.feature.passenger.marketplace.domain.usecase.GetMarketplaceListingUseCase
 import org.noztek.esktransport.feature.passenger.marketplace.domain.usecase.SendMarketplaceVehicleRequestUseCase
@@ -25,6 +26,7 @@ class MarketplaceListingDetailsViewModel(
     private val getMarketplaceListingUseCase: GetMarketplaceListingUseCase,
     private val getMarketplaceListingPhotoUseCase: GetMarketplaceListingPhotoUseCase,
     private val sendMarketplaceVehicleRequestUseCase: SendMarketplaceVehicleRequestUseCase,
+    private val marketplaceRepository: MarketplaceRepository,
     private val ioDispatcher: CoroutineDispatcher,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(MarketplaceListingDetailsUiState())
@@ -171,6 +173,7 @@ class MarketplaceListingDetailsViewModel(
                         it.copy(
                             isSendingRequest = false,
                             sentRequestPublicId = request.publicId,
+                            serviceRequest = request,
                             errorMessage = null,
                         )
                     }
@@ -183,6 +186,21 @@ class MarketplaceListingDetailsViewModel(
                     }
                     _uiEvents.tryEmit(MarketplaceListingDetailsUiEvent.ShowSnackbar(error))
                 }
+        }
+    }
+
+    fun confirmRequest() = updateRequest { id -> marketplaceRepository.confirmRequest(id) }
+    fun cancelRequest() = updateRequest { id -> marketplaceRepository.cancelRequest(id) }
+    fun completeRequest(cashAmount: Double) = updateRequest { id -> marketplaceRepository.completeRequest(id, cashAmount, _uiState.value.serviceRequest?.currency ?: "PHP") }
+
+    private fun updateRequest(action: suspend (String) -> Result<org.noztek.esktransport.feature.passenger.marketplace.domain.model.MarketplaceServiceRequest>) {
+        val id = _uiState.value.sentRequestPublicId ?: return
+        if (_uiState.value.isUpdatingRequest) return
+        viewModelScope.launch {
+            _uiState.update { it.copy(isUpdatingRequest = true, errorMessage = null) }
+            withContext(ioDispatcher) { action(id) }
+                .onSuccess { request -> _uiState.update { it.copy(serviceRequest = request, isUpdatingRequest = false) } }
+                .onFailure { error -> _uiState.update { it.copy(isUpdatingRequest = false, errorMessage = error.message) } }
         }
     }
 }

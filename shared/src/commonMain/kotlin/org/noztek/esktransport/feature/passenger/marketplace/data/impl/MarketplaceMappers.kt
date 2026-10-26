@@ -54,6 +54,7 @@ fun MarketplaceServiceRequestDto.toDomain(): MarketplaceServiceRequest {
         publicId = publicId,
         serviceType = serviceType,
         status = status,
+        workflowStatus = workflowStatus ?: status,
         requestedStartAt = requestedStartAt,
         requestedEndAt = requestedEndAt,
         pickupLabel = pickupLabel,
@@ -63,6 +64,10 @@ fun MarketplaceServiceRequestDto.toDomain(): MarketplaceServiceRequest {
         cargoWeightKg = cargoWeightKg,
         cargoPieces = cargoPieces,
         currency = currency,
+        quotedAmount = quotedAmount,
+        finalAmount = finalAmount,
+        cashAmount = cashAmount,
+        cashCurrency = cashCurrency,
         createdAt = createdAt,
     )
 }

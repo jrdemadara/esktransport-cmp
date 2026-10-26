@@ -1,6 +1,7 @@
 package org.noztek.esktransport.feature.passenger.marketplace.presentation
 
 import org.noztek.esktransport.feature.passenger.marketplace.domain.model.MarketplaceListing
+import org.noztek.esktransport.feature.passenger.marketplace.domain.model.MarketplaceServiceRequest
 
 data class MarketplaceListingDetailsUiState(
     val isLoading: Boolean = false,
@@ -18,6 +19,8 @@ data class MarketplaceListingDetailsUiState(
     val customerNote: String = "",
     val isSendingRequest: Boolean = false,
     val sentRequestPublicId: String? = null,
+    val serviceRequest: MarketplaceServiceRequest? = null,
+    val isUpdatingRequest: Boolean = false,
     val errorMessage: String? = null,
 ) {
     override fun equals(other: Any?): Boolean {

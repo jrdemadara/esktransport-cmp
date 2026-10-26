@@ -23,6 +23,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Button
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.Icon
@@ -142,23 +143,64 @@ fun MarketplaceListingDetailsScreen(
                     item { PricingCard(listing = listing) }
                     item { DescriptionCard(listing = listing) }
                     item {
-                        RequestVehicleCard(
-                            listing = listing,
-                            uiState = uiState,
-                            onRequestedStartAtChange = viewModel::onRequestedStartAtChange,
-                            onRequestedEndAtChange = viewModel::onRequestedEndAtChange,
-                            onPickupLabelChange = viewModel::onPickupLabelChange,
-                            onDestinationLabelChange = viewModel::onDestinationLabelChange,
-                            onPassengerCountChange = viewModel::onPassengerCountChange,
-                            onCargoDescriptionChange = viewModel::onCargoDescriptionChange,
-                            onCargoWeightKgChange = viewModel::onCargoWeightKgChange,
-                            onCargoPiecesChange = viewModel::onCargoPiecesChange,
-                            onCustomerNoteChange = viewModel::onCustomerNoteChange,
-                            onSendRequestClick = viewModel::sendRequest,
-                            onMessageOwnerClick = { onMessageOwnerClick(listing.publicId) },
-                        )
+                        val serviceRequest = uiState.serviceRequest
+                        if (serviceRequest != null) {
+                            ServiceRequestStatusCard(
+                                request = serviceRequest,
+                                isUpdating = uiState.isUpdatingRequest,
+                                onConfirm = viewModel::confirmRequest,
+                                onCancel = viewModel::cancelRequest,
+                                onComplete = { viewModel.completeRequest(serviceRequest.quotedAmount ?: 0.0) },
+                            )
+                        } else {
+                            RequestVehicleCard(
+                                listing = listing,
+                                uiState = uiState,
+                                onRequestedStartAtChange = viewModel::onRequestedStartAtChange,
+                                onRequestedEndAtChange = viewModel::onRequestedEndAtChange,
+                                onPickupLabelChange = viewModel::onPickupLabelChange,
+                                onDestinationLabelChange = viewModel::onDestinationLabelChange,
+                                onPassengerCountChange = viewModel::onPassengerCountChange,
+                                onCargoDescriptionChange = viewModel::onCargoDescriptionChange,
+                                onCargoWeightKgChange = viewModel::onCargoWeightKgChange,
+                                onCargoPiecesChange = viewModel::onCargoPiecesChange,
+                                onCustomerNoteChange = viewModel::onCustomerNoteChange,
+                                onSendRequestClick = viewModel::sendRequest,
+                                onMessageOwnerClick = { onMessageOwnerClick(listing.publicId) },
+                            )
+                        }
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ServiceRequestStatusCard(
+    request: org.noztek.esktransport.feature.passenger.marketplace.domain.model.MarketplaceServiceRequest,
+    isUpdating: Boolean,
+    onConfirm: () -> Unit,
+    onCancel: () -> Unit,
+    onComplete: () -> Unit,
+) {
+    DetailsSectionCard(title = "Request status", icon = Heroicons.Outline.CheckCircle) {
+        Text(
+            text = request.workflowStatus.replace('_', ' ').uppercaseFirstLetterOfEachWord(),
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
+        )
+        request.quotedAmount?.let { amount ->
+            Text("Quote: ${request.currency} ${formatCompactNumber(amount)}", style = MaterialTheme.typography.bodyMedium)
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            when (request.workflowStatus) {
+                "awaiting_passenger_confirmation" -> {
+                    Button(onClick = onConfirm, enabled = !isUpdating) { Text("Confirm") }
+                    OutlinedButton(onClick = onCancel, enabled = !isUpdating) { Text("Cancel") }
+                }
+                "driver_completed" -> Button(onClick = onComplete, enabled = !isUpdating) { Text("Confirm cash paid") }
+                "awaiting_driver_review", "confirmed" -> OutlinedButton(onClick = onCancel, enabled = !isUpdating) { Text("Cancel") }
             }
         }
     }

@@ -12,6 +12,13 @@ data class DriverMarketplaceInquiriesResponseDto(
 )
 
 @Serializable
+data class ReviewMarketplaceRequestDto(
+    @SerialName("quoted_amount") val quotedAmount: Double,
+    val currency: String = "PHP",
+    @SerialName("owner_note") val ownerNote: String? = null,
+)
+
+@Serializable
 data class DriverMarketplaceInquiryDto(
     val id: Long,
     @SerialName("thread_type")
@@ -24,6 +31,8 @@ data class DriverMarketplaceInquiryDto(
     val vehicleServiceRequestPublicId: String? = null,
     @SerialName("vehicle_service_request_status")
     val vehicleServiceRequestStatus: String? = null,
+    @SerialName("vehicle_service_request_workflow_status")
+    val vehicleServiceRequestWorkflowStatus: String? = null,
     val customer: DriverMarketplaceInquiryCustomerDto,
     val vehicle: DriverMarketplaceInquiryVehicleDto,
     @SerialName("latest_message")
@@ -59,6 +68,7 @@ fun DriverMarketplaceInquiryDto.toDomain(): DriverMarketplaceInquiry {
         vehicleServiceRequestId = vehicleServiceRequestId,
         vehicleServiceRequestPublicId = vehicleServiceRequestPublicId,
         vehicleServiceRequestStatus = vehicleServiceRequestStatus,
+        vehicleServiceRequestWorkflowStatus = vehicleServiceRequestWorkflowStatus,
         customer = DriverMarketplaceInquiryCustomer(
             name = customer.name,
             phone = customer.phone,

@@ -46,6 +46,7 @@ data class MarketplaceServiceRequest(
     val publicId: String,
     val serviceType: String,
     val status: String,
+    val workflowStatus: String = status,
     val requestedStartAt: String?,
     val requestedEndAt: String?,
     val pickupLabel: String?,
@@ -55,6 +56,10 @@ data class MarketplaceServiceRequest(
     val cargoWeightKg: Double?,
     val cargoPieces: Int?,
     val currency: String,
+    val quotedAmount: Double? = null,
+    val finalAmount: Double? = null,
+    val cashAmount: Double? = null,
+    val cashCurrency: String? = null,
     val createdAt: String?,
 )
 

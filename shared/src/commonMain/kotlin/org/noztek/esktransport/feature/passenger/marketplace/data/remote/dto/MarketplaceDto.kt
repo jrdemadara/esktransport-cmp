@@ -46,6 +46,7 @@ data class MarketplaceServiceRequestDto(
     @SerialName("service_type")
     val serviceType: String,
     val status: String,
+    @SerialName("workflow_status") val workflowStatus: String? = null,
     @SerialName("requested_start_at")
     val requestedStartAt: String? = null,
     @SerialName("requested_end_at")
@@ -63,8 +64,18 @@ data class MarketplaceServiceRequestDto(
     @SerialName("cargo_pieces")
     val cargoPieces: Int? = null,
     val currency: String = "PHP",
+    @SerialName("quoted_amount") val quotedAmount: Double? = null,
+    @SerialName("final_amount") val finalAmount: Double? = null,
+    @SerialName("cash_amount") val cashAmount: Double? = null,
+    @SerialName("cash_currency") val cashCurrency: String? = null,
     @SerialName("created_at")
     val createdAt: String? = null,
+)
+
+@Serializable
+data class CompleteMarketplaceRequestDto(
+    @SerialName("cash_amount") val cashAmount: Double,
+    @SerialName("cash_currency") val cashCurrency: String,
 )
 
 @Serializable
