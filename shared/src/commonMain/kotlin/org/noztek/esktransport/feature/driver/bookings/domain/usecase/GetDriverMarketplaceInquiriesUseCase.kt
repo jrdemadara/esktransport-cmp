@@ -5,5 +5,5 @@ import org.noztek.esktransport.feature.driver.bookings.domain.repository.DriverM
 class GetDriverMarketplaceInquiriesUseCase(
     private val repository: DriverMarketplaceInquiriesRepository,
 ) {
-    suspend operator fun invoke() = repository.getInquiries()
+    suspend operator fun invoke() = repository.getInbox()
 }

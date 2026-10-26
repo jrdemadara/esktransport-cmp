@@ -73,6 +73,15 @@ class MarketplaceChatRepositoryImpl(
         }
     }
 
+    override suspend fun markOwnerThreadRead(threadId: Long): Result<Unit> {
+        return try {
+            api.markOwnerThreadRead(threadId)
+            Result.success(Unit)
+        } catch (throwable: Throwable) {
+            Result.failure(IllegalStateException(ApiErrorParser.parse(throwable, "Failed to mark chat as read.")))
+        }
+    }
+
     override suspend fun sendOwnerMessageByThread(
         payload: SendOwnerMarketplaceChatMessagePayload,
     ): Result<MarketplaceChatMessage> {

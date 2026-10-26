@@ -44,6 +44,10 @@ class MarketplaceChatApi(
         return client.get("${baseUrl.trimEnd('/')}/api/v1/rider/vehicle-inquiries/$threadId/messages").body()
     }
 
+    suspend fun markOwnerThreadRead(threadId: Long) {
+        client.post("${baseUrl.trimEnd('/')}/api/v1/rider/vehicle-inquiries/$threadId/read")
+    }
+
     suspend fun sendOwnerMessageByThread(
         threadId: Long,
         request: SendMarketplaceChatMessageRequestDto,

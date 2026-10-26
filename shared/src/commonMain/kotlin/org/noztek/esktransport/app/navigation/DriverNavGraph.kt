@@ -30,6 +30,7 @@ import org.noztek.esktransport.feature.common.presence.domain.model.UserPresence
 import org.noztek.esktransport.feature.common.presence.domain.model.UserPresenceRole
 import org.noztek.esktransport.feature.common.topup.presentation.TopUpScreen
 import org.noztek.esktransport.feature.driver.bookings.presentation.DriverBookingsScreen
+import org.noztek.esktransport.feature.driver.bookings.presentation.DriverMarketplaceRequestDetailsScreen
 import org.noztek.esktransport.feature.driver.bookings.presentation.chatSubtitle
 import org.noztek.esktransport.feature.driver.bookings.presentation.chatTitle
 import org.noztek.esktransport.feature.driver.earning.presentation.EarningsScreen
@@ -232,6 +233,7 @@ fun NavGraphBuilder.driverNavGraph(
         }
         composable(route = DriverBottomBarRoute.BOOKINGS) {
             var activeInquiryThreadId by rememberSaveable { mutableStateOf<Long?>(null) }
+            var activeRequestPublicId by rememberSaveable { mutableStateOf<String?>(null) }
             var activeInquiryTitle by rememberSaveable { mutableStateOf("") }
             var activeInquirySubtitle by rememberSaveable { mutableStateOf("") }
 
@@ -241,11 +243,28 @@ fun NavGraphBuilder.driverNavGraph(
                         navController.navigateDriverBottomBarRoute(route)
                     },
                     onInquiryClick = { inquiry ->
+                        activeRequestPublicId = null
                         activeInquiryThreadId = inquiry.id
                         activeInquiryTitle = inquiry.chatTitle()
                         activeInquirySubtitle = inquiry.chatSubtitle()
                     },
+                    onBookingClick = { booking ->
+                        activeInquiryThreadId = null
+                        activeRequestPublicId = booking.vehicleServiceRequestPublicId
+                    },
                 )
+
+                activeRequestPublicId?.let { requestPublicId ->
+                    DriverMarketplaceRequestDetailsScreen(
+                        requestPublicId = requestPublicId,
+                        onBack = { activeRequestPublicId = null },
+                        onChat = { threadId, title, subtitle ->
+                            activeInquiryThreadId = threadId
+                            activeInquiryTitle = title
+                            activeInquirySubtitle = subtitle
+                        },
+                    )
+                }
 
                 activeInquiryThreadId?.let { threadId ->
                     MarketplaceChatScreen(

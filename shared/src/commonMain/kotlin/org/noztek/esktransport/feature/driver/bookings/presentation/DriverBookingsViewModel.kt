@@ -8,6 +8,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.noztek.esktransport.feature.common.marketplace_chat.domain.model.MarketplaceChatParticipantRole
@@ -40,7 +41,9 @@ class DriverBookingsViewModel(
             result
                 .onSuccess { inquiries ->
                     _uiState.value = _uiState.value.copy(
-                        inquiries = inquiries,
+                        bookings = inquiries.bookings,
+                        inquiries = inquiries.inquiries,
+                        badgeCount = inquiries.badgeCount,
                         isLoading = false,
                         errorMessage = null,
                     )
@@ -67,6 +70,21 @@ class DriverBookingsViewModel(
 
     fun selectFilter(filter: DriverBookingFilter) {
         _uiState.value = _uiState.value.copy(selectedFilter = filter)
+    }
+
+    fun markThreadRead(threadId: Long) {
+        viewModelScope.launch {
+            withContext(ioDispatcher) { marketplaceRepository.markThreadRead(threadId) }
+            _uiState.update { state ->
+                val updated = state.inquiries.map { inquiry ->
+                    if (inquiry.id == threadId) inquiry.copy(unreadCount = 0, hasUnread = false) else inquiry
+                }
+                state.copy(
+                    inquiries = updated,
+                    badgeCount = (state.badgeCount - if (state.inquiries.any { it.id == threadId && it.hasUnread }) 1 else 0).coerceAtLeast(0),
+                )
+            }
+        }
     }
 
     fun acceptRequest(requestPublicId: String, quotedAmount: Double) {

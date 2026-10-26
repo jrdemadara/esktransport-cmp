@@ -18,6 +18,7 @@ import org.noztek.esktransport.feature.common.marketplace_chat.domain.model.Mark
 import org.noztek.esktransport.feature.common.marketplace_chat.domain.model.SendOwnerMarketplaceChatMessagePayload
 import org.noztek.esktransport.feature.common.marketplace_chat.domain.model.SendMarketplaceChatMessagePayload
 import org.noztek.esktransport.feature.common.marketplace_chat.domain.usecase.GetOwnerMarketplaceMessagesUseCase
+import org.noztek.esktransport.feature.common.marketplace_chat.domain.usecase.MarkOwnerMarketplaceThreadReadUseCase
 import org.noztek.esktransport.feature.common.marketplace_chat.domain.usecase.ObserveMarketplaceChatMessagesUseCase
 import org.noztek.esktransport.feature.common.marketplace_chat.domain.usecase.OpenPassengerMarketplaceConversationUseCase
 import org.noztek.esktransport.feature.common.marketplace_chat.domain.usecase.SendOwnerMarketplaceMessageUseCase
@@ -32,6 +33,7 @@ sealed class MarketplaceChatUiEvent {
 class MarketplaceChatViewModel(
     private val openPassengerMarketplaceConversationUseCase: OpenPassengerMarketplaceConversationUseCase,
     private val getOwnerMarketplaceMessagesUseCase: GetOwnerMarketplaceMessagesUseCase,
+    private val markOwnerMarketplaceThreadReadUseCase: MarkOwnerMarketplaceThreadReadUseCase,
     private val sendPassengerMarketplaceMessageUseCase: SendPassengerMarketplaceMessageUseCase,
     private val sendOwnerMarketplaceMessageUseCase: SendOwnerMarketplaceMessageUseCase,
     private val subscribeMarketplaceChatUseCase: SubscribeMarketplaceChatUseCase,
@@ -122,6 +124,7 @@ class MarketplaceChatViewModel(
             }
             result
                 .onSuccess { thread ->
+                    launch { markOwnerMarketplaceThreadReadUseCase(thread.threadId ?: threadId) }
                     _uiState.update {
                         it.copy(
                             isLoading = false,

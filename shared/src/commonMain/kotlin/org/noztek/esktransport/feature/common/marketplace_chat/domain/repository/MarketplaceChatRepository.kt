@@ -11,5 +11,6 @@ interface MarketplaceChatRepository {
     suspend fun getPassengerMessagesByListing(listingPublicId: String): Result<MarketplaceChatThread>
     suspend fun sendPassengerMessageByListing(payload: SendMarketplaceChatMessagePayload): Result<MarketplaceChatMessage>
     suspend fun getOwnerMessagesByThread(threadId: Long): Result<MarketplaceChatThread>
+    suspend fun markOwnerThreadRead(threadId: Long): Result<Unit>
     suspend fun sendOwnerMessageByThread(payload: SendOwnerMarketplaceChatMessagePayload): Result<MarketplaceChatMessage>
 }

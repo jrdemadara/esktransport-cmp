@@ -8,6 +8,8 @@ import org.noztek.esktransport.feature.driver.bookings.domain.repository.DriverM
 import org.noztek.esktransport.feature.driver.bookings.domain.usecase.AcceptDriverMarketplaceRequestUseCase
 import org.noztek.esktransport.feature.driver.bookings.domain.usecase.GetDriverMarketplaceInquiriesUseCase
 import org.noztek.esktransport.feature.driver.bookings.presentation.DriverBookingsViewModel
+import org.noztek.esktransport.feature.driver.bookings.presentation.DriverMarketplaceRequestDetailsViewModel
+import org.noztek.esktransport.feature.driver.bookings.presentation.DriverMarketplaceInboxViewModel
 import org.noztek.esktransport.feature.driver.go.data.impl.GoRepositoryImpl
 import org.noztek.esktransport.feature.driver.go.data.remote.GoApi
 import org.noztek.esktransport.feature.driver.go.domain.repository.GoRepository
@@ -274,6 +276,20 @@ val driverHomeModule = module {
             getDriverMarketplaceInquiriesUseCase = get(),
             acceptDriverMarketplaceRequestUseCase = get(),
             marketplaceRepository = get(),
+            subscribeMarketplaceChatUseCase = get(),
+            observeMarketplaceChatMessagesUseCase = get(),
+            ioDispatcher = get(named(IO_DISPATCHER_QUALIFIER)),
+        )
+    }
+    factory {
+        DriverMarketplaceRequestDetailsViewModel(
+            repository = get(),
+            ioDispatcher = get(named(IO_DISPATCHER_QUALIFIER)),
+        )
+    }
+    factory {
+        DriverMarketplaceInboxViewModel(
+            repository = get(),
             subscribeMarketplaceChatUseCase = get(),
             observeMarketplaceChatMessagesUseCase = get(),
             ioDispatcher = get(named(IO_DISPATCHER_QUALIFIER)),

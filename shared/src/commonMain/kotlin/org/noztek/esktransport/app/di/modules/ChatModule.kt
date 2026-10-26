@@ -19,6 +19,7 @@ import org.noztek.esktransport.feature.common.marketplace_chat.data.realtime.Pus
 import org.noztek.esktransport.feature.common.marketplace_chat.data.remote.MarketplaceChatApi
 import org.noztek.esktransport.feature.common.marketplace_chat.domain.repository.MarketplaceChatRepository
 import org.noztek.esktransport.feature.common.marketplace_chat.domain.usecase.GetOwnerMarketplaceMessagesUseCase
+import org.noztek.esktransport.feature.common.marketplace_chat.domain.usecase.MarkOwnerMarketplaceThreadReadUseCase
 import org.noztek.esktransport.feature.common.marketplace_chat.domain.usecase.GetPassengerMarketplaceMessagesUseCase
 import org.noztek.esktransport.feature.common.marketplace_chat.domain.usecase.ObserveMarketplaceChatMessagesUseCase
 import org.noztek.esktransport.feature.common.marketplace_chat.domain.usecase.OpenPassengerMarketplaceConversationUseCase
@@ -71,6 +72,7 @@ val chatModule = module {
     single { GetPassengerMarketplaceMessagesUseCase(repository = get()) }
     single { SendPassengerMarketplaceMessageUseCase(repository = get()) }
     single { GetOwnerMarketplaceMessagesUseCase(repository = get()) }
+    single { MarkOwnerMarketplaceThreadReadUseCase(repository = get()) }
     single { SendOwnerMarketplaceMessageUseCase(repository = get()) }
     single { SubscribeMarketplaceChatUseCase(realtime = get()) }
     single { UnsubscribeMarketplaceChatUseCase(realtime = get()) }
@@ -79,6 +81,7 @@ val chatModule = module {
         MarketplaceChatViewModel(
             openPassengerMarketplaceConversationUseCase = get(),
             getOwnerMarketplaceMessagesUseCase = get(),
+            markOwnerMarketplaceThreadReadUseCase = get(),
             sendPassengerMarketplaceMessageUseCase = get(),
             sendOwnerMarketplaceMessageUseCase = get(),
             subscribeMarketplaceChatUseCase = get(),

@@ -7,6 +7,12 @@ import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.BadgedBox
+import androidx.compose.material3.Badge
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import org.koin.compose.viewmodel.koinViewModel
+import org.noztek.esktransport.feature.driver.bookings.presentation.DriverMarketplaceInboxViewModel
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -66,7 +72,11 @@ fun DriverBottomBar(
     onNavigate: (String) -> Unit,
     modifier: Modifier = Modifier,
     items: List<DriverBottomBarItem> = defaultDriverBottomBarItems,
+    inboxViewModel: DriverMarketplaceInboxViewModel = koinViewModel(),
+    badgeCount: Int? = null,
 ) {
+    val inboxBadgeCount by inboxViewModel.badgeCount.collectAsState()
+    val visibleBadgeCount = badgeCount ?: inboxBadgeCount
     NavigationBar(
         modifier = modifier,
         windowInsets = WindowInsets(0),
@@ -79,7 +89,15 @@ fun DriverBottomBar(
             NavigationBarItem(
                 selected = selected,
                 onClick = { onNavigate(item.route) },
-                icon = { Icon(item.icon, contentDescription = item.label) },
+                icon = {
+                    if (item.route == DriverBottomBarRoute.BOOKINGS && visibleBadgeCount > 0) {
+                        BadgedBox(badge = { Badge { Text(visibleBadgeCount.toString()) } }) {
+                            Icon(item.icon, contentDescription = item.label)
+                        }
+                    } else {
+                        Icon(item.icon, contentDescription = item.label)
+                    }
+                },
                 label = { Text(item.label) },
                 colors = NavigationBarItemDefaults.colors(
                     selectedIconColor = MaterialTheme.colorScheme.primary,

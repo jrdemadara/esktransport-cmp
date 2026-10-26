@@ -18,16 +18,12 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -59,11 +55,10 @@ import org.noztek.esktransport.feature.driver.bookings.domain.model.DriverMarket
 fun DriverBookingsScreen(
     onBottomBarNavigate: (String) -> Unit = {},
     onInquiryClick: (DriverMarketplaceInquiry) -> Unit = {},
+    onBookingClick: (DriverMarketplaceInquiry) -> Unit = {},
     viewModel: DriverBookingsViewModel = koinViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    var quoteRequestId by remember { mutableStateOf<String?>(null) }
-    var quoteAmount by remember { mutableStateOf("") }
 
     LaunchedEffect(Unit) {
         viewModel.subscribe()
@@ -75,6 +70,7 @@ fun DriverBookingsScreen(
             DriverBottomBar(
                 currentRoute = DriverBottomBarRoute.BOOKINGS,
                 onNavigate = onBottomBarNavigate,
+                badgeCount = uiState.badgeCount,
             )
         },
         contentWindowInsets = WindowInsets.safeDrawing,
@@ -94,7 +90,7 @@ fun DriverBookingsScreen(
                 selectedFilter = uiState.selectedFilter,
                 onFilterClick = viewModel::selectFilter,
             )
-            BookingStatusSummary(inquiries = uiState.inquiries)
+            BookingStatusSummary(bookings = uiState.bookings)
             when {
                 uiState.isLoading -> {
                     Box(
@@ -113,59 +109,59 @@ fun DriverBookingsScreen(
                         icon = Heroicons.Outline.Briefcase,
                     )
                 }
-                uiState.visibleInquiries.isEmpty() -> {
-                    BookingsMessageState(
-                        title = "No rental or cargo messages",
-                        message = "Customer inquiries will show here.",
-                        icon = Heroicons.Outline.ChatBubbleOvalLeft,
-                    )
-                }
                 else -> {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        uiState.visibleInquiries.forEach { inquiry ->
+                    Text(
+                        text = "Bookings",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onBackground,
+                    )
+                    if (uiState.visibleBookings.isEmpty()) {
+                        BookingsMessageState(
+                            title = "No bookings",
+                            message = "Rental and cargo requests will show here.",
+                            icon = Heroicons.Outline.Briefcase,
+                        )
+                    } else {
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            uiState.visibleBookings.forEach { inquiry ->
+                                DriverMarketplaceInquiryCard(
+                                    inquiry = inquiry,
+                                    showMessage = false,
+                                    onClick = { onBookingClick(inquiry) },
+                                )
+                            }
+                        }
+                    }
+                    Text(
+                        text = "Customer inquiries",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onBackground,
+                    )
+                    if (uiState.inquiries.isEmpty()) {
+                        BookingsMessageState(
+                            title = "No customer inquiries",
+                            message = "Customer messages will show here.",
+                            icon = Heroicons.Outline.ChatBubbleOvalLeft,
+                        )
+                    } else {
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            uiState.inquiries.forEach { inquiry ->
                             DriverMarketplaceInquiryCard(
                                 inquiry = inquiry,
-                                isAccepting = uiState.acceptingRequestPublicId == inquiry.vehicleServiceRequestPublicId,
-                                onAcceptClick = { requestId ->
-                                    quoteRequestId = requestId
-                                    quoteAmount = ""
+                                showMessage = true,
+                                onClick = {
+                                    viewModel.markThreadRead(inquiry.id)
+                                    onInquiryClick(inquiry)
                                 },
-                                onStartClick = viewModel::startRequest,
-                                onCompleteClick = viewModel::completeRequest,
-                                onClick = { onInquiryClick(inquiry) },
                             )
+                            }
                         }
                     }
                 }
             }
         }
-    }
-
-    quoteRequestId?.let { requestId ->
-        AlertDialog(
-            onDismissRequest = { quoteRequestId = null },
-            title = { Text("Send a quote") },
-            text = {
-                OutlinedTextField(
-                    value = quoteAmount,
-                    onValueChange = { quoteAmount = it },
-                    label = { Text("Amount") },
-                    singleLine = true,
-                )
-            },
-            confirmButton = {
-                TextButton(
-                    enabled = quoteAmount.toDoubleOrNull() != null,
-                    onClick = {
-                        quoteAmount.toDoubleOrNull()?.let { amount ->
-                            quoteRequestId = null
-                            viewModel.acceptRequest(requestId, amount)
-                        }
-                    },
-                ) { Text("Send") }
-            },
-            dismissButton = { TextButton(onClick = { quoteRequestId = null }) { Text("Cancel") } },
-        )
     }
 }
 
@@ -180,7 +176,7 @@ private fun DriverBookingsHeader() {
             maxLines = 1,
         )
         Text(
-            text = "Rental and cargo requests",
+            text = "Rental, cargo, and customer inquiries",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = 1,
@@ -251,9 +247,9 @@ private fun BookingModePill(
 }
 
 @Composable
-private fun BookingStatusSummary(inquiries: List<DriverMarketplaceInquiry>) {
-    val rentals = inquiries.count { it.serviceType == "rental" }
-    val cargo = inquiries.count { it.serviceType == "cargo" }
+private fun BookingStatusSummary(bookings: List<DriverMarketplaceInquiry>) {
+    val rentals = bookings.count { it.serviceType == "rental" }
+    val cargo = bookings.count { it.serviceType == "cargo" }
 
     Surface(
         modifier = Modifier.fillMaxWidth(),
@@ -268,7 +264,7 @@ private fun BookingStatusSummary(inquiries: List<DriverMarketplaceInquiry>) {
         ) {
             BookingSummaryCell(
                 label = "Requests",
-                value = inquiries.size.toString(),
+                value = bookings.size.toString(),
                 icon = Heroicons.Outline.Briefcase,
                 modifier = Modifier.weight(1f),
             )
@@ -333,10 +329,7 @@ private fun BookingSummaryCell(
 @Composable
 private fun DriverMarketplaceInquiryCard(
     inquiry: DriverMarketplaceInquiry,
-    isAccepting: Boolean,
-    onAcceptClick: (String) -> Unit,
-    onStartClick: (String) -> Unit,
-    onCompleteClick: (String) -> Unit,
+    showMessage: Boolean,
     onClick: () -> Unit,
 ) {
     Surface(
@@ -406,6 +399,15 @@ private fun DriverMarketplaceInquiryCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                 )
+                if (showMessage && !inquiry.latestMessage.isNullOrBlank()) {
+                    Text(
+                        text = inquiry.latestMessage.orEmpty(),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
                 if (!inquiry.canAcceptRequest() && inquiry.requestStatusLabel().isNotBlank()) {
                     Text(
                         text = inquiry.requestStatusLabel(),
@@ -414,26 +416,14 @@ private fun DriverMarketplaceInquiryCard(
                         maxLines = 1,
                     )
                 }
-            }
-            if (inquiry.canAcceptRequest()) {
-                Button(
-                    onClick = { inquiry.vehicleServiceRequestPublicId?.let(onAcceptClick) },
-                    enabled = !isAccepting,
-                    modifier = Modifier.size(width = 84.dp, height = 32.dp),
-                    shape = RoundedCornerShape(8.dp),
-                    contentPadding = PaddingValues(horizontal = 8.dp),
-                ) {
+                if (showMessage && inquiry.hasUnread) {
                     Text(
-                        text = if (isAccepting) "..." else "Accept",
-                        style = MaterialTheme.typography.labelMedium,
+                        text = "Unread",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary,
                         fontWeight = FontWeight.SemiBold,
-                        maxLines = 1,
                     )
                 }
-            } else if (inquiry.vehicleServiceRequestWorkflowStatus == "confirmed") {
-                Button(onClick = { inquiry.vehicleServiceRequestPublicId?.let(onStartClick) }, enabled = !isAccepting, modifier = Modifier.size(width = 84.dp, height = 32.dp), shape = RoundedCornerShape(8.dp), contentPadding = PaddingValues(horizontal = 6.dp)) { Text("Start", style = MaterialTheme.typography.labelMedium) }
-            } else if (inquiry.vehicleServiceRequestWorkflowStatus == "in_progress") {
-                Button(onClick = { inquiry.vehicleServiceRequestPublicId?.let(onCompleteClick) }, enabled = !isAccepting, modifier = Modifier.size(width = 84.dp, height = 32.dp), shape = RoundedCornerShape(8.dp), contentPadding = PaddingValues(horizontal = 6.dp)) { Text("Complete", style = MaterialTheme.typography.labelMedium) }
             }
         }
     }
